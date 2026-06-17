@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present --topological",
+    "build": "npm run build -w @ai-team/core && npm run build -w @ai-team/ai && npm run build -w @ai-team/agent && npm run build -w @ai-team/cli && npm run build -w @ai-team/web",
     "typecheck": "tsc --noEmit",
     "test": "npm run test --workspaces --if-present",
     "dev:web": "npm run dev -w @ai-team/web",
