@@ -1,0 +1,35 @@
+{
+  "name": "ai-team",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered team management: smart interviews, member development, skill tracking, growth trajectories. TypeScript monorepo inspired by pi-mono.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test --workspaces --if-present",
+    "dev:web": "npm run dev -w @ai-team/web",
+    "build:web": "npm run build -w @ai-team/web",
+    "build:cli": "npm run build -w @ai-team/cli",
+    "lint": "echo 'lint placeholder'",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
+  },
+  "keywords": [
+    "ai",
+    "team-management",
+    "interview",
+    "hiring",
+    "llm"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3"
+  }
+}

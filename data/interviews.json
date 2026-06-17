@@ -1,0 +1,48 @@
+[
+  {
+    "id": "iv_20260618-abc123",
+    "candidateId": "ct_20260618-0r91e2",
+    "position": "前端工程师",
+    "type": "technical",
+    "startedAt": "2026-06-17T16:35:12.000Z",
+    "completedAt": "2026-06-17T16:42:08.000Z",
+    "status": "completed",
+    "aiConducted": true,
+    "interviewerName": "AI",
+    "turns": [
+      { "role": "interviewer", "content": "请简单介绍一下你最近做的一个项目，你在其中承担什么角色？", "timestamp": "2026-06-17T16:35:12.000Z" },
+      { "role": "candidate", "content": "我做了 5 年前端，最近的项目是 B 端数据平台，1.5 万日活。我负责前端架构设计和核心模块开发。", "timestamp": "2026-06-17T16:35:25.000Z" },
+      { "role": "interviewer", "content": "你遇到过最有挑战性的技术问题是什么？你是如何解决的？", "timestamp": "2026-06-17T16:35:27.000Z" },
+      { "role": "candidate", "content": "最有挑战的是大规模表格渲染性能不达标。我用虚拟滚动 + Web Worker 解决了，把 10 万行数据从 5 秒降到 200ms。", "timestamp": "2026-06-17T16:36:10.000Z" },
+      { "role": "interviewer", "content": "如果我们有一个日 PV 千万级的页面需要优化首屏性能，你会从哪些方面入手？", "timestamp": "2026-06-17T16:36:12.000Z" },
+      { "role": "candidate", "content": "首屏性能我会从几个层面入手：1) SSR + 边缘缓存降低 TTFB；2) 资源懒加载 + prefetch；3) 关键 CSS 内联；4) 图片 WebP + srcset；5) 监控真实用户性能数据。", "timestamp": "2026-06-17T16:37:25.000Z" },
+      { "role": "interviewer", "content": "请描述一下你对前端工程化的理解，以及你在团队中是怎么实践的？", "timestamp": "2026-06-17T16:37:27.000Z" },
+      { "role": "candidate", "content": "前端工程化是用工具和流程保障团队效率和代码质量。我在团队推过 ESLint + Prettier + Husky pre-commit，CI 跑单测和 type check，模块联邦做微前端。", "timestamp": "2026-06-17T16:38:30.000Z" },
+      { "role": "interviewer", "content": "你希望在下一个岗位上获得什么样的成长？", "timestamp": "2026-06-17T16:38:32.000Z" },
+      { "role": "candidate", "content": "我希望从纯技术往技术 leader 方向走，能影响团队技术决策，培养更多 junior 工程师。", "timestamp": "2026-06-17T16:39:15.000Z" }
+    ],
+    "evaluation": {
+      "overall": 82,
+      "breakdown": {
+        "technical": 85,
+        "communication": 88,
+        "problemSolving": 80,
+        "culture": 75
+      },
+      "strengths": [
+        "前端基础扎实，5 年 React 经验",
+        "性能优化有真实生产案例，数据量化清晰（10万行 5s→200ms）",
+        "工程化意识强，落地过完整方案",
+        "回答有结构，用 STAR 法则讲述项目"
+      ],
+      "concerns": [
+        "系统设计深度可进一步加强（候选人是 P6 申请 P7 角色）",
+        "对团队管理的方法论提及较少"
+      ],
+      "recommendation": "hire",
+      "summary": "候选人具备扎实的前端基础和良好的工程化能力，性能优化案例有说服力。建议进入下一轮交叉面，重点考察系统设计和管理潜力。",
+      "evaluatedAt": "2026-06-17T16:42:08.000Z",
+      "modelUsed": "mock-1.0"
+    }
+  }
+]

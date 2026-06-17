@@ -1,0 +1,40 @@
+[
+  {
+    "id": "mb_20260618-p1zcyv",
+    "name": "李四",
+    "role": "前端工程师",
+    "team": "Web Platform",
+    "joinedAt": "2026-06-17T16:48:26.931Z",
+    "skills": [],
+    "trainings": [],
+    "reviews": [],
+    "status": "active",
+    "level": "P6",
+    "manager": "王五"
+  },
+  {
+    "id": "mb_20260618-lrbmoe",
+    "name": "王五",
+    "role": "Tech Lead",
+    "team": "Web Platform",
+    "joinedAt": "2026-06-17T16:48:27.117Z",
+    "skills": [],
+    "trainings": [],
+    "reviews": [],
+    "status": "active",
+    "level": "P7",
+    "manager": "CTO"
+  },
+  {
+    "id": "mb_20260618-9z4mqt",
+    "name": "赵六",
+    "role": "后端工程师",
+    "team": "Platform",
+    "joinedAt": "2026-06-17T16:48:27.311Z",
+    "skills": [],
+    "trainings": [],
+    "reviews": [],
+    "status": "active",
+    "level": "P5"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "ct_20260618-0r91e2",
+    "name": "张三",
+    "position": "前端工程师",
+    "source": "linkedin",
+    "status": "new",
+    "createdAt": "2026-06-17T16:48:26.741Z",
+    "updatedAt": "2026-06-17T16:48:26.742Z",
+    "email": "zhangsan@example.com",
+    "tags": [
+      "React",
+      "TypeScript"
+    ]
+  }
+]

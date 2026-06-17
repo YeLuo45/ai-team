@@ -1,0 +1,23 @@
+{
+  "name": "@ai-team/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "ai-team": "./bin/ai-team"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x ./bin/ai-team",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-team/core": "*",
+    "@ai-team/ai": "*",
+    "@ai-team/agent": "*",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ]
+}
