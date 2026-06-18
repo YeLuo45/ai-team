@@ -9,12 +9,14 @@ import {
   MemberStore,
   InterviewStore,
   TrainingStore,
+  JsonStore,
   generateId,
   nowIso,
   type Candidate,
   type Member,
   type Interview,
   type Training,
+  type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
 import { InterviewAgent, TrainingAgent } from '@ai-team/agent';
@@ -31,6 +33,7 @@ const candidateStore = CandidateStore.create(DATA_DIR);
 const memberStore = MemberStore.create(DATA_DIR);
 const interviewStore = InterviewStore.create(DATA_DIR);
 const trainingStore = TrainingStore.create(DATA_DIR);
+const skillStore = new JsonStore<Skill>({ baseDir: DATA_DIR, fileName: 'skills.json' });
 
 // LLM client
 const llm = createFromEnv();
@@ -42,13 +45,14 @@ app.get('/api/health', (_req, res) => {
 
 // ============== Team bulk ==============
 app.get('/api/team', async (_req, res) => {
-  const [candidates, members, interviews, trainings] = await Promise.all([
+  const [candidates, members, interviews, trainings, skills] = await Promise.all([
     candidateStore.list(),
     memberStore.list(),
     interviewStore.list(),
     trainingStore.list(),
+    skillStore.list().catch(() => []),
   ]);
-  res.json({ candidates, members, interviews, trainings, generatedAt: nowIso() });
+  res.json({ candidates, members, interviews, trainings, skills, generatedAt: nowIso() });
 });
 
 app.get('/api/stats', async (_req, res) => {
@@ -274,6 +278,71 @@ app.put('/api/trainings/:id', async (req, res) => {
   const updated = await trainingStore.update(req.params.id, req.body as Partial<Training>);
   if (!updated) return res.status(404).json({ error: 'Training not found' });
   res.json(updated);
+});
+
+// ============== Skills ==============
+app.get('/api/skills', async (_req, res) => res.json(await skillStore.list().catch(() => [])));
+
+// IMPORTANT: /graph must be before /:id route
+app.get('/api/skills/graph', async (_req, res) => {
+  const [members, skills] = await Promise.all([
+    memberStore.list(),
+    skillStore.list().catch(() => []),
+  ]);
+  const skillStats = new Map<string, { total: number; count: number; memberIds: string[] }>();
+  for (const m of members) {
+    for (const s of m.skills) {
+      const cur = skillStats.get(s.skillId) ?? { total: 0, count: 0, memberIds: [] };
+      cur.total += s.score;
+      cur.count += 1;
+      cur.memberIds.push(m.id);
+      skillStats.set(s.skillId, cur);
+    }
+  }
+  const skillNodes = skills.map((s) => {
+    const stat = skillStats.get(s.id);
+    return {
+      id: s.id,
+      name: s.name,
+      category: s.category,
+      avgScore: stat ? Math.round(stat.total / stat.count) : 0,
+      memberCount: stat?.count ?? 0,
+    };
+  });
+  const memberNodes = members.map((m) => ({
+    id: m.id,
+    name: m.name,
+    team: m.team,
+    role: m.role,
+    level: m.level ?? '',
+    skillCount: m.skills.length,
+  }));
+  const links: Array<{ source: string; target: string; score: number }> = [];
+  for (const m of members) {
+    for (const s of m.skills) {
+      links.push({ source: m.id, target: s.skillId, score: s.score });
+    }
+  }
+  res.json({ skills: skillNodes, members: memberNodes, links });
+});
+
+app.get('/api/skills/:id', async (req, res) => {
+  const s = await skillStore.get(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Skill not found' });
+  res.json(s);
+});
+
+app.post('/api/skills', async (req, res) => {
+  const body = req.body as Partial<Skill>;
+  if (!body.name) return res.status(400).json({ error: 'name is required' });
+  const skill: Skill = {
+    id: body.id ?? generateId('sk'),
+    name: body.name,
+    category: body.category ?? 'technical',
+    ...(body.description && { description: body.description }),
+  };
+  const saved = await skillStore.add(skill);
+  res.status(201).json(saved);
 });
 
 // ============== Training Plan (AI generated) ==============

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
 import { AddMemberModal } from '../components/AddMemberModal';
+import { TrainingPlanModal } from '../components/TrainingPlanModal';
 
 export function Members() {
   const { data, source, refresh } = useTeamData();
   const [showAdd, setShowAdd] = useState(false);
+  const [trainingTarget, setTrainingTarget] = useState<any>(null);
 
   const byTeam = new Map<string, typeof data.members>();
   for (const m of data.members) {
@@ -31,10 +33,7 @@ export function Members() {
       </div>
 
       {data.members.length === 0 ? (
-        <div className="card text-center text-slate-500">
-          暂无成员
-          {source === 'api' ? <span> · 点击右上角添加</span> : <span> · 启动 server 启用添加功能</span>}
-        </div>
+        <div className="card text-center text-slate-500">暂无成员</div>
       ) : (
         <div className="space-y-6">
           {[...byTeam.entries()].map(([team, members]) => (
@@ -59,6 +58,29 @@ export function Members() {
                       </div>
                       {m.manager && <p className="mt-2 text-xs text-slate-500">经理: {m.manager}</p>}
                       <p className="mt-1 text-xs text-slate-500">入职: {formatDate(m.joinedAt)}</p>
+                      {m.skills.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs text-slate-500">技能 ({m.skills.length})</p>
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {m.skills.slice(0, 5).map((s) => (
+                              <span key={s.skillId} className="badge-blue text-[10px]">
+                                {s.skillId.replace('sk_', '').replace('kafka', 'Kafka').slice(0, 12)} {s.score}
+                              </span>
+                            ))}
+                            {m.skills.length > 5 && <span className="badge-slate text-[10px]">+{m.skills.length - 5}</span>}
+                          </div>
+                        </div>
+                      )}
+                      {source === 'api' && (
+                        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                          <button
+                            onClick={() => setTrainingTarget(m)}
+                            className="btn-primary w-full text-xs"
+                          >
+                            🤖 生成培训计划
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -72,6 +94,14 @@ export function Members() {
         <AddMemberModal
           onClose={() => setShowAdd(false)}
           onAdded={() => refresh()}
+        />
+      )}
+
+      {trainingTarget && (
+        <TrainingPlanModal
+          member={trainingTarget}
+          onClose={() => setTrainingTarget(null)}
+          onSaved={() => refresh()}
         />
       )}
     </div>

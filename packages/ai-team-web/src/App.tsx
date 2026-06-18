@@ -3,6 +3,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Candidates } from './pages/Candidates';
 import { Members } from './pages/Members';
 import { Interviews } from './pages/Interviews';
+import { SkillGraph } from './pages/SkillGraph';
+import { Trainings } from './pages/Trainings';
 
 export default function App() {
   return (
@@ -31,6 +33,12 @@ export default function App() {
             <NavLink to="/interviews" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               面试
             </NavLink>
+            <NavLink to="/skills" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              技能
+            </NavLink>
+            <NavLink to="/trainings" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              培训
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -41,12 +49,14 @@ export default function App() {
           <Route path="/candidates" element={<Candidates />} />
           <Route path="/members" element={<Members />} />
           <Route path="/interviews" element={<Interviews />} />
+          <Route path="/skills" element={<SkillGraph />} />
+          <Route path="/trainings" element={<Trainings />} />
         </Routes>
       </main>
 
       <footer className="mt-12 border-t border-slate-200 bg-white py-6 dark:border-slate-800 dark:bg-slate-900">
         <div className="mx-auto max-w-6xl px-6 text-center text-xs text-slate-500 dark:text-slate-400">
-          ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4
+          ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4 · D3.js 7
         </div>
       </footer>
     </div>

@@ -32,7 +32,28 @@
       "role": "前端工程师",
       "team": "Web Platform",
       "joinedAt": "2026-06-17T16:48:26.931Z",
-      "skills": [],
+      "skills": [
+        {
+          "skillId": "sk_react",
+          "score": 90,
+          "assessedAt": "2026-06-17T16:48:26.931Z"
+        },
+        {
+          "skillId": "sk_node",
+          "score": 75,
+          "assessedAt": "2026-06-17T16:48:26.931Z"
+        },
+        {
+          "skillId": "sk_ts",
+          "score": 85,
+          "assessedAt": "2026-06-17T16:48:26.931Z"
+        },
+        {
+          "skillId": "sk_js",
+          "score": 90,
+          "assessedAt": "2026-06-17T16:48:26.931Z"
+        }
+      ],
       "trainings": [],
       "reviews": [],
       "status": "active",
@@ -45,7 +66,33 @@
       "role": "Tech Lead",
       "team": "Web Platform",
       "joinedAt": "2026-06-17T16:48:27.117Z",
-      "skills": [],
+      "skills": [
+        {
+          "skillId": "sk_react",
+          "score": 88,
+          "assessedAt": "2026-06-17T16:48:27.117Z"
+        },
+        {
+          "skillId": "sk_node",
+          "score": 90,
+          "assessedAt": "2026-06-17T16:48:27.117Z"
+        },
+        {
+          "skillId": "sk_ts",
+          "score": 92,
+          "assessedAt": "2026-06-17T16:48:27.117Z"
+        },
+        {
+          "skillId": "sk_mentoring",
+          "score": 85,
+          "assessedAt": "2026-06-17T16:48:27.117Z"
+        },
+        {
+          "skillId": "sk_lead",
+          "score": 78,
+          "assessedAt": "2026-06-17T16:48:27.117Z"
+        }
+      ],
       "trainings": [],
       "reviews": [],
       "status": "active",
@@ -58,7 +105,28 @@
       "role": "后端工程师",
       "team": "Platform",
       "joinedAt": "2026-06-17T16:48:27.311Z",
-      "skills": [],
+      "skills": [
+        {
+          "skillId": "sk_go",
+          "score": 85,
+          "assessedAt": "2026-06-17T16:48:27.311Z"
+        },
+        {
+          "skillId": "sk_k8s",
+          "score": 78,
+          "assessedAt": "2026-06-17T16:48:27.311Z"
+        },
+        {
+          "skillId": "sk_docker",
+          "score": 88,
+          "assessedAt": "2026-06-17T16:48:27.311Z"
+        },
+        {
+          "skillId": "kafka",
+          "score": 70,
+          "assessedAt": "2026-06-17T16:48:27.311Z"
+        }
+      ],
       "trainings": [],
       "reviews": [],
       "status": "active",
@@ -310,5 +378,5 @@
   ],
   "trainings": [],
   "reviews": [],
-  "generatedAt": "2026-06-18T15:53:26.093Z"
+  "generatedAt": "2026-06-18T23:48:05.671Z"
 }

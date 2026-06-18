@@ -1,0 +1,16 @@
+[
+  { "id": "sk_react", "name": "React", "category": "technical" },
+  { "id": "sk_node", "name": "Node.js", "category": "technical" },
+  { "id": "sk_ts", "name": "TypeScript", "category": "technical" },
+  { "id": "sk_js", "name": "JavaScript", "category": "technical" },
+  { "id": "sk_go", "name": "Go", "category": "technical" },
+  { "id": "sk_k8s", "name": "Kubernetes", "category": "technical" },
+  { "id": "kafka", "name": "Kafka", "category": "tool" },
+  { "id": "sk_redis", "name": "Redis", "category": "tool" },
+  { "id": "sk_docker", "name": "Docker", "category": "tool" },
+  { "id": "sk_design", "name": "系统设计", "category": "domain" },
+  { "id": "sk_modeling", "name": "数据建模", "category": "domain" },
+  { "id": "sk_comm", "name": "沟通能力", "category": "soft" },
+  { "id": "sk_lead", "name": "团队领导", "category": "soft" },
+  { "id": "sk_mentoring", "name": "辅导新人", "category": "soft" }
+]
