@@ -54,6 +54,32 @@ node packages/ai-team-cli/bin/ai-team team overview
 cd packages/ai-team-web && npm run build && npm run preview
 ```
 
+> **⚠️ WSL 用户**: 永远在 **WSL bash** 里跑 `npm install` 和 `node`，不要在 PowerShell 里通过 `\\wsl$\Ubuntu\...` 路径访问。9P/drvfs 挂载是 case-insensitive 且 symlink 语义损坏 — npm workspace 软链会 `EISDIR` 失败，运行时找不到 `@ai-team/core`。详见下方 [常见问题](#常见问题)。
+
+### 🚀 PowerShell 一键搭建 (WSL 用户推荐)
+
+如果你在 PowerShell，但项目在 WSL 里:
+
+```powershell
+wsl -e bash -c "cd /home/hermes/projects/ai-team && unset NODE_ENV && npm install --include=dev && npm run build"
+```
+
+之后可以在 PowerShell 通过 WSL 调用 CLI:
+
+```powershell
+wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team --help"
+wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team team overview"
+```
+
+或者在 PowerShell 里定义个 wrapper:
+
+```powershell
+function ai-team { wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team $args" }
+ai-team --help
+ai-team team overview
+ai-team candidate add "李四" --position "PM" --source referral
+```
+
 ## 端到端 Demo
 
 1. CLI 录入候选人
@@ -82,3 +108,52 @@ export AI_TEAM_LLM_MODEL=gpt-4o-mini
 ## 许可
 
 MIT
+
+## 常见问题
+
+### WSL: `npm install` 报 `EISDIR` 或 `ERR_MODULE_NOT_FOUND @ai-team/core`
+
+**症状** (在 PowerShell 通过 `\\wsl$\Ubuntu\...` 访问时):
+```
+npm error code EISDIR
+npm error syscall symlink
+npm error path \\wsl$\Ubuntu\wsl$\Ubuntu\...
+```
+或
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@ai-team/core'
+```
+
+**根因**: PowerShell 通过 9P/drvfs 挂载访问 WSL 文件 (`\\wsl$\Ubuntu\...`)。这个挂载是 case-insensitive 且 symlink 语义损坏，所以 npm workspace 软链会失败。
+
+**解决**: 永远在 **WSL bash** 里跑，不要在 PowerShell 里:
+
+```powershell
+# 打开 WSL bash
+wsl -e bash
+
+# 或者从 PowerShell 直接派发到 WSL:
+wsl -e bash -c "cd /home/hermes/projects/ai-team && npm install && npm run build"
+```
+
+如果必须在 PowerShell，强制使用扁平 `node_modules`（无软链）:
+
+```powershell
+npm install --install-strategy=nested
+```
+
+但这样更慢且占更多磁盘。**推荐用 WSL bash。**
+
+### WSL: `NODE_ENV=production` 静默跳过 devDependencies
+
+如果 `tsc`、`vite` 等不在 `node_modules/.bin/` 里，检查:
+
+```bash
+echo $NODE_ENV    # 如果是 'production'，npm 会 omit devDeps
+```
+
+修复: `unset NODE_ENV` 或在 `npm install` 前 `export NODE_ENV=development`。
+
+### Windows 文件系统上 git 大小写问题
+
+`git status` 可能显示只有大小写差异的文件（如 `AgentRegistry.ts` vs `agentRegistry.ts`）为 "both modified"。所有 git 操作请在 WSL bash 的 case-sensitive ext4 文件系统上跑，不要在 PowerShell 的 `\\wsl$\Ubuntu\...` 路径上。

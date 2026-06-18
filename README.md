@@ -47,6 +47,32 @@ node packages/ai-team-cli/bin/ai-team team overview
 cd packages/ai-team-web && npm run build && npm run preview
 ```
 
+> **⚠️ WSL users**: Always run `npm install` and `node` from **WSL bash**, not from PowerShell on the `\\wsl$\Ubuntu\...` path. The 9P/drvfs mount is case-insensitive and has broken symlink semantics — npm workspace symlinks will fail with `EISDIR` and `ERR_MODULE_NOT_FOUND`. See [Troubleshooting](#troubleshooting) below.
+
+### 🚀 One-shot PowerShell setup (recommended for WSL users)
+
+If you're in PowerShell but the project lives in WSL, run this:
+
+```powershell
+wsl -e bash -c "cd /home/hermes/projects/ai-team && unset NODE_ENV && npm install --include=dev && npm run build"
+```
+
+After that, you can run the CLI from PowerShell via WSL dispatch:
+
+```powershell
+wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team --help"
+wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team team overview"
+```
+
+Or define a PowerShell wrapper:
+
+```powershell
+function ai-team { wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team $args" }
+ai-team --help
+ai-team team overview
+ai-team candidate add "李四" --position "PM" --source referral
+```
+
 ## End-to-End Demo
 
 1. Add a candidate via CLI
@@ -68,3 +94,52 @@ Works with any OpenAI-compatible API: OpenAI / Azure / OpenRouter / Ollama / vLL
 ## License
 
 MIT
+
+## Troubleshooting
+
+### WSL: `npm install` fails with `EISDIR` or `ERR_MODULE_NOT_FOUND @ai-team/core`
+
+**Symptom** (PowerShell on `\\wsl$\Ubuntu\...` path):
+```
+npm error code EISDIR
+npm error syscall symlink
+npm error path \\wsl$\Ubuntu\wsl$\Ubuntu\...
+```
+or
+```
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@ai-team/core'
+```
+
+**Root cause**: PowerShell accesses WSL files via the 9P/drvfs mount (`\\wsl$\Ubuntu\...`). This mount is case-insensitive and has broken symlink semantics, so npm workspace symlinks fail.
+
+**Fix**: Always run from **WSL bash**, not PowerShell:
+
+```powershell
+# Open a WSL bash session
+wsl -e bash
+
+# Or from PowerShell, dispatch into WSL directly:
+wsl -e bash -c "cd /home/hermes/projects/ai-team && npm install && npm run build"
+```
+
+If you must stay in PowerShell, force a flat `node_modules` (no symlinks):
+
+```powershell
+npm install --install-strategy=nested
+```
+
+But this is slower and uses more disk. **WSL bash is always preferred.**
+
+### WSL: `NODE_ENV=production` silently skips devDependencies
+
+If `tsc`, `vite` etc. don't appear in `node_modules/.bin/`, check:
+
+```bash
+echo $NODE_ENV    # if 'production', npm omits devDeps
+```
+
+Fix: `unset NODE_ENV` or `export NODE_ENV=development` before `npm install`.
+
+### Git on Windows filesystem (case-insensitive)
+
+`git status` may show phantom "both modified" entries for files that differ only in case (e.g. `AgentRegistry.ts` vs `agentRegistry.ts`). Run all git operations from WSL bash on the case-sensitive ext4 filesystem, not from PowerShell on `\\wsl$\Ubuntu\...`.
