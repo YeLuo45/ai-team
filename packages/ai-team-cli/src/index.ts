@@ -11,12 +11,23 @@ const program = new Command();
 program
   .name('ai-team')
   .description('AI-powered team management CLI — interviews, member development, skill tracking')
-  .version('0.1.0');
+  .version('0.2.0');
 
 registerCandidateCommands(program);
 registerInterviewCommands(program);
 registerMemberCommands(program);
 registerTeamCommands(program);
+
+// tui subcommand — delegates to @ai-team/tui
+program
+  .command('tui')
+  .description('启动 TUI 模式 (Ink-based interactive terminal UI)')
+  .option('--api-url <url>', 'API server URL', process.env.AI_TEAM_API_URL ?? 'http://localhost:3000')
+  .action(async (opts) => {
+    process.env.AI_TEAM_API_URL = opts.apiUrl;
+    const { run } = await import('@ai-team/tui/run');
+    await run();
+  });
 
 program.parseAsync(process.argv).catch((err) => {
   console.error('Error:', err.message ?? err);

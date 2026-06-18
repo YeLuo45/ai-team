@@ -89,8 +89,13 @@ export class InterviewAgent {
           // We've collected enough; produce eval and return null
           return null;
         }
-        // Get next question
-        return session.nextQuestion();
+        // Get next question; if LLM returns evaluation JSON, treat as done
+        const next = await session.nextQuestion();
+        if (next.trim().startsWith('{')) {
+          // LLM returned evaluation JSON — force finalize
+          return null;
+        }
+        return next;
       },
       finalize: async () => {
         const messages = buildEvaluationMessages(

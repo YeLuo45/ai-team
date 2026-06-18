@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+// ai-team-tui CLI entry — resolves to dist/run.js
+import('../dist/run.js');

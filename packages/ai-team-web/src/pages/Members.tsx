@@ -1,15 +1,11 @@
-import { useEffect, useState } from 'react';
-import { loadTeamData, type TeamData } from '../lib/data';
+import { useState } from 'react';
+import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
+import { AddMemberModal } from '../components/AddMemberModal';
 
 export function Members() {
-  const [data, setData] = useState<TeamData | null>(null);
-
-  useEffect(() => {
-    loadTeamData().then(setData);
-  }, []);
-
-  if (!data) return <div className="text-slate-500">加载中...</div>;
+  const { data, source, refresh } = useTeamData();
+  const [showAdd, setShowAdd] = useState(false);
 
   const byTeam = new Map<string, typeof data.members>();
   for (const m of data.members) {
@@ -20,14 +16,24 @@ export function Members() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">团队成员</h2>
-        <p className="mt-1 text-sm text-slate-500">共 {data.members.length} 位成员，{byTeam.size} 个团队</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">团队成员</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            共 {data.members.length} 位成员，{byTeam.size} 个团队
+            {source === 'static' && <span className="ml-2 badge-amber">静态数据</span>}
+            {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
+          </p>
+        </div>
+        {source === 'api' && (
+          <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加成员</button>
+        )}
       </div>
 
       {data.members.length === 0 ? (
         <div className="card text-center text-slate-500">
-          暂无成员。使用 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">ai-team member add</code> 添加
+          暂无成员
+          {source === 'api' ? <span> · 点击右上角添加</span> : <span> · 启动 server 启用添加功能</span>}
         </div>
       ) : (
         <div className="space-y-6">
@@ -53,16 +59,6 @@ export function Members() {
                       </div>
                       {m.manager && <p className="mt-2 text-xs text-slate-500">经理: {m.manager}</p>}
                       <p className="mt-1 text-xs text-slate-500">入职: {formatDate(m.joinedAt)}</p>
-                      {m.skills.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-xs text-slate-500">技能 ({m.skills.length})</p>
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {m.skills.slice(0, 6).map((s) => (
-                              <span key={s.skillId} className="badge-blue">{s.skillId} {s.score}</span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   );
                 })}
@@ -70,6 +66,13 @@ export function Members() {
             </div>
           ))}
         </div>
+      )}
+
+      {showAdd && (
+        <AddMemberModal
+          onClose={() => setShowAdd(false)}
+          onAdded={() => refresh()}
+        />
       )}
     </div>
   );

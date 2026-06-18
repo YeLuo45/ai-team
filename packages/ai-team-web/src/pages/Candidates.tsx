@@ -1,43 +1,64 @@
-import { useEffect, useState } from 'react';
-import { loadTeamData, type TeamData } from '../lib/data';
+import { useState } from 'react';
+import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
+import { AddCandidateModal } from '../components/AddCandidateModal';
+import { InterviewSimulator } from '../components/InterviewSimulator';
+import { api } from '../lib/api';
+import type { Candidate } from '@ai-team/core';
 
 export function Candidates() {
-  const [data, setData] = useState<TeamData | null>(null);
+  const { data, source, refresh } = useTeamData();
   const [filter, setFilter] = useState<string>('all');
-
-  useEffect(() => {
-    loadTeamData().then(setData);
-  }, []);
-
-  if (!data) return <div className="text-slate-500">加载中...</div>;
+  const [showAdd, setShowAdd] = useState(false);
+  const [interviewTarget, setInterviewTarget] = useState<Candidate | null>(null);
 
   const items = filter === 'all' ? data.candidates : data.candidates.filter((c) => c.status === filter);
   const statuses = ['all', ...new Set(data.candidates.map((c) => c.status))];
+
+  const handleStartInterview = async (c: Candidate) => {
+    if (source === 'api') {
+      setInterviewTarget(c);
+    } else {
+      alert('面试功能需要连接 server。请先启动 @ai-team/server (npm run dev:server)');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('确定删除？')) return;
+    if (source === 'api') {
+      await api.deleteCandidate(id);
+      await refresh();
+    } else {
+      alert('删除功能需要连接 server');
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">候选人</h2>
-          <p className="mt-1 text-sm text-slate-500">共 {data.candidates.length} 位候选人</p>
+          <p className="mt-1 text-sm text-slate-500">
+            共 {data.candidates.length} 位候选人
+            {source === 'static' && <span className="ml-2 badge-amber">静态数据 (启动 server 启用交互)</span>}
+            {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
+          </p>
         </div>
         <div className="flex gap-2">
           {statuses.map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`btn ${filter === s ? 'bg-brand-50 text-brand-700' : 'btn-ghost'}`}
-            >
+            <button key={s} onClick={() => setFilter(s)}
+              className={`btn ${filter === s ? 'bg-brand-50 text-brand-700' : 'btn-ghost'}`}>
               {s === 'all' ? '全部' : statusLabel(s).text}
             </button>
           ))}
+          <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加</button>
         </div>
       </div>
 
       {items.length === 0 ? (
         <div className="card text-center text-slate-500">
-          暂无候选人。使用 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">ai-team candidate add</code> 录入
+          暂无候选人。
+          {source === 'api' ? <span> 点击右上角 "+ 添加" 录入</span> : <span> 启动 server 启用添加功能</span>}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -60,15 +81,38 @@ export function Candidates() {
                 </div>
                 {c0.tags && c0.tags.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {c0.tags.map((t) => (
-                      <span key={t} className="badge-slate">{t}</span>
-                    ))}
+                    {c0.tags.map((t) => <span key={t} className="badge-slate">{t}</span>)}
+                  </div>
+                )}
+                {source === 'api' && (
+                  <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <button onClick={() => handleStartInterview(c0)} className="btn-primary text-xs">
+                      🤖 开始面试
+                    </button>
+                    <button onClick={() => handleDelete(c0.id)} className="btn-ghost text-xs">
+                      🗑 删除
+                    </button>
                   </div>
                 )}
               </div>
             );
           })}
         </div>
+      )}
+
+      {showAdd && (
+        <AddCandidateModal
+          onClose={() => setShowAdd(false)}
+          onAdded={() => refresh()}
+        />
+      )}
+
+      {interviewTarget && (
+        <InterviewSimulator
+          candidate={interviewTarget}
+          onClose={() => { setInterviewTarget(null); refresh(); }}
+          onComplete={() => refresh()}
+        />
       )}
     </div>
   );

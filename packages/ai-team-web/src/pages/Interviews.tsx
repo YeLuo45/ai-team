@@ -1,33 +1,41 @@
-import { useEffect, useState } from 'react';
-import { loadTeamData, type TeamData } from '../lib/data';
+import { useState, useEffect } from 'react';
+import { useTeamData } from '../lib/hooks';
 import { formatDate, formatDateTime, recommendationLabel, statusLabel } from '../lib/format';
 
 export function Interviews() {
-  const [data, setData] = useState<TeamData | null>(null);
+  const { data, loading, source } = useTeamData();
   const [selected, setSelected] = useState<string | null>(null);
 
+  // Auto-select first interview
   useEffect(() => {
-    loadTeamData().then(setData);
-  }, []);
+    if (!selected && data.interviews.length > 0) {
+      setSelected(data.interviews[0].id);
+    }
+  }, [data.interviews, selected]);
 
-  if (!data) return <div className="text-slate-500">加载中...</div>;
+  if (loading) return <div className="text-slate-500">加载中...</div>;
 
   const sorted = [...data.interviews].sort((a, b) =>
     (b.completedAt ?? b.startedAt ?? '').localeCompare(a.completedAt ?? a.startedAt ?? '')
   );
 
-  const selected_iv = selected ? sorted.find((i) => i.id === selected) : null;
+  const selectedIv = selected ? sorted.find((i) => i.id === selected) : null;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">面试记录</h2>
-        <p className="mt-1 text-sm text-slate-500">共 {data.interviews.length} 场面试</p>
+        <p className="mt-1 text-sm text-slate-500">
+          共 {data.interviews.length} 场面试
+          {source === 'static' && <span className="ml-2 badge-amber">静态数据</span>}
+          {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
+        </p>
       </div>
 
       {sorted.length === 0 ? (
         <div className="card text-center text-slate-500">
-          暂无面试记录。使用 <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">ai-team interview start &lt;candidate-id&gt;</code> 启动
+          暂无面试记录
+          {source === 'api' && <span> · 去 Candidates 页点击 "🤖 开始面试" 启动</span>}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -65,11 +73,7 @@ export function Interviews() {
           </div>
 
           <div className="lg:col-span-2">
-            {selected_iv ? (
-              <InterviewDetail interview={selected_iv} />
-            ) : (
-              <div className="card text-center text-slate-500">← 选择一场面试查看详情</div>
-            )}
+            {selectedIv ? <InterviewDetail interview={selectedIv} /> : <div className="card text-center text-slate-500">← 选择一场面试</div>}
           </div>
         </div>
       )}
@@ -77,7 +81,7 @@ export function Interviews() {
   );
 }
 
-function InterviewDetail({ interview }: { interview: NonNullable<ReturnType<typeof Object>['name']> extends never ? never : any }) {
+function InterviewDetail({ interview }: { interview: any }) {
   const iv = interview;
   const rec = recommendationLabel(iv.evaluation?.recommendation);
   return (
@@ -116,9 +120,7 @@ function InterviewDetail({ interview }: { interview: NonNullable<ReturnType<type
             <div className="mt-3">
               <p className="text-xs font-semibold text-emerald-600">优势</p>
               <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                {iv.evaluation.strengths.map((s: string, i: number) => (
-                  <li key={i}>· {s}</li>
-                ))}
+                {iv.evaluation.strengths.map((s: string, i: number) => <li key={i}>· {s}</li>)}
               </ul>
             </div>
           )}
@@ -126,14 +128,9 @@ function InterviewDetail({ interview }: { interview: NonNullable<ReturnType<type
             <div className="mt-3">
               <p className="text-xs font-semibold text-rose-600">顾虑</p>
               <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                {iv.evaluation.concerns.map((s: string, i: number) => (
-                  <li key={i}>· {s}</li>
-                ))}
+                {iv.evaluation.concerns.map((s: string, i: number) => <li key={i}>· {s}</li>)}
               </ul>
             </div>
-          )}
-          {iv.evaluation.modelUsed && (
-            <p className="mt-3 text-xs text-slate-400">评估模型: {iv.evaluation.modelUsed}</p>
           )}
         </div>
       )}
@@ -142,14 +139,9 @@ function InterviewDetail({ interview }: { interview: NonNullable<ReturnType<type
         <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">对话记录 ({iv.turns.length} 轮)</h4>
         <div className="space-y-2">
           {iv.turns.map((t: any, i: number) => (
-            <div
-              key={i}
-              className={`rounded-lg p-3 text-sm ${
-                t.role === 'interviewer'
-                  ? 'bg-brand-50 dark:bg-brand-900/20'
-                  : 'bg-slate-50 dark:bg-slate-800/50'
-              }`}
-            >
+            <div key={i} className={`rounded-lg p-3 text-sm ${
+              t.role === 'interviewer' ? 'bg-brand-50 dark:bg-brand-900/20' : 'bg-slate-50 dark:bg-slate-800/50'
+            }`}>
               <div className="mb-1 text-xs font-medium text-slate-500">
                 {t.role === 'interviewer' ? '🤖 面试官' : '👤 候选人'} · {formatDateTime(t.timestamp)}
               </div>

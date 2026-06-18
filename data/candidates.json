@@ -4,13 +4,23 @@
     "name": "张三",
     "position": "前端工程师",
     "source": "linkedin",
-    "status": "new",
+    "status": "interviewing",
     "createdAt": "2026-06-17T16:48:26.741Z",
-    "updatedAt": "2026-06-17T16:48:26.742Z",
+    "updatedAt": "2026-06-18T15:53:03.500Z",
     "email": "zhangsan@example.com",
     "tags": [
       "React",
       "TypeScript"
     ]
+  },
+  {
+    "id": "ct_20260618-7a1hrh",
+    "name": "测试候选人",
+    "position": "DevOps",
+    "source": "referral",
+    "status": "new",
+    "createdAt": "2026-06-18T15:27:05.331Z",
+    "updatedAt": "2026-06-18T15:27:05.331Z",
+    "email": "test@example.com"
   }
 ]

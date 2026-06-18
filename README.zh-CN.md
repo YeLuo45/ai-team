@@ -24,8 +24,10 @@
 | **[@ai-team/core](./packages/ai-team-core)** | 领域类型 (Candidate/Member/Skill/Interview/Training/Review) + JSON 文件存储 |
 | **[@ai-team/ai](./packages/ai-team-ai)** | LLM 包装 (OpenAI 兼容 + Mock) + 面试/培训 prompt 模板 |
 | **[@ai-team/agent](./packages/ai-team-agent)** | 面试 Agent (多轮对话 + 评估) + 培训计划 Agent |
-| **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview` |
-| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 Dashboard |
+| **[@ai-team/server](./packages/ai-team-server)** | Express REST API 服务器 (3000 端口) + LLM 代理 |
+| **[@ai-team/tui](./packages/ai-team-tui)** | Ink 交互式 TUI (4 视图 + 表单) |
+| **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
+| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 Dashboard (含表单 + 面试模拟器) |
 
 ## 快速开始
 
@@ -33,26 +35,54 @@
 # 安装
 npm install
 
-# 构建所有包
+# 构建 7 个包
 npm run build
 
-# 运行 CLI（无 API key 会用 Mock client）
+# 1. 启动 server (一个终端)
+npm run dev:server
+# → 监听 http://localhost:3000
+
+# 2. CLI 模式 (另一个终端)
 node packages/ai-team-cli/bin/ai-team --help
-
-# 录入候选人
 node packages/ai-team-cli/bin/ai-team candidate add "张三" \
-  --position "前端工程师" --source linkedin \
-  --email "zhangsan@example.com" --tags "React,TypeScript"
+  --position "前端工程师" --source linkedin --email "zhangsan@example.com"
 
-# 启动 AI 面试（交互式，需要 TTY）
-node packages/ai-team-cli/bin/ai-team interview start <candidate-id>
+# 3. TUI 模式 (终端内交互)
+node packages/ai-team-cli/bin/ai-team tui
 
-# 团队概览
-node packages/ai-team-cli/bin/ai-team team overview
-
-# 构建并预览 Web Dashboard
-cd packages/ai-team-web && npm run build && npm run preview
+# 4. Web 模式 (浏览器内交互)
+cd packages/ai-team-web && npm run dev
+# → http://localhost:5173 (proxy /api → :3000)
 ```
+
+## 三种模式 (V2+)
+
+### 🖥️ CLI 模式 — 一次性命令
+```bash
+ai-team candidate add "张三" --position "前端工程师"
+ai-team interview start <candidate-id>
+ai-team team overview
+```
+
+### ⌨️ TUI 模式 — 交互式终端 UI
+```bash
+ai-team tui
+```
+基于 Ink 的 4 视图: Dashboard / Candidates / Members / Interviews。可在 Candidates 页添加候选人、启动面试。按 `?` 看帮助，`q` 退出。
+
+### 🌐 Web 模式 — 浏览器内交互
+```bash
+# 需要先启动 server
+cd packages/ai-team-web && npm run dev
+```
+React 19 Dashboard，支持:
+- Candidates / Members 页 "添加" 按钮 (实时数据)
+- 每个候选人 "开始面试" 按钮 → 浏览器内 AI 聊天
+- 实时数据刷新
+
+**注意**: Web 模式自动检测 server 状态:
+- 启动 server → 实时数据，可添加、面试
+- 未启动 → 回退到构建时静态数据 (只读)
 
 > **⚠️ WSL 用户**: 永远在 **WSL bash** 里跑 `npm install` 和 `node`，不要在 PowerShell 里通过 `\\wsl$\Ubuntu\...` 路径访问。9P/drvfs 挂载是 case-insensitive 且 symlink 语义损坏 — npm workspace 软链会 `EISDIR` 失败，运行时找不到 `@ai-team/core`。详见下方 [常见问题](#常见问题)。
 

@@ -17,8 +17,10 @@ A TypeScript monorepo inspired by [pi-mono](https://github.com/YeLuo45/pi-mono)'
 | **[@ai-team/core](./packages/ai-team-core)** | Domain types (Candidate/Member/Skill/Interview/Training/Review) + JSON file store |
 | **[@ai-team/ai](./packages/ai-team-ai)** | LLM wrapper (OpenAI-compatible + Mock) + interview/training prompt templates |
 | **[@ai-team/agent](./packages/ai-team-agent)** | Interview agent (multi-turn dialogue + evaluation) + Training plan agent |
-| **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview` |
-| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 dashboard |
+| **[@ai-team/server](./packages/ai-team-server)** | Express REST API server (port 3000) + LLM proxy |
+| **[@ai-team/tui](./packages/ai-team-tui)** | Ink-based interactive TUI (4 views + forms) |
+| **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
+| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 dashboard (interactive with forms & interview simulator) |
 
 ## Quick Start
 
@@ -26,26 +28,54 @@ A TypeScript monorepo inspired by [pi-mono](https://github.com/YeLuo45/pi-mono)'
 # Install
 npm install
 
-# Build all packages
+# Build all 7 packages
 npm run build
 
-# Run CLI (no API key → uses Mock client)
+# 1. Start the server (one terminal)
+npm run dev:server
+# → listening on http://localhost:3000
+
+# 2. Use CLI (another terminal)
 node packages/ai-team-cli/bin/ai-team --help
-
-# Add a candidate
 node packages/ai-team-cli/bin/ai-team candidate add "张三" \
-  --position "前端工程师" --source linkedin \
-  --email "zhangsan@example.com" --tags "React,TypeScript"
+  --position "前端工程师" --source linkedin --email "zhangsan@example.com"
 
-# Start an AI interview (interactive, requires TTY)
-node packages/ai-team-cli/bin/ai-team interview start <candidate-id>
+# 3. Launch TUI mode (interactive terminal UI)
+node packages/ai-team-cli/bin/ai-team tui
 
-# View team overview
-node packages/ai-team-cli/bin/ai-team team overview
-
-# Build & preview the web dashboard
-cd packages/ai-team-web && npm run build && npm run preview
+# 4. Launch Web mode (interactive browser)
+cd packages/ai-team-web && npm run dev
+# → http://localhost:5173 (proxies /api → :3000)
 ```
+
+## Three Modes (V2+)
+
+### 🖥️ CLI mode — one-shot commands
+```bash
+ai-team candidate add "张三" --position "前端工程师"
+ai-team interview start <candidate-id>
+ai-team team overview
+```
+
+### ⌨️ TUI mode — interactive terminal UI
+```bash
+ai-team tui
+```
+Ink-based 4 views: Dashboard / Candidates / Members / Interviews. Forms to add candidates/members. Start AI interviews from Candidates page. Press `?` for help, `q` to quit.
+
+### 🌐 Web mode — interactive browser
+```bash
+# Requires server running on 3000
+cd packages/ai-team-web && npm run dev
+```
+React 19 dashboard with:
+- "Add" buttons on Candidates / Members pages (live data)
+- "Start interview" button per candidate → in-browser AI chat
+- Real-time data refresh
+
+**Note**: Web mode auto-detects whether the server is running:
+- If yes → live data with forms, add buttons, interview simulator
+- If no → falls back to static build-time data (read-only)
 
 > **⚠️ WSL users**: Always run `npm install` and `node` from **WSL bash**, not from PowerShell on the `\\wsl$\Ubuntu\...` path. The 9P/drvfs mount is case-insensitive and has broken symlink semantics — npm workspace symlinks will fail with `EISDIR` and `ERR_MODULE_NOT_FOUND`. See [Troubleshooting](#troubleshooting) below.
 
