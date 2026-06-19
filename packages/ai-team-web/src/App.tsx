@@ -16,6 +16,7 @@ export default function App() {
   return (
     <ToastProvider>
       <HashRouter>
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -86,6 +87,7 @@ export default function App() {
           ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4 · D3.js 7
         </div>
       </footer>
+        </div>
       </HashRouter>
     </ToastProvider>
   );

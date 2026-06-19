@@ -43,7 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [removeToast]);
   const clearToasts = useCallback(() => setToasts([]), []);
 
-  // Subscribe to SSE for real-time notifications
+  // Subscribe to SSE for real-time notifications (only when explicitly enabled)
   const { connected } = useEventSource<any>('/api/events/stream', (event) => {
     if (event.event === 'interview.completed' && event.data) {
       const iv = event.data;
@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         message: `${t.title} - ${t.memberId}`,
       });
     }
-  }, { enabled: typeof window !== 'undefined' && window.location.hostname === 'localhost' });
+  }, { enabled: false });  // TODO: re-enable when SSE auth/filtering is sorted out
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, removeToast, clearToasts }}>
