@@ -50,6 +50,15 @@
       "status": "new",
       "createdAt": "2026-06-19T01:41:06.301Z",
       "updatedAt": "2026-06-19T01:41:06.301Z"
+    },
+    {
+      "id": "ct_20260619-0k1jjs",
+      "name": "SSE测试",
+      "position": "Dev",
+      "source": "website",
+      "status": "new",
+      "createdAt": "2026-06-19T03:40:25.946Z",
+      "updatedAt": "2026-06-19T03:40:25.946Z"
     }
   ],
   "members": [
@@ -425,5 +434,5 @@
       "reviewer": "Manager"
     }
   ],
-  "generatedAt": "2026-06-19T01:42:41.580Z"
+  "generatedAt": "2026-06-19T07:50:30.205Z"
 }

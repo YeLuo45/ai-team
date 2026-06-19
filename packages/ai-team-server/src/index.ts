@@ -20,9 +20,10 @@ import {
   type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
-import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent } from '@ai-team/agent';
+import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent, InsightsAgent, computeFunnel, computeSkillGaps, computeMemberGrowth, detectAnomalies } from '@ai-team/agent';
 import type { Review } from '@ai-team/core';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
+import { sseManager } from './sse.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -152,6 +153,8 @@ app.post('/api/candidates', async (req, res) => {
     link: '#/candidates',
   });
   pluginManager.fireHook('candidate.created', saved);
+  // Broadcast via SSE
+  sseManager.broadcast('candidate.created', saved);
   res.status(201).json(saved);
 });
 
@@ -289,6 +292,8 @@ app.post('/api/interviews/:id/finalize', async (req, res) => {
       });
     }
     pluginManager.fireHook('interview.completed', finalInterview);
+    // Broadcast via SSE
+    sseManager.broadcast('interview.completed', finalInterview);
     res.json(finalInterview);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -611,6 +616,54 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
+});
+
+// ============== SSE (Server-Sent Events) ==============
+app.get('/api/events/stream', (req, res) => {
+  const clientId = sseManager.addClient(res);
+  req.on('close', () => sseManager.removeClient(clientId));
+});
+
+// ============== Insights (V14) ==============
+
+app.get('/api/insights/funnel', async (_req, res) => {
+  const [candidates, interviews] = await Promise.all([candidateStore.list(), interviewStore.list()]);
+  res.json(computeFunnel(candidates, interviews));
+});
+
+app.get('/api/insights/skill-gaps', async (req, res) => {
+  const members = await memberStore.list();
+  const required = (req.query.required as string)?.split(',').filter(Boolean) ?? [];
+  res.json(computeSkillGaps(members, required));
+});
+
+app.get('/api/insights/member-growth/:memberId', async (req, res) => {
+  const member = await memberStore.get(req.params.memberId);
+  if (!member) return res.status(404).json({ error: 'Member not found' });
+  const reviews = await reviewStore.list().catch(() => []);
+  res.json(computeMemberGrowth(member, reviews));
+});
+
+app.get('/api/insights/recommendations', async (_req, res) => {
+  const [members, candidates, interviews, reviews] = await Promise.all([
+    memberStore.list(),
+    candidateStore.list(),
+    interviewStore.list(),
+    reviewStore.list().catch(() => []),
+  ]);
+  const agent = new InsightsAgent(llm);
+  const result = await agent.analyze({ members, candidates, interviews, reviews });
+  res.json(result);
+});
+
+app.get('/api/insights/anomalies', async (_req, res) => {
+  const [members, candidates, interviews, reviews] = await Promise.all([
+    memberStore.list(),
+    candidateStore.list(),
+    interviewStore.list(),
+    reviewStore.list().catch(() => []),
+  ]);
+  res.json({ anomalies: detectAnomalies({ members, candidates, interviews, reviews }) });
 });
 
 // ============== Reviews ==============

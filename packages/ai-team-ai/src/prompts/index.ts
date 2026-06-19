@@ -130,3 +130,48 @@ export function buildTrainingPlanMessages(
     },
   ];
 }
+
+export function buildInsightsMessages(input: {
+  members: Array<{ name: string; role: string; team: string; level?: string; skills: Array<{ name: string; score: number }> }>;
+  candidates: number;
+  interviewsCompleted: number;
+  interviewsFailed: number;
+  averageScore: number;
+  requiredSkills: string[];
+}): ChatMessage[] {
+  const memberSummary = input.members
+    .slice(0, 30)
+    .map((m) => `- ${m.name} (${m.role}, ${m.team}${m.level ? `, ${m.level}` : ''}): ${m.skills.length} 项技能`)
+    .join('\n');
+
+  return [
+    {
+      role: 'system',
+      content: `你是一位资深 HR 分析师。基于团队数据,给出 3-5 条可执行的 AI 建议,识别潜在问题。
+
+返回 JSON 格式:
+{
+  "summary": "一句话总结当前团队状态",
+  "recommendations": [
+    { "priority": "high|medium|low", "category": "hiring|training|process|culture", "message": "具体建议" }
+  ]
+}`,
+    },
+    {
+      role: 'user',
+      content: `团队概况:
+- 成员数: ${input.members.length}
+${memberSummary}
+
+候选人/面试:
+- 候选人数: ${input.candidates}
+- 已完成面试: ${input.interviewsCompleted}
+- 面试未通过: ${input.interviewsFailed}
+- 平均面试分: ${input.averageScore}
+
+业务需要的技能: ${input.requiredSkills.length > 0 ? input.requiredSkills.join(', ') : '（未指定）'}
+
+请给出 3-5 条 actionable 建议。`,
+    },
+  ];
+}

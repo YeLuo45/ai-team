@@ -7,5 +7,14 @@
     "title": "👤 新候选人",
     "message": "通知测试 (Dev)",
     "link": "#/candidates"
+  },
+  {
+    "id": "nt_20260619-32djz1",
+    "read": false,
+    "createdAt": "2026-06-19T03:40:25.951Z",
+    "type": "candidate.created",
+    "title": "👤 新候选人",
+    "message": "SSE测试 (Dev)",
+    "link": "#/candidates"
   }
 ]

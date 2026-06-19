@@ -9,10 +9,13 @@ import { Reviews } from './pages/Reviews';
 import { Plugins } from './pages/Plugins';
 import { Notifications } from './pages/Notifications';
 import { Data } from './pages/Data';
+import { Insights } from './pages/Insights';
+import { ToastProvider } from './components/Toast';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <ToastProvider>
+      <HashRouter>
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -49,6 +52,9 @@ export default function App() {
             <NavLink to="/plugins" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               插件
             </NavLink>
+            <NavLink to="/insights" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              智能
+            </NavLink>
             <NavLink to="/notifications" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               通知
             </NavLink>
@@ -69,6 +75,7 @@ export default function App() {
           <Route path="/trainings" element={<Trainings />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/plugins" element={<Plugins />} />
+          <Route path="/insights" element={<Insights />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/data" element={<Data />} />
         </Routes>
@@ -79,6 +86,7 @@ export default function App() {
           ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4 · D3.js 7
         </div>
       </footer>
-    </div>
+      </HashRouter>
+    </ToastProvider>
   );
 }
