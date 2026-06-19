@@ -1,0 +1,34 @@
+{
+  "id": "slack-notifier",
+  "manifest": {
+    "id": "slack-notifier",
+    "name": "Slack 通知",
+    "version": "1.0.0",
+    "author": "ai-team",
+    "description": "当关键事件发生时（面试完成/Review 保存/新候选人），向 Slack 频道发送 Webhook 通知。",
+    "icon": "💬",
+    "category": "integration",
+    "hooks": [
+      {
+        "event": "interview.completed"
+      },
+      {
+        "event": "review.saved"
+      },
+      {
+        "event": "candidate.created"
+      }
+    ],
+    "configSchema": {
+      "webhookUrl": {
+        "type": "string",
+        "description": "Slack Incoming Webhook URL (留空则不发送)"
+      }
+    }
+  },
+  "enabled": true,
+  "config": {
+    "webhookUrl": ""
+  },
+  "installedAt": "2026-06-19T00:00:00.000Z"
+}

@@ -69,4 +69,25 @@ export class ApiClient {
   }
 }
 
+// Plugins
+export interface PluginManifest {
+  id: string;
+  name: string;
+  version: string;
+  author?: string;
+  description: string;
+  icon?: string;
+  category?: 'integration' | 'analysis' | 'automation' | 'ui' | 'other';
+  hooks: Array<{ event: string; webhookUrl?: string }>;
+  configSchema?: Record<string, { type: 'string' | 'number' | 'boolean'; description: string; required?: boolean }>;
+}
+
+export interface PluginConfig {
+  id: string;
+  manifest: PluginManifest;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  installedAt: string;
+}
+
 export const api = new ApiClient();

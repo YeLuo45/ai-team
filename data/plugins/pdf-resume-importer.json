@@ -1,0 +1,23 @@
+{
+  "id": "pdf-resume-importer",
+  "manifest": {
+    "id": "pdf-resume-importer",
+    "name": "PDF 简历导入",
+    "version": "1.0.0",
+    "author": "ai-team",
+    "description": "V6 简历解析功能的官方插件封装。提供 PDF 上传 + LLM 提取。",
+    "icon": "📄",
+    "category": "automation",
+    "hooks": [
+      { "event": "candidate.created" }
+    ],
+    "configSchema": {
+      "autoExtract": { "type": "boolean", "description": "上传 PDF 时自动 LLM 提取" }
+    }
+  },
+  "enabled": true,
+  "config": {
+    "autoExtract": true
+  },
+  "installedAt": "2026-06-19T00:00:00.000Z"
+}

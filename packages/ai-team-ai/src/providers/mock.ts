@@ -98,8 +98,12 @@ export class MockClient implements LLMClient {
     return messages.some((m) => m.content.includes('1:1') || m.content.includes('扮演') || m.content.includes('近况'));
   }
 
+  private isResumeContext(messages: ChatMessage[]): boolean {
+    return messages.some((m) => m.content.includes('简历解析助手') || m.content.includes('候选人简历') || m.content.includes('岗位匹配'));
+  }
+
   async chat(req: ChatRequest): Promise<ChatResponse> {
-    // Check review context FIRST (more specific than training)
+    // Check specific contexts first
     const content = this.isReviewContext(req.messages)
       ? JSON.stringify({
           rating: 4,
@@ -119,11 +123,13 @@ export class MockClient implements LLMClient {
             '每月 1 次内部分享',
           ],
         })
-      : this.isOneOnOneContext(req.messages)
-        ? this.mockOneOnOne(req.messages)
-        : this.isTrainingContext(req.messages)
-          ? this.mockTrainingPlan(req.messages)
-          : this.mockInterviewTurn(req.messages);
+      : this.isResumeContext(req.messages)
+        ? this.mockResume(req.messages)
+        : this.isOneOnOneContext(req.messages)
+          ? this.mockOneOnOne(req.messages)
+          : this.isTrainingContext(req.messages)
+            ? this.mockTrainingPlan(req.messages)
+            : this.mockInterviewTurn(req.messages);
 
     return {
       content,
@@ -131,6 +137,53 @@ export class MockClient implements LLMClient {
       usage: { promptTokens: 100, completionTokens: 200, totalTokens: 300 },
       finishReason: 'stop',
     };
+  }
+
+  private mockResume(messages: ChatMessage[]): string {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    const text = lastUser?.content ?? '';
+    // Detect score request vs extract request
+    if (text.includes('岗位描述') || text.includes('匹配度') || text.includes('overallScore')) {
+      return JSON.stringify({
+        overallScore: 82,
+        matchLevel: 'good',
+        strengths: ['技能匹配度高', '有相关项目经验', '团队协作意识强'],
+        concerns: ['大规模系统设计经验有限', '需要补充云原生经验'],
+        recommendations: ['重点考察系统设计能力', '入职后安排 Kubernetes 培训'],
+      });
+    }
+    // Extract request
+    return JSON.stringify({
+      name: '张三',
+      email: 'zhangsan@example.com',
+      phone: '13800138000',
+      position: '前端工程师',
+      yearsOfExperience: 5,
+      skills: ['React', 'TypeScript', 'Node.js', 'JavaScript', 'Webpack', 'CSS', 'HTML', 'Git'],
+      experience: [
+        {
+          company: '某科技公司',
+          role: '高级前端工程师',
+          duration: '2021-2026',
+          highlights: ['主导核心业务前端架构', '性能优化提升 40%', '团队 5 人管理'],
+        },
+        {
+          company: '某创业公司',
+          role: '前端工程师',
+          duration: '2019-2021',
+          highlights: ['从 0 到 1 搭建产品', '独立完成 React 项目'],
+        },
+      ],
+      education: [
+        {
+          school: '某大学',
+          degree: '本科',
+          major: '计算机科学',
+          graduationYear: 2019,
+        },
+      ],
+      summary: '5 年 React 全栈开发经验，擅长性能优化和团队协作。',
+    });
   }
 
   private mockOneOnOne(messages: ChatMessage[]): string {

@@ -3,6 +3,7 @@ import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
 import { AddCandidateModal } from '../components/AddCandidateModal';
 import { InterviewSimulator } from '../components/InterviewSimulator';
+import { ResumeUploadModal } from '../components/ResumeUploadModal';
 import { api } from '../lib/api';
 import type { Candidate } from '@ai-team/core';
 
@@ -10,6 +11,7 @@ export function Candidates() {
   const { data, source, refresh } = useTeamData();
   const [filter, setFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
+  const [showResume, setShowResume] = useState(false);
   const [interviewTarget, setInterviewTarget] = useState<Candidate | null>(null);
 
   const items = filter === 'all' ? data.candidates : data.candidates.filter((c) => c.status === filter);
@@ -51,14 +53,19 @@ export function Candidates() {
               {s === 'all' ? '全部' : statusLabel(s).text}
             </button>
           ))}
-          <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加</button>
+          {source === 'api' && (
+            <>
+              <button onClick={() => setShowResume(true)} className="btn-ghost">📄 上传简历</button>
+              <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加</button>
+            </>
+          )}
         </div>
       </div>
 
       {items.length === 0 ? (
         <div className="card text-center text-slate-500">
           暂无候选人。
-          {source === 'api' ? <span> 点击右上角 "+ 添加" 录入</span> : <span> 启动 server 启用添加功能</span>}
+          {source === 'api' ? <span> 点击 "📄 上传简历" 或 "+ 添加" 录入</span> : <span> 启动 server 启用添加功能</span>}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -104,6 +111,13 @@ export function Candidates() {
         <AddCandidateModal
           onClose={() => setShowAdd(false)}
           onAdded={() => refresh()}
+        />
+      )}
+
+      {showResume && (
+        <ResumeUploadModal
+          onClose={() => setShowResume(false)}
+          onImported={() => refresh()}
         />
       )}
 

@@ -22,5 +22,23 @@
     "createdAt": "2026-06-18T15:27:05.331Z",
     "updatedAt": "2026-06-18T15:27:05.331Z",
     "email": "test@example.com"
+  },
+  {
+    "id": "ct_20260619-g7tu74",
+    "name": "测试Plugin",
+    "position": "DevOps",
+    "source": "website",
+    "status": "new",
+    "createdAt": "2026-06-19T01:05:36.071Z",
+    "updatedAt": "2026-06-19T01:05:36.071Z"
+  },
+  {
+    "id": "ct_20260619-61osic",
+    "name": "Hook测试",
+    "position": "Dev",
+    "source": "website",
+    "status": "new",
+    "createdAt": "2026-06-19T01:15:17.606Z",
+    "updatedAt": "2026-06-19T01:15:17.606Z"
   }
 ]

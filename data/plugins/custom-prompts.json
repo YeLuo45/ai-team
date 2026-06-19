@@ -1,0 +1,27 @@
+{
+  "id": "custom-prompts",
+  "manifest": {
+    "id": "custom-prompts",
+    "name": "自定义 Prompt 模板",
+    "version": "1.0.0",
+    "author": "ai-team",
+    "description": "覆盖默认的 LLM Prompt 模板。让 HR 团队根据公司文化定制面试/评估/培训计划的提问方式。",
+    "icon": "✏️",
+    "category": "ui",
+    "hooks": [],
+    "configSchema": {
+      "interviewerSystemPrompt": { "type": "string", "description": "面试官系统 Prompt" },
+      "evaluatorSystemPrompt": { "type": "string", "description": "评估官系统 Prompt" },
+      "trainingPlanSystemPrompt": { "type": "string", "description": "培训计划系统 Prompt" },
+      "reviewSystemPrompt": { "type": "string", "description": "Review 草稿系统 Prompt" }
+    }
+  },
+  "enabled": true,
+  "config": {
+    "interviewerSystemPrompt": "",
+    "evaluatorSystemPrompt": "",
+    "trainingPlanSystemPrompt": "",
+    "reviewSystemPrompt": ""
+  },
+  "installedAt": "2026-06-19T00:00:00.000Z"
+}

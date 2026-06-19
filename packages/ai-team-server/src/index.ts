@@ -3,6 +3,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 import path from 'node:path';
 import {
   CandidateStore,
@@ -19,8 +20,11 @@ import {
   type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
-import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent } from '@ai-team/agent';
+import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent } from '@ai-team/agent';
 import type { Review } from '@ai-team/core';
+import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const DATA_DIR = process.env.AI_TEAM_DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -39,6 +43,11 @@ const reviewStore = new JsonStore<Review>({ baseDir: DATA_DIR, fileName: 'review
 
 // LLM client
 const llm = createFromEnv();
+
+// Plugin manager
+const pluginManager = new PluginManager(path.join(DATA_DIR, 'plugins'));
+await pluginManager.loadAll();
+console.log(`[server] Loaded ${pluginManager.list().length} plugin(s)`);
 
 // ============== Health ==============
 app.get('/api/health', (_req, res) => {
@@ -111,6 +120,7 @@ app.post('/api/candidates', async (req, res) => {
     ...(body.notes && { notes: body.notes }),
   };
   const saved = await candidateStore.add(candidate);
+  pluginManager.fireHook('candidate.created', saved);
   res.status(201).json(saved);
 });
 
@@ -238,6 +248,7 @@ app.post('/api/interviews/:id/finalize', async (req, res) => {
     sessions.delete(req.params.id);
     // Update candidate status
     await candidateStore.update(ctx.candidate.id, { status: 'interviewing', updatedAt: completedAt });
+    pluginManager.fireHook('interview.completed', finalInterview);
     res.json(finalInterview);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -281,6 +292,130 @@ app.put('/api/trainings/:id', async (req, res) => {
   const updated = await trainingStore.update(req.params.id, req.body as Partial<Training>);
   if (!updated) return res.status(404).json({ error: 'Training not found' });
   res.json(updated);
+});
+
+// ============== Resume (PDF parse + LLM extract) ==============
+
+app.post('/api/resume/parse', upload.single('file'), async (req, res) => {
+  try {
+    let text = '';
+    if (req.file) {
+      // PDF upload
+      const buffer = req.file.buffer;
+      // pdf-parse is CommonJS, use dynamic require
+      const pdfParse = (await import('pdf-parse/lib/pdf-parse.js')).default;
+      const parsed = await pdfParse(buffer);
+      text = parsed.text;
+    } else if (req.body.text) {
+      text = String(req.body.text);
+    } else {
+      return res.status(400).json({ error: 'Either file or text is required' });
+    }
+    const agent = new ResumeAgent(llm);
+    const extracted = await agent.extract(text);
+    res.json({ rawTextLength: text.length, rawTextPreview: text.slice(0, 500), extracted });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post('/api/resume/score', async (req, res) => {
+  const { extracted, position, jobDescription } = req.body as {
+    extracted?: any;
+    position?: string;
+    jobDescription?: string;
+  };
+  if (!extracted || !position) {
+    return res.status(400).json({ error: 'extracted and position are required' });
+  }
+  try {
+    const agent = new ResumeAgent(llm);
+    const score = await agent.scoreMatch(extracted, jobDescription ?? position, position);
+    res.json(score);
+  } catch (err) {
+    console.error('[score error]', err);
+    res.status(500).json({ error: (err as Error).message, stack: (err as Error).stack });
+  }
+});
+
+app.post('/api/resume/import', async (req, res) => {
+  const { extracted, source } = req.body as { extracted?: any; source?: 'pdf' | 'pasted' };
+  if (!extracted?.name || !extracted?.position) {
+    return res.status(400).json({ error: 'extracted must have name and position' });
+  }
+  try {
+    const agent = new ResumeAgent(llm);
+    const candidate = agent.toCandidate(extracted, source ?? 'pasted');
+    const saved = await candidateStore.add(candidate);
+    pluginManager.fireHook('candidate.created', saved);
+    res.status(201).json(saved);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ============== Plugins ==============
+app.get('/api/plugins', (_req, res) => {
+  res.json(pluginManager.list());
+});
+
+app.get('/api/plugins/hooks/events', (_req, res) => {
+  res.json(HOOK_EVENTS);
+});
+
+app.get('/api/plugins/:id', (req, res) => {
+  const cfg = pluginManager.get(req.params.id);
+  if (!cfg) return res.status(404).json({ error: 'Plugin not found' });
+  res.json(cfg);
+});
+
+app.post('/api/plugins', async (req, res) => {
+  const body = req.body as Partial<PluginConfig>;
+  if (!body.id || !body.manifest) {
+    return res.status(400).json({ error: 'id and manifest are required' });
+  }
+  const cfg: PluginConfig = {
+    id: body.id,
+    manifest: body.manifest,
+    enabled: body.enabled ?? true,
+    config: body.config ?? {},
+    installedAt: nowIso(),
+  };
+  await pluginManager.save(cfg);
+  res.status(201).json(cfg);
+});
+
+app.put('/api/plugins/:id', async (req, res) => {
+  const existing = pluginManager.get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Plugin not found' });
+  const body = req.body as Partial<PluginConfig>;
+  const updated: PluginConfig = {
+    ...existing,
+    manifest: body.manifest ?? existing.manifest,
+    enabled: body.enabled ?? existing.enabled,
+    config: body.config ?? existing.config,
+  };
+  await pluginManager.save(updated);
+  res.json(updated);
+});
+
+app.post('/api/plugins/:id/toggle', async (req, res) => {
+  const updated = await pluginManager.toggle(req.params.id);
+  if (!updated) return res.status(404).json({ error: 'Plugin not found' });
+  res.json(updated);
+});
+
+app.post('/api/plugins/:id/config', async (req, res) => {
+  const body = req.body as { config: Record<string, unknown> };
+  const updated = await pluginManager.updateConfig(req.params.id, body.config ?? {});
+  if (!updated) return res.status(404).json({ error: 'Plugin not found' });
+  res.json(updated);
+});
+
+app.delete('/api/plugins/:id', async (req, res) => {
+  const ok = await pluginManager.remove(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Plugin not found' });
+  res.status(204).end();
 });
 
 // ============== Reviews ==============
