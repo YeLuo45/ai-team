@@ -1,19 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
 import { AddMemberModal } from '../components/AddMemberModal';
 import { TrainingPlanModal } from '../components/TrainingPlanModal';
+import { OneOnOneSimulator } from '../components/OneOnOneSimulator';
+import { ReviewForm } from '../components/ReviewForm';
+import type { Member, Review } from '@ai-team/core';
 
 export function Members() {
   const { data, source, refresh } = useTeamData();
   const [showAdd, setShowAdd] = useState(false);
-  const [trainingTarget, setTrainingTarget] = useState<any>(null);
+  const [trainingTarget, setTrainingTarget] = useState<Member | null>(null);
+  const [oneOnOneTarget, setOneOnOneTarget] = useState<Member | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<Member | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
-  const byTeam = new Map<string, typeof data.members>();
+  useEffect(() => {
+    if (source !== 'api') return;
+    (async () => {
+      try {
+        const r = await fetch('/api/reviews');
+        setReviews(await r.json());
+      } catch { /* ignore */ }
+    })();
+  }, [source]);
+
+  const byTeam = new Map<string, Member[]>();
   for (const m of data.members) {
     const list = byTeam.get(m.team) ?? [];
     list.push(m);
     byTeam.set(m.team, list);
+  }
+
+  const reviewsByMember = new Map<string, Review>();
+  for (const r of reviews) {
+    const existing = reviewsByMember.get(r.memberId);
+    if (!existing || r.reviewedAt > existing.reviewedAt) {
+      reviewsByMember.set(r.memberId, r);
+    }
   }
 
   return (
@@ -45,6 +69,7 @@ export function Members() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {members.map((m) => {
                   const st = statusLabel(m.status);
+                  const lastReview = reviewsByMember.get(m.id);
                   return (
                     <div key={m.id} className="rounded-lg border border-slate-200 p-4 dark:border-slate-700">
                       <div className="flex items-start justify-between">
@@ -54,7 +79,14 @@ export function Members() {
                             {m.role}{m.level ? ` · ${m.level}` : ''}
                           </p>
                         </div>
-                        <span className={st.cls}>{st.text}</span>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={st.cls}>{st.text}</span>
+                          {lastReview && (
+                            <span className="text-sm text-amber-500" title={`${lastReview.period}: ${lastReview.rating}星`}>
+                              {'★'.repeat(lastReview.rating)}<span className="text-slate-300">{'★'.repeat(5 - lastReview.rating)}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {m.manager && <p className="mt-2 text-xs text-slate-500">经理: {m.manager}</p>}
                       <p className="mt-1 text-xs text-slate-500">入职: {formatDate(m.joinedAt)}</p>
@@ -72,13 +104,18 @@ export function Members() {
                         </div>
                       )}
                       {source === 'api' && (
-                        <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-                          <button
-                            onClick={() => setTrainingTarget(m)}
-                            className="btn-primary w-full text-xs"
-                          >
+                        <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3 dark:border-slate-800">
+                          <button onClick={() => setTrainingTarget(m)} className="btn-primary w-full text-xs">
                             🤖 生成培训计划
                           </button>
+                          <div className="flex gap-1.5">
+                            <button onClick={() => setOneOnOneTarget(m)} className="btn-ghost flex-1 text-xs">
+                              🎭 模拟 1:1
+                            </button>
+                            <button onClick={() => setReviewTarget(m)} className="btn-ghost flex-1 text-xs">
+                              ⭐ {lastReview ? '新 Review' : '新建 Review'}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -90,20 +127,10 @@ export function Members() {
         </div>
       )}
 
-      {showAdd && (
-        <AddMemberModal
-          onClose={() => setShowAdd(false)}
-          onAdded={() => refresh()}
-        />
-      )}
-
-      {trainingTarget && (
-        <TrainingPlanModal
-          member={trainingTarget}
-          onClose={() => setTrainingTarget(null)}
-          onSaved={() => refresh()}
-        />
-      )}
+      {showAdd && <AddMemberModal onClose={() => setShowAdd(false)} onAdded={() => refresh()} />}
+      {trainingTarget && <TrainingPlanModal member={trainingTarget} onClose={() => setTrainingTarget(null)} onSaved={() => refresh()} />}
+      {oneOnOneTarget && <OneOnOneSimulator member={oneOnOneTarget} onClose={() => setOneOnOneTarget(null)} />}
+      {reviewTarget && <ReviewForm member={reviewTarget} onClose={() => setReviewTarget(null)} onSaved={() => { refresh(); setReviews(reviews); }} />}
     </div>
   );
 }

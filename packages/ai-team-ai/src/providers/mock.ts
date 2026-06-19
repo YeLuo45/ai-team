@@ -90,10 +90,40 @@ export class MockClient implements LLMClient {
     return messages.some((m) => m.content.includes('培训') || m.content.includes('training'));
   }
 
+  private isReviewContext(messages: ChatMessage[]): boolean {
+    return messages.some((m) => m.content.includes('Review') || m.content.includes('绩效') || m.content.includes('评估'));
+  }
+
+  private isOneOnOneContext(messages: ChatMessage[]): boolean {
+    return messages.some((m) => m.content.includes('1:1') || m.content.includes('扮演') || m.content.includes('近况'));
+  }
+
   async chat(req: ChatRequest): Promise<ChatResponse> {
-    const content = this.isTrainingContext(req.messages)
-      ? this.mockTrainingPlan(req.messages)
-      : this.mockInterviewTurn(req.messages);
+    // Check review context FIRST (more specific than training)
+    const content = this.isReviewContext(req.messages)
+      ? JSON.stringify({
+          rating: 4,
+          summary: '该成员本季度表现稳定，技术能力扎实，项目交付及时。沟通协作良好，能主动帮助团队成员解决问题。建议下季度承担更具挑战性的项目。',
+          achievements: [
+            '完成核心模块重构，代码质量提升 30%',
+            '主导跨团队协作项目，按时交付',
+            '主动分享技术经验，辅导 2 名 junior 工程师',
+          ],
+          growthAreas: [
+            '系统设计能力可进一步提升（特别是大规模分布式场景）',
+            '建议加强技术影响力建设（如内部分享、博客）',
+          ],
+          nextGoals: [
+            '主导一个中规模系统设计项目（Q3）',
+            '完成 Kubernetes 认证培训',
+            '每月 1 次内部分享',
+          ],
+        })
+      : this.isOneOnOneContext(req.messages)
+        ? this.mockOneOnOne(req.messages)
+        : this.isTrainingContext(req.messages)
+          ? this.mockTrainingPlan(req.messages)
+          : this.mockInterviewTurn(req.messages);
 
     return {
       content,
@@ -101,6 +131,21 @@ export class MockClient implements LLMClient {
       usage: { promptTokens: 100, completionTokens: 200, totalTokens: 300 },
       finishReason: 'stop',
     };
+  }
+
+  private mockOneOnOne(messages: ChatMessage[]): string {
+    this.turn++;
+    const turns = messages.filter((m) => m.role === 'assistant').length;
+    const responses = [
+      '最近工作挺充实的，主要在做新功能开发。',
+      '嗯，最近遇到一些挑战，特别是在系统设计方面，感觉有些吃力。',
+      '我希望能在技术深度上更进一步，未来想往架构师方向发展。',
+      '关于培训，我觉得可以参加一些系统设计的课程，还有 Kubernetes 实战。',
+      '谢谢经理的理解和支持，我会努力的。',
+      '我对自己下一个季度挺有信心的，希望能有所突破。',
+      '好的，那我们保持沟通，下次再聊。',
+    ];
+    return responses[Math.min(turns, responses.length - 1)];
   }
 
   async chatStream(req: ChatRequest, onChunk: (c: ChatStreamChunk) => void): Promise<ChatResponse> {

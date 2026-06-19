@@ -19,7 +19,8 @@ import {
   type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
-import { InterviewAgent, TrainingAgent } from '@ai-team/agent';
+import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent } from '@ai-team/agent';
+import type { Review } from '@ai-team/core';
 
 const DATA_DIR = process.env.AI_TEAM_DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -34,6 +35,7 @@ const memberStore = MemberStore.create(DATA_DIR);
 const interviewStore = InterviewStore.create(DATA_DIR);
 const trainingStore = TrainingStore.create(DATA_DIR);
 const skillStore = new JsonStore<Skill>({ baseDir: DATA_DIR, fileName: 'skills.json' });
+const reviewStore = new JsonStore<Review>({ baseDir: DATA_DIR, fileName: 'reviews.json' });
 
 // LLM client
 const llm = createFromEnv();
@@ -45,14 +47,15 @@ app.get('/api/health', (_req, res) => {
 
 // ============== Team bulk ==============
 app.get('/api/team', async (_req, res) => {
-  const [candidates, members, interviews, trainings, skills] = await Promise.all([
+  const [candidates, members, interviews, trainings, skills, reviews] = await Promise.all([
     candidateStore.list(),
     memberStore.list(),
     interviewStore.list(),
     trainingStore.list(),
     skillStore.list().catch(() => []),
+    reviewStore.list().catch(() => []),
   ]);
-  res.json({ candidates, members, interviews, trainings, skills, generatedAt: nowIso() });
+  res.json({ candidates, members, interviews, trainings, skills, reviews, generatedAt: nowIso() });
 });
 
 app.get('/api/stats', async (_req, res) => {
@@ -278,6 +281,125 @@ app.put('/api/trainings/:id', async (req, res) => {
   const updated = await trainingStore.update(req.params.id, req.body as Partial<Training>);
   if (!updated) return res.status(404).json({ error: 'Training not found' });
   res.json(updated);
+});
+
+// ============== Reviews ==============
+app.get('/api/reviews', async (_req, res) => res.json(await reviewStore.list().catch(() => [])));
+
+app.get('/api/reviews/member/:memberId', async (req, res) => {
+  const all = await reviewStore.list();
+  res.json(all.filter((r) => r.memberId === req.params.memberId));
+});
+
+app.post('/api/reviews', async (req, res) => {
+  const body = req.body as Partial<Review>;
+  if (!body.memberId || !body.period || !body.rating) {
+    return res.status(400).json({ error: 'memberId, period, rating are required' });
+  }
+  const review: Review = {
+    id: generateId('rv'),
+    memberId: body.memberId,
+    period: body.period,
+    rating: Math.max(1, Math.min(5, body.rating)) as Review['rating'],
+    summary: body.summary ?? '',
+    achievements: body.achievements ?? [],
+    growthAreas: body.growthAreas ?? [],
+    nextGoals: body.nextGoals ?? [],
+    reviewedAt: nowIso(),
+    ...(body.reviewer && { reviewer: body.reviewer }),
+  };
+  const saved = await reviewStore.add(review);
+  res.status(201).json(saved);
+});
+
+app.put('/api/reviews/:id', async (req, res) => {
+  const updated = await reviewStore.update(req.params.id, req.body as Partial<Review>);
+  if (!updated) return res.status(404).json({ error: 'Review not found' });
+  res.json(updated);
+});
+
+app.delete('/api/reviews/:id', async (req, res) => {
+  const ok = await reviewStore.remove(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Review not found' });
+  res.status(204).end();
+});
+
+// ============== Review AI assist (draft generation) ==============
+app.post('/api/performance-reviews/generate', async (req, res) => {
+  const { memberId, period, reviewer } = req.body as { memberId?: string; period?: string; reviewer?: string };
+  if (!memberId || !period) return res.status(400).json({ error: 'memberId and period are required' });
+  const member = await memberStore.get(memberId);
+  if (!member) return res.status(404).json({ error: 'Member not found' });
+  try {
+    const [allTrainings, allInterviews, allReviews] = await Promise.all([
+      trainingStore.list(),
+      interviewStore.list(),
+      reviewStore.list(),
+    ]);
+    const agent = new ReviewAgent(llm);
+    const draft = await agent.generateDraft({
+      member,
+      period,
+      trainings: allTrainings,
+      interviews: allInterviews,
+      recentReviews: allReviews.filter((r) => r.memberId === memberId),
+      ...(reviewer && { reviewer }),
+    });
+    res.json(draft);
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ============== 1:1 Conversation ==============
+const oneOnOneSessions = new Map<string, { session: any; member: any }>();
+
+app.post('/api/one-on-one/start', async (req, res) => {
+  const { memberId, scenario, managerName } = req.body as { memberId?: string; scenario?: string; managerName?: string };
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  const member = await memberStore.get(memberId);
+  if (!member) return res.status(404).json({ error: 'Member not found' });
+  try {
+    const agent = new OneOnOneAgent(llm);
+    const session = agent.start(member, { scenario: (scenario as any) ?? 'general', managerName: managerName ?? 'Manager' });
+    const opening = await agent.openingMessage(session, member);
+    oneOnOneSessions.set(session.id, { session, member });
+    res.status(201).json({ session, openingMessage: opening });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post('/api/one-on-one/:id/respond', async (req, res) => {
+  const { content } = req.body as { content?: string };
+  if (!content?.trim()) return res.status(400).json({ error: 'content is required' });
+  const ctx = oneOnOneSessions.get(req.params.id);
+  if (!ctx) return res.status(404).json({ error: 'Session not found' });
+  try {
+    const agent = new OneOnOneAgent(llm);
+    const response = await agent.respond(ctx.session, ctx.member, content);
+    if (response === null) {
+      res.json({ session: ctx.session, memberResponse: null, done: true });
+    } else {
+      res.json({ session: ctx.session, memberResponse: response, done: false });
+    }
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+app.post('/api/one-on-one/:id/finalize', async (req, res) => {
+  const ctx = oneOnOneSessions.get(req.params.id);
+  if (!ctx) return res.status(404).json({ error: 'Session not found' });
+  try {
+    const agent = new OneOnOneAgent(llm);
+    const summary = await agent.generateSummary(ctx.session, ctx.member);
+    ctx.session.summary = summary;
+    oneOnOneSessions.delete(req.params.id);
+    res.json({ session: ctx.session, summary });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 // ============== Skills ==============

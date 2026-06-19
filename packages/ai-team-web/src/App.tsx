@@ -5,6 +5,7 @@ import { Members } from './pages/Members';
 import { Interviews } from './pages/Interviews';
 import { SkillGraph } from './pages/SkillGraph';
 import { Trainings } from './pages/Trainings';
+import { Reviews } from './pages/Reviews';
 
 export default function App() {
   return (
@@ -39,6 +40,9 @@ export default function App() {
             <NavLink to="/trainings" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               培训
             </NavLink>
+            <NavLink to="/reviews" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              Review
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -51,6 +55,7 @@ export default function App() {
           <Route path="/interviews" element={<Interviews />} />
           <Route path="/skills" element={<SkillGraph />} />
           <Route path="/trainings" element={<Trainings />} />
+          <Route path="/reviews" element={<Reviews />} />
         </Routes>
       </main>
 
