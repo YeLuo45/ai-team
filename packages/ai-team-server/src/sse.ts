@@ -4,7 +4,7 @@ import { Response } from 'express';
 
 type Client = { id: string; res: Response };
 
-class SSEManager {
+export class SSEManager {
   private clients = new Map<string, Client>();
   private nextId = 1;
 
@@ -41,6 +41,11 @@ class SSEManager {
   /** Number of active clients */
   size(): number {
     return this.clients.size;
+  }
+
+  /** Get a specific client config */
+  get(id: string): Client | undefined {
+    return this.clients.get(id);
   }
 
   private send(res: Response, event: string, data: unknown): void {
