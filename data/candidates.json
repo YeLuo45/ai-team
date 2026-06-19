@@ -40,5 +40,14 @@
     "status": "new",
     "createdAt": "2026-06-19T01:15:17.606Z",
     "updatedAt": "2026-06-19T01:15:17.606Z"
+  },
+  {
+    "id": "ct_20260619-4cjb35",
+    "name": "通知测试",
+    "position": "Dev",
+    "source": "website",
+    "status": "new",
+    "createdAt": "2026-06-19T01:41:06.301Z",
+    "updatedAt": "2026-06-19T01:41:06.301Z"
   }
 ]

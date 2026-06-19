@@ -7,6 +7,8 @@ import { SkillGraph } from './pages/SkillGraph';
 import { Trainings } from './pages/Trainings';
 import { Reviews } from './pages/Reviews';
 import { Plugins } from './pages/Plugins';
+import { Notifications } from './pages/Notifications';
+import { Data } from './pages/Data';
 
 export default function App() {
   return (
@@ -47,6 +49,12 @@ export default function App() {
             <NavLink to="/plugins" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               插件
             </NavLink>
+            <NavLink to="/notifications" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              通知
+            </NavLink>
+            <NavLink to="/data" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              数据
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -61,6 +69,8 @@ export default function App() {
           <Route path="/trainings" element={<Trainings />} />
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/plugins" element={<Plugins />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/data" element={<Data />} />
         </Routes>
       </main>
 

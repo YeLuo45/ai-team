@@ -40,6 +40,30 @@ const interviewStore = InterviewStore.create(DATA_DIR);
 const trainingStore = TrainingStore.create(DATA_DIR);
 const skillStore = new JsonStore<Skill>({ baseDir: DATA_DIR, fileName: 'skills.json' });
 const reviewStore = new JsonStore<Review>({ baseDir: DATA_DIR, fileName: 'reviews.json' });
+const notificationStore = new JsonStore<Notification>({ baseDir: DATA_DIR, fileName: 'notifications.json' });
+
+// Notification model
+interface Notification {
+  id: string;
+  type: 'candidate.created' | 'interview.completed' | 'review.saved' | 'training.created' | 'plugin' | 'system';
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: string;
+  link?: string;
+}
+
+// Helper: create a notification
+function notify(partial: Omit<Notification, 'id' | 'read' | 'createdAt'>) {
+  const n: Notification = {
+    id: generateId('nt'),
+    read: false,
+    createdAt: nowIso(),
+    ...partial,
+  };
+  notificationStore.add(n).catch(() => {});
+  return n;
+}
 
 // LLM client
 const llm = createFromEnv();
@@ -120,6 +144,13 @@ app.post('/api/candidates', async (req, res) => {
     ...(body.notes && { notes: body.notes }),
   };
   const saved = await candidateStore.add(candidate);
+  // Auto-generate notification
+  notify({
+    type: 'candidate.created',
+    title: '👤 新候选人',
+    message: `${saved.name} (${saved.position})`,
+    link: '#/candidates',
+  });
   pluginManager.fireHook('candidate.created', saved);
   res.status(201).json(saved);
 });
@@ -248,6 +279,15 @@ app.post('/api/interviews/:id/finalize', async (req, res) => {
     sessions.delete(req.params.id);
     // Update candidate status
     await candidateStore.update(ctx.candidate.id, { status: 'interviewing', updatedAt: completedAt });
+    // Auto-generate notification
+    if (finalInterview.evaluation) {
+      notify({
+        type: 'interview.completed',
+        title: '✅ 面试完成',
+        message: `${ctx.candidate.name} · ${finalInterview.position} · 评分 ${finalInterview.evaluation.overall} · ${finalInterview.evaluation.recommendation}`,
+        link: '#/interviews',
+      });
+    }
     pluginManager.fireHook('interview.completed', finalInterview);
     res.json(finalInterview);
   } catch (err) {
@@ -416,6 +456,161 @@ app.delete('/api/plugins/:id', async (req, res) => {
   const ok = await pluginManager.remove(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Plugin not found' });
   res.status(204).end();
+});
+
+// ============== Notifications ==============
+app.get('/api/notifications', async (_req, res) => {
+  const list = await notificationStore.list().catch(() => []);
+  res.json(list.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+});
+
+app.get('/api/notifications/unread/count', async (_req, res) => {
+  const list = await notificationStore.list().catch(() => []);
+  res.json({ count: list.filter((n) => !n.read).length });
+});
+
+app.post('/api/notifications/:id/read', async (req, res) => {
+  const updated = await notificationStore.update(req.params.id, { read: true });
+  if (!updated) return res.status(404).json({ error: 'Notification not found' });
+  res.json(updated);
+});
+
+app.post('/api/notifications/read-all', async (_req, res) => {
+  const list = await notificationStore.list().catch(() => []);
+  for (const n of list.filter((x) => !x.read)) {
+    await notificationStore.update(n.id, { read: true });
+  }
+  res.json({ ok: true });
+});
+
+app.delete('/api/notifications/:id', async (req, res) => {
+  const ok = await notificationStore.remove(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Notification not found' });
+  res.status(204).end();
+});
+
+// ============== Export / Import ==============
+function toCsv(rows: any[], columns: string[]): string {
+  const escape = (v: any) => {
+    if (v == null) return '';
+    const s = typeof v === 'string' ? v : JSON.stringify(v);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+  return [columns.join(','), ...rows.map((r) => columns.map((c) => escape(r[c])).join(','))].join('\n');
+}
+
+app.get('/api/export', async (req, res) => {
+  const format = (req.query.format as string) ?? 'json';
+  const [candidates, members, interviews, trainings, skills, reviews] = await Promise.all([
+    candidateStore.list(),
+    memberStore.list(),
+    interviewStore.list(),
+    trainingStore.list(),
+    skillStore.list().catch(() => []),
+    reviewStore.list().catch(() => []),
+  ]);
+  const generatedAt = nowIso();
+  const data = { candidates, members, interviews, trainings, skills, reviews, generatedAt };
+
+  if (format === 'json') {
+    res.setHeader('Content-Disposition', `attachment; filename="ai-team-export-${generatedAt.slice(0, 10)}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    return res.send(JSON.stringify(data, null, 2));
+  }
+
+  if (format === 'csv') {
+    const parts: string[] = [];
+    if (candidates.length) parts.push(`# candidates\n${toCsv(candidates, ['id', 'name', 'position', 'source', 'status', 'email', 'createdAt'])}`);
+    if (members.length) parts.push(`# members\n${toCsv(members, ['id', 'name', 'role', 'team', 'level', 'status', 'joinedAt'])}`);
+    if (interviews.length) {
+      const flat = interviews.map((i: any) => ({
+        id: i.id,
+        candidateId: i.candidateId,
+        position: i.position,
+        type: i.type,
+        status: i.status,
+        score: i.evaluation?.overall,
+      }));
+      parts.push(`# interviews\n${toCsv(flat, ['id', 'candidateId', 'position', 'type', 'status', 'score'])}`);
+    }
+    if (trainings.length) parts.push(`# trainings\n${toCsv(trainings, ['id', 'memberId', 'title', 'type', 'status', 'progress', 'startDate'])}`);
+    if (reviews.length) parts.push(`# reviews\n${toCsv(reviews, ['id', 'memberId', 'period', 'rating', 'summary', 'reviewer', 'reviewedAt'])}`);
+    res.setHeader('Content-Disposition', `attachment; filename="ai-team-export-${generatedAt.slice(0, 10)}.csv"`);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    return res.send(parts.join('\n\n'));
+  }
+
+  if (format === 'md') {
+    let md = `# ai-team 报告\n\n生成于: ${generatedAt}\n\n## 团队概览\n\n`;
+    md += `- 成员数: ${members.length}\n- 候选人数: ${candidates.length}\n- 面试数: ${interviews.length}\n- 平均面试分: ${interviews.length ? Math.round(interviews.filter((i) => i.evaluation).reduce((s, i) => s + (i.evaluation?.overall ?? 0), 0) / Math.max(1, interviews.filter((i) => i.evaluation).length)) : 0}\n\n`;
+    md += `## 最近面试\n\n| ID | 候选人 | 岗位 | 评分 | 推荐 |\n|---|---|---|---|---|\n`;
+    md += interviews.slice(-10).map((i) => `| ${i.id} | ${i.candidateId.slice(-6)} | ${i.position} | ${i.evaluation?.overall ?? '-'} | ${i.evaluation?.recommendation ?? '-'} |`).join('\n');
+    md += '\n\n## 成员\n\n';
+    md += members.map((m) => `- **${m.name}** (${m.role}${m.level ? ` · ${m.level}` : ''}) - ${m.team} - ${m.status}`).join('\n');
+    res.setHeader('Content-Disposition', `attachment; filename="ai-team-report-${generatedAt.slice(0, 10)}.md"`);
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    return res.send(md);
+  }
+
+  res.status(400).json({ error: 'format must be json, csv, or md' });
+});
+
+app.post('/api/import', upload.single('file'), async (req, res) => {
+  const mode = (req.query.mode as string) ?? 'merge';
+  if (mode !== 'merge' && mode !== 'replace') {
+    return res.status(400).json({ error: 'mode must be merge or replace' });
+  }
+  let parsed: any;
+  try {
+    let text = '';
+    if (req.file) {
+      text = req.file.buffer.toString('utf-8');
+    } else if (req.body.data) {
+      text = String(req.body.data);
+    } else {
+      return res.status(400).json({ error: 'Either file or data is required' });
+    }
+    parsed = JSON.parse(text);
+  } catch (err) {
+    return res.status(400).json({ error: 'Invalid JSON: ' + (err as Error).message });
+  }
+
+  const imported = { candidates: 0, members: 0, interviews: 0, trainings: 0, skills: 0, reviews: 0 };
+  try {
+    if (mode === 'replace') {
+      // Wipe existing
+      for (const c of await candidateStore.list()) await candidateStore.remove(c.id);
+      for (const m of await memberStore.list()) await memberStore.remove(m.id);
+      for (const i of await interviewStore.list()) await interviewStore.remove(i.id);
+      for (const t of await trainingStore.list()) await trainingStore.remove(t.id);
+      for (const s of await skillStore.list()) await skillStore.remove(s.id);
+      for (const r of await reviewStore.list()) await reviewStore.remove(r.id);
+    }
+    if (Array.isArray(parsed.candidates)) {
+      for (const c of parsed.candidates) { await candidateStore.add(c); imported.candidates++; }
+    }
+    if (Array.isArray(parsed.members)) {
+      for (const m of parsed.members) { await memberStore.add(m); imported.members++; }
+    }
+    if (Array.isArray(parsed.interviews)) {
+      for (const i of parsed.interviews) { await interviewStore.add(i); imported.interviews++; }
+    }
+    if (Array.isArray(parsed.trainings)) {
+      for (const t of parsed.trainings) { await trainingStore.add(t); imported.trainings++; }
+    }
+    if (Array.isArray(parsed.skills)) {
+      for (const s of parsed.skills) { await skillStore.add(s); imported.skills++; }
+    }
+    if (Array.isArray(parsed.reviews)) {
+      for (const r of parsed.reviews) { await reviewStore.add(r); imported.reviews++; }
+    }
+    res.json({ ok: true, mode, imported });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
 });
 
 // ============== Reviews ==============
