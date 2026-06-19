@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { Candidates } from './pages/Candidates';
 import { Members } from './pages/Members';
@@ -16,8 +16,7 @@ import { CommandPalette } from './components/CommandPalette';
 export default function App() {
   return (
     <ToastProvider>
-      <HashRouter>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -91,7 +90,6 @@ export default function App() {
         </div>
         <CommandPalette />
         <SearchTrigger />
-      </HashRouter>
     </ToastProvider>
   );
 }
