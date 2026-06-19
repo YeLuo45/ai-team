@@ -1,0 +1,42 @@
+[
+  {
+    "id": "aud_1781890845284_9z1bip",
+    "timestamp": "2026-06-19T17:40:45.284Z",
+    "userId": "usr_1781887743293_yk6qzc",
+    "username": "admin",
+    "action": "user.login",
+    "success": true,
+    "ip": "::1",
+    "userAgent": "curl/8.5.0"
+  },
+  {
+    "id": "aud_1781890891678_6p7ykj",
+    "timestamp": "2026-06-19T17:41:31.678Z",
+    "userId": "usr_1781887743293_yk6qzc",
+    "username": "admin",
+    "action": "user.login",
+    "success": true,
+    "ip": "::1",
+    "userAgent": "curl/8.5.0"
+  },
+  {
+    "id": "aud_1781890914144_5a3dq4",
+    "timestamp": "2026-06-19T17:41:54.144Z",
+    "userId": "usr_1781887743293_yk6qzc",
+    "username": "admin",
+    "action": "user.login",
+    "success": true,
+    "ip": "::1",
+    "userAgent": "curl/8.5.0"
+  },
+  {
+    "id": "aud_1781890929031_2al5jh",
+    "timestamp": "2026-06-19T17:42:09.031Z",
+    "userId": "usr_1781887743293_yk6qzc",
+    "username": "admin",
+    "action": "user.login",
+    "success": true,
+    "ip": "::ffff:127.0.0.1",
+    "userAgent": "Python-urllib/3.12"
+  }
+]

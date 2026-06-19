@@ -20,8 +20,14 @@ import {
   type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
+import {
+  createUserStore, createAuditStore,
+  type User, type AuditEntry, type JwtConfig,
+} from '@ai-team/core';
 import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent, InsightsAgent, computeFunnel, computeSkillGaps, computeMemberGrowth, detectAnomalies, searchAll, ScoreAgent } from '@ai-team/agent';
 import type { Review } from '@ai-team/core';
+import { createAuthRouter } from './routes/auth.js';
+import { createAuthMiddleware } from './middleware/auth.js';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
 import { sseManager } from './sse.js';
 
@@ -42,6 +48,41 @@ const trainingStore = TrainingStore.create(DATA_DIR);
 const skillStore = new JsonStore<Skill>({ baseDir: DATA_DIR, fileName: 'skills.json' });
 const reviewStore = new JsonStore<Review>({ baseDir: DATA_DIR, fileName: 'reviews.json' });
 const notificationStore = new JsonStore<Notification>({ baseDir: DATA_DIR, fileName: 'notifications.json' });
+
+// V20: User + Audit stores
+const userBaseStore = new JsonStore<User>({ baseDir: DATA_DIR, fileName: 'users.json' });
+const auditBaseStore = new JsonStore<AuditEntry>({ baseDir: DATA_DIR, fileName: 'audit.json' });
+const userStore = createUserStore(userBaseStore);
+const auditStore = createAuditStore(auditBaseStore);
+
+// V20: JWT config (from env or default)
+const JWT_SECRET = process.env.AI_TEAM_JWT_SECRET || 'change-me-in-production-' + Math.random().toString(36).slice(2);
+const jwtConfig: JwtConfig = {
+  secret: JWT_SECRET,
+  expiresIn: process.env.AI_TEAM_JWT_EXPIRES || '7d',
+};
+
+// V20: Auth middleware (extracts JWT, attaches to req.auth)
+app.use(createAuthMiddleware(jwtConfig));
+
+// V20: Auth routes (register, login, me, logout, users, audit)
+app.use('/api/auth', createAuthRouter({ userStore, auditStore, jwtConfig }));
+
+// Seed default admin if no users
+async function seedDefaultAdmin() {
+  const users = await userStore.list();
+  if (users.length === 0) {
+    const admin = await userStore.create({
+      email: 'admin@ai-team.local',
+      username: 'admin',
+      password: 'admin123',
+      role: 'admin',
+      teams: ['default'],
+    });
+    console.log(`[server] Seeded default admin: ${admin.email} / admin123`);
+  }
+}
+await seedDefaultAdmin();
 
 // Notification model
 interface Notification {

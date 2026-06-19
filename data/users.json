@@ -1,0 +1,15 @@
+[
+  {
+    "id": "usr_1781887743293_yk6qzc",
+    "email": "admin@ai-team.local",
+    "username": "admin",
+    "passwordHash": "$2b$10$PIyRLm4Zvx1NlrdYDFVvS.WNJPWu8gp2YVjCwgH1EEUdH0r.Pu/FS",
+    "role": "admin",
+    "teams": [
+      "default"
+    ],
+    "createdAt": "2026-06-19T16:49:03.293Z",
+    "updatedAt": "2026-06-19T17:42:09.029Z",
+    "lastLoginAt": "2026-06-19T17:42:09.029Z"
+  }
+]

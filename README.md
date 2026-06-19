@@ -143,7 +143,7 @@ npm run dev:web
 #### Mode 5: Tests
 
 ```bash
-# Run all 390 tests (100% pass rate)
+# Run all 522 tests (100% pass rate, 7 skipped)
 npm test
 
 # Single package
@@ -151,6 +151,38 @@ cd packages/ai-team-core && npm test
 
 # With coverage
 npm run test:coverage
+```
+
+#### Mode 6: Authentication (V20)
+
+```bash
+# Login (default admin: admin@ai-team.local / admin123)
+curl -s -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@ai-team.local","password":"admin123"}'
+# → { "token": "eyJ...", "user": { ... } }
+
+# Get current user
+curl -H "Authorization: Bearer *** TCH/me"
+
+# Register new user
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"u@x.com","username":"u","password":"pass123","role":"manager"}'
+
+# List all users (admin only)
+curl -H "Authorization: Bearer *** TCH/users"
+
+# View audit log (admin only)
+curl -H "Authorization: Bearer *** TH/audit?limit=20"
+```
+
+**Roles**: `admin` (all) / `manager` (read+write candidate/member/interview) / `interviewer` (read+interview.create) / `viewer` (read-only)
+
+**Set JWT secret** (production):
+```bash
+export AI_TEAM_JWT_SECRET=your-strong-random-secret
+export AI_TEAM_JWT_EXPIRES=7d
 ```
 
 ## Architecture
