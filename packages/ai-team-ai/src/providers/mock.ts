@@ -53,37 +53,37 @@ export class MockClient implements LLMClient {
     ];
     return questions[Math.min(this.turn - 1, questions.length - 1)];
   }
-
   private mockTrainingPlan(messages: ChatMessage[]): string {
+    this.turn++;
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     const text = lastUser?.content ?? '';
-    if (text.includes('JSON')) {
-      return JSON.stringify({
-        goals: ['提升系统设计能力', '补齐 Kubernetes 实战经验', '加强团队管理'],
-        trainings: [
-          {
-            title: '系统设计精进',
-            type: 'course',
-            durationWeeks: 8,
-            resources: ['DDIA 读书会', 'High Scalability 案例分析'],
-          },
-          {
-            title: 'Kubernetes 实战',
-            type: 'project',
-            durationWeeks: 12,
-            resources: ['在生产环境部署一个 K8s 集群'],
-          },
-          {
-            title: '新晋经理训练营',
-            type: 'mentoring',
-            durationWeeks: 16,
-            resources: ['1:1 with senior manager'],
-          },
-        ],
-        expectedGrowth: '6 个月内可独立负责中等规模项目',
-      });
+    if (!text.includes('培训') && !text.includes('training') && !text.includes('JSON')) {
+      return this.mockInterviewTurn(messages);
     }
-    return '已根据该成员当前技能和岗位目标生成 3 项培训计划，请稍后查看 JSON 详情。';
+    return JSON.stringify({
+      goals: ['提升系统设计能力', '补齐 Kubernetes 实战经验', '加强团队管理'],
+      trainings: [
+        {
+          title: '系统设计精进',
+          type: 'course',
+          durationWeeks: 8,
+          resources: ['DDIA 读书会', 'High Scalability 案例分析'],
+        },
+        {
+          title: 'Kubernetes 实战',
+          type: 'project',
+          durationWeeks: 12,
+          resources: ['在生产环境部署一个 K8s 集群'],
+        },
+        {
+          title: '新晋经理训练营',
+          type: 'mentoring',
+          durationWeeks: 16,
+          resources: ['1:1 with senior manager'],
+        },
+      ],
+      expectedGrowth: '6 个月内可独立负责中等规模项目',
+    });
   }
 
   private isTrainingContext(messages: ChatMessage[]): boolean {
