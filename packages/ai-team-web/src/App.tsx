@@ -11,8 +11,10 @@ import { Notifications } from './pages/Notifications';
 import { Data } from './pages/Data';
 import { Insights } from './pages/Insights';
 import { ToastProvider } from './components/Toast';
+import { CommandPalette } from './components/CommandPalette';
 
 export default function App() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
   return (
     <ToastProvider>
       <HashRouter>
@@ -20,12 +22,12 @@ export default function App() {
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-sm font-bold text-white">
+            <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-sm font-bold text-white" onClick={() => setPaletteOpen(true)}>
               ai
             </div>
             <div>
               <h1 className="text-lg font-bold text-slate-900 dark:text-slate-50">ai-team</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">AI 驱动的团队管理</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">AI 驱动的团队管理 · 按 ⌘K 搜索</p>
             </div>
           </div>
           <nav className="flex items-center gap-1">
@@ -88,6 +90,14 @@ export default function App() {
         </div>
       </footer>
         </div>
+        <CommandPalette />
+        <button
+          onClick={() => setPaletteOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg hover:bg-brand-600"
+          title="搜索 (⌘K)"
+        >
+          🔍
+        </button>
       </HashRouter>
     </ToastProvider>
   );

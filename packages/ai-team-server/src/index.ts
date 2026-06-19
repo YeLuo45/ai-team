@@ -20,7 +20,7 @@ import {
   type Skill,
 } from '@ai-team/core';
 import { createFromEnv } from '@ai-team/ai';
-import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent, InsightsAgent, computeFunnel, computeSkillGaps, computeMemberGrowth, detectAnomalies } from '@ai-team/agent';
+import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent, InsightsAgent, computeFunnel, computeSkillGaps, computeMemberGrowth, detectAnomalies, searchAll, ScoreAgent } from '@ai-team/agent';
 import type { Review } from '@ai-team/core';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
 import { sseManager } from './sse.js';
@@ -613,6 +613,76 @@ app.post('/api/import', upload.single('file'), async (req, res) => {
       for (const r of parsed.reviews) { await reviewStore.add(r); imported.reviews++; }
     }
     res.json({ ok: true, mode, imported });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ============== Search (V16) ==============
+
+app.get('/api/search', async (req, res) => {
+  const q = (req.query.q as string) || '';
+  const type = req.query.type as 'candidate' | 'member' | 'interview' | 'skill' | 'all' | undefined;
+  const limit = parseInt((req.query.limit as string) || '50', 10);
+  if (!q.trim()) {
+    return res.json({ results: [], total: 0, query: q, duration: 0 });
+  }
+  const start = Date.now();
+  try {
+    const [candidates, members, interviews, skills, reviews] = await Promise.all([
+      candidateStore.list().catch(() => []),
+      memberStore.list().catch(() => []),
+      interviewStore.list().catch(() => []),
+      skillStore.list().catch(() => []),
+      reviewStore.list().catch(() => []),
+    ]);
+    const trainings = await trainingStore.list().catch(() => []);
+    const results = searchAll(q, {
+      candidates,
+      members,
+      interviews,
+      skills,
+      trainings: trainings.map((t) => ({ id: t.id, title: t.title, memberId: t.memberId, type: t.type, status: t.status, description: t.description })),
+      reviews,
+    }, { type, limit });
+    res.json({
+      query: q,
+      total: results.length,
+      results,
+      duration: Date.now() - start,
+    });
+  } catch (err) {
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+// ============== Resume score with context (V19) ==============
+
+app.post('/api/resume/score-with-context', async (req, res) => {
+  const { resume, position, jobDescription, requiredSkills } = req.body as {
+    resume?: any;
+    position?: string;
+    jobDescription?: string;
+    requiredSkills?: string[];
+  };
+  if (!resume || !position) {
+    return res.status(400).json({ error: 'resume and position are required' });
+  }
+  try {
+    const [members, skills] = await Promise.all([
+      memberStore.list().catch(() => []),
+      skillStore.list().catch(() => []),
+    ]);
+    const agent = new ScoreAgent(llm);
+    const score = await agent.scoreWithContext({
+      resume,
+      position,
+      jobDescription,
+      teamMembers: members,
+      requiredSkills: requiredSkills ?? [],
+      skills,
+    });
+    res.json(score);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
   }
