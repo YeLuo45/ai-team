@@ -7,25 +7,48 @@
 [![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-blue)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-blue)](https://tailwindcss.com/)
+[![Tests](https://img.shields.io/badge/tests-390%20passing-brightgreen)](./vitest.config.ts)
+[![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 基于 [pi-mono](https://github.com/YeLuo45/pi-mono) 干净架构 (pi-ai / pi-agent-core / pi-coding-agent / pi-tui) 的 TypeScript monorepo,应用于 **AI 团队管理** 领域。
 
-## 已交付 (V1-V19, 19 个提案)
+## 🚀 30 秒快速启动
 
-- 🎤 **智能面试** (V1) - AI 多轮对话 + 自动评估
-- 🧑‍💼 **成员培养** (V1) - AI 生成技能培训计划
-- 📊 **技能图谱** (V3) - D3.js 力导向技能/成员关系
-- 🎭 **1:1 对话** (V4) - AI 扮演成员,经理 5 种场景
-- ⭐ **绩效评估** (V4) - 基于历史自动生成 Review
-- 📄 **简历解析** (V6) - PDF 上传 + LLM 提取 + 评分
-- 🔌 **插件系统** (V7) - 钩子事件 + 3 个示例插件
-- 📥📤 **数据导入导出** (V8b) - JSON / CSV / Markdown
-- 🔔 **通知中心** (V8c) - 应用内通知聚合
-- 🎛️ **自定义仪表盘** (V8d) - 拖拽 widgets
-- 🧠 **AI 智能分析** (V14) - 漏斗/技能缺口/成长/建议/异常
-- 📡 **实时 SSE** (V15) - Server-Sent Events
-- 🔍 **全文搜索** (V16) - `⌘K` 命令面板 (跨 6 实体)
-- 🎯 **上下文简历评分** (V19) - 综合简历 + 团队缺口
+```bash
+git clone https://github.com/YeLuo45/ai-team.git
+cd ai-team
+unset NODE_ENV && NODE_ENV=development npm install --include=dev
+npm run build
+npm run dev           # ← 一键同时启动 server (3000) + web (5173)
+```
+
+打开浏览器:
+- **Web UI**: http://localhost:5173 (自动代理 `/api` → 3000)
+- **API**: http://localhost:3000/api/health
+
+按 `Ctrl+C` 干净退出.
+
+> 完整故障排除见下方 [故障排除](#故障排除) 章节. WSL 用户先看 WSL 5 大坑.
+
+## ✅ 已交付 (V1-V19, 19 个提案)
+
+| 类别 | 功能 | 版本 |
+|------|------|------|
+| 🎤 **智能面试** | AI 多轮对话 + 自动评估 | V1 |
+| 🧑‍💼 **成员培养** | AI 生成技能培训计划 | V1 |
+| 📊 **技能图谱** | D3.js 力导向技能/成员关系 | V3 |
+| 🎭 **1:1 对话** | AI 扮演成员,经理 5 种场景 | V4 |
+| ⭐ **绩效评估** | 基于历史自动生成 Review | V4 |
+| 📄 **简历解析** | PDF 上传 + LLM 提取 + 评分 | V6 |
+| 🔌 **插件系统** | 钩子事件 + 3 个示例插件 | V7 |
+| 📥📤 **数据导入导出** | JSON / CSV / Markdown | V8b |
+| 🔔 **通知中心** | 应用内通知聚合 | V8c |
+| 🎛️ **自定义仪表盘** | 拖拽 widgets | V8d |
+| 🧠 **AI 智能分析** | 漏斗/技能缺口/成长/建议/异常 | V14 |
+| 📡 **实时 SSE** | Server-Sent Events | V15 |
+| 🔍 **全文搜索** | `⌘K` 命令面板 (跨 6 实体) | V16 |
+| 🎯 **上下文简历评分** | 综合简历 + 团队缺口 | V19 |
+| 🧪 **测试基础设施** | vitest + 390 tests + 100% pass | V9-V13 |
 
 ## 7 个包
 
@@ -39,7 +62,7 @@
 | **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
 | **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 + D3.js (10 页面, 7 模态框, 命令面板, Toast) |
 
-## 快速开始
+## 🛠️ 快速开始 (详细)
 
 ### 前置条件
 
@@ -50,7 +73,7 @@
 ### 安装
 
 ```bash
-# WSL 用户请先看故障排除
+# WSL 用户先看故障排除
 npm install
 ```
 
@@ -69,28 +92,28 @@ npm run build
 
 按顺序构建: `core → ai → agent → server → tui → cli → web`.
 
-### 4 种运行模式
+## 🎯 运行模式 (3 种)
 
-#### 1. Server (Express REST, 3000)
+### 模式 1: `npm run dev` — **推荐** (一键启动 server + web)
 
 ```bash
-# 生产模式 (用预编译的 dist/)
-npm run dev:server
-
-# 开发模式 (热重载)
-cd packages/ai-team-server && npm run dev
+npm run dev
+# → [server] listening on http://localhost:3000
+# → [web]    VITE ready, http://localhost:5173
 ```
 
-**50+ 端点:** `/api/candidates`, `/api/members`, `/api/interviews`, `/api/trainings`, `/api/reviews`, `/api/skills`, `/api/plugins`, `/api/notifications`, `/api/insights/*`, `/api/search`, `/api/resume/*`, `/api/one-on-one/*`, `/api/export`, `/api/import`, `/api/events/stream` (SSE).
+两个进程并发运行,着色输出 (蓝色=server, 绿色=web), `Ctrl+C` 干净退出.
 
-#### 2. CLI (一次性命令)
+> 如果你只想要开发模式 (热重载): `npm run dev:tsc` (用 `tsx watch` 替代 dist)
+
+### 模式 2: CLI (一次性命令)
 
 ```bash
 # 构建后,全局链接 CLI
 cd packages/ai-team-cli && npm link
 ai-team --help
 
-# 或通过 node 调用
+# 或直接通过 node 调用
 node packages/ai-team-cli/bin/ai-team --help
 
 # 示例
@@ -101,7 +124,7 @@ ai-team team overview
 ai-team tui  # 启动交互式 TUI
 ```
 
-#### 3. TUI (Ink 终端 UI)
+### 模式 3: TUI (Ink 终端 UI)
 
 ```bash
 ai-team tui
@@ -111,34 +134,60 @@ ai-team tui
 
 视图: Dashboard / Candidates / Members / Interviews. 按 `?` 看帮助, `q` 退出.
 
-#### 4. Web (React 仪表盘)
+### 模式 4: 单独启动 server 或 web (高级)
 
 ```bash
-cd packages/ai-team-web && npm run dev
-# → http://localhost:5173 (代理 /api → :3000)
+# 只启动 server
+npm run dev:server
+
+# 只启动 web (需 server 已运行,否则 503)
+npm run dev:web
 ```
 
-**页面:** Dashboard / Candidates / Members / Interviews / Skills / Trainings / Reviews / Plugins / Insights / Notifications / Data
-
-**功能:**
-- `⌘K` / `Ctrl+K` - 命令面板 (全局搜索)
-- 6 个 dashboard widgets (可拖拽, localStorage 布局)
-- Toast 通知
-- AI 面试模拟器
-- 简历上传 + 解析
-- 技能图谱 (D3.js)
-
-#### 5. 测试
+### 模式 5: 测试
 
 ```bash
 # 运行全部 390 个测试 (100% 通过率)
 npm test
 
+# 单包测试
+cd packages/ai-team-core && npm test
+
 # 带覆盖率
 npm run test:coverage
 ```
 
-## 架构
+## 🌐 API 端点 (50+)
+
+**核心 CRUD:**
+- `/api/candidates` / `/api/members` / `/api/interviews` / `/api/trainings` / `/api/reviews` / `/api/skills` / `/api/plugins` / `/api/notifications`
+
+**AI 功能:**
+- `/api/interviews/start` - 启动 AI 面试
+- `/api/interviews/:id/answer` - 提交回答
+- `/api/interviews/:id/finalize` - 结束并评分
+- `/api/one-on-one/start|message|end` - 1:1 对话
+- `/api/resume/parse` - PDF 解析
+- `/api/resume/score-with-context` - 上下文简历评分
+- `/api/trainings/generate` - AI 培训计划
+- `/api/performance-reviews/generate` - Review 草稿
+
+**智能分析 (V14):**
+- `/api/insights/funnel` - 招聘漏斗
+- `/api/insights/skill-gaps?required=...` - 技能缺口
+- `/api/insights/member-growth/:id` - 成员成长
+- `/api/insights/recommendations` - AI 建议
+- `/api/insights/anomalies` - 异常检测
+
+**实用工具:**
+- `/api/search?q=&type=&limit=` - 全文搜索
+- `/api/export?format=json|csv|md` - 数据导出
+- `/api/import` - 数据导入
+- `/api/team` - 聚合数据 (单端点拉所有)
+- `/api/stats` - 统计
+- `/api/events/stream` - SSE 实时事件
+
+## 🏗️ 架构
 
 ```
 ai-team (root, npm workspaces)
@@ -155,7 +204,16 @@ ai-team (root, npm workspaces)
 
 **LLM 流:** 所有客户端 (CLI / TUI / Web) → REST `/api/*` → Server → LLM Client (OpenAI 兼容 或 Mock)
 
-## LLM 提供方
+**依赖规则:**
+- `core` → 任何包都不能依赖 (无依赖)
+- `ai` → 只能依赖 LLM 库
+- `agent` → core, ai
+- `server` → core, ai, agent
+- `tui` → core, ai, agent
+- `cli` → 全部
+- `web` → **只能**通过 HTTP 依赖 server (不能直接 import core/ai/agent)
+
+## 🧠 LLM 提供方
 
 设置 `AI_TEAM_LLM_API_KEY` (或 `OPENAI_API_KEY`) 使用真实 LLM. 不设置则用确定性 Mock.
 
@@ -167,7 +225,7 @@ export AI_TEAM_LLM_MODEL=gpt-4o-mini  # 可选
 
 支持任何 OpenAI 兼容 API: OpenAI / Azure / OpenRouter / Ollama / vLLM / LM Studio.
 
-## 提案历史 (19 个)
+## 📝 提案历史 (19 个)
 
 | # | 版本 | 描述 |
 |---|------|------|
@@ -181,7 +239,7 @@ export AI_TEAM_LLM_MODEL=gpt-4o-mini  # 可选
 | P-20260619-006 | V14+V15 | AI 智能分析 + 实时 SSE |
 | P-20260619-007 | V16+V19 | 全文搜索 (⌘K) + 上下文简历评分 |
 
-## 测试
+## 🧪 测试
 
 - **390 个测试** (100% 通过率, 7 个跳过)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
@@ -192,11 +250,73 @@ npm test              # 运行全部
 npm run test:coverage # 带覆盖率报告
 ```
 
-## 许可
+## 🚀 后续迭代方向 (V20+)
+
+### 🌟 V20: 多用户与认证 (推荐下一步)
+- 用户账户 (注册/登录 + 密码哈希)
+- 角色: admin / manager / interviewer / viewer
+- 操作审计日志 (谁改了什么)
+- 数据隔离 (按 team)
+- 邀请机制
+- **SSE 鉴权** (解决 V15 的安全问题)
+- 预计: 3-5 天, 600+ 行
+
+### 📬 V21: 集成通知
+- Slack Notifier (webhook URL 配 plugin config, 事件自动推送)
+- Email Digest (每日/每周摘要, nodemailer)
+- 通用 Webhook Out (自定义 JSON payload)
+- 复用现有 `pluginManager.fireHook()` 架构
+- 预计: 2-3 天, 400 行
+
+### 🌐 V22: 国际化 (i18n)
+- 中英双语切换
+- react-i18next 集成
+- 邮件/Slack 通知双语模板
+- 预计: 1-2 天, 200 行
+
+### 📱 V23: PWA + 移动适配
+- vite-plugin-pwa (Service Worker)
+- manifest.json + installable
+- 移动端响应式优化
+- 离线缓存 (查看数据)
+- 预计: 1-2 天, 150 行
+
+### 🤖 V24: 多 LLM Provider 配置
+- 设置页: AI_TEAM_LLM_API_KEY / MODEL / BASE_URL 可在 Web 配
+- 切换 provider (OpenAI / Anthropic / Ollama)
+- 按 agent 选择不同模型 (interview 用 fast model, review 用 strong model)
+- 预计: 2-3 天, 300 行
+
+### 🔐 V25: 数据加密 + 备份
+- JSON 文件透明加密 (AES-256)
+- 自动每日备份 (zip 打包)
+- 从备份还原
+- 预计: 1-2 天, 200 行
+
+### 💡 V26+: 高级功能
+- **AI 自动反馈**: 面试后自动给候选人发反馈邮件
+- **视频面试集成**: Zoom / 腾讯会议 API
+- **候选人门户**: 候选人自己上传简历 + 查看面试进度
+- **多语言支持** (V22)
+- **GraphQL API** (替代 REST)
+- **WebSocket 双向** (替代 SSE)
+
+## 📂 项目状态
+
+```
+代码:       7 packages / 8 agents / 50+ 端点 / 10 页面 / 7 模态框
+测试:       390 passed (100%) / 7 skipped
+文档:       README 中英双版 + 故障排除 + 5 步快速开始
+提案:       19 个 (P-20260618-001 ~ P-20260620-003)
+沉淀:       5 个 pi-mono skill + WSL 故障排除补丁
+GitHub:     https://github.com/YeLuo45/ai-team
+```
+
+## 📄 许可
 
 MIT
 
-## 故障排除
+## 🛠️ 故障排除
 
 ### WSL: `npm install` 报 `EISDIR` 或 `ERR_MODULE_NOT_FOUND @ai-team/core`
 
@@ -215,24 +335,18 @@ Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@ai-team/core'
 **修复**: 始终在 **WSL bash** 里运行,不要用 PowerShell:
 
 ```powershell
-# 打开 WSL bash
-wsl -e bash
-
-# 或从 PowerShell 直接派发:
 wsl -e bash -c "cd /home/hermes/projects/ai-team && npm install && npm run build"
 ```
 
-如果必须留在 PowerShell,用 flat `node_modules` (无软链):
+或:
 
-```powershell
-npm install --install-strategy=nested
+```bash
+# WSL bash 里
+unset NODE_ENV
+NODE_ENV=development npm install --include=dev
 ```
 
-但这样更慢且占更多磁盘. **WSL bash 始终是首选.**
-
 ### WSL: `NODE_ENV=production` 静默跳过 devDependencies
-
-如果 `tsc`, `vite` 等不在 `node_modules/.bin/`,检查:
 
 ```bash
 echo $NODE_ENV    # 如果是 'production',npm 会省略 devDeps
@@ -240,51 +354,76 @@ echo $NODE_ENV    # 如果是 'production',npm 会省略 devDeps
 
 修复: `npm install` 之前 `unset NODE_ENV` 或 `export NODE_ENV=development`.
 
-### Server: `node: bad option: --experimental-strip-types`
+### Server: `node: bad option: --experimental-strip-types` 或 `Cannot find module 'tsx/cjs'`
 
-这个选项只在 Node 22+ 可用. 如果你是 Node 20,用:
-
-```bash
-cd packages/ai-team-server
-npx tsx watch src/index.ts
+这个选项只在 Node 22.6+ 可用. 如果你是 Node 20,用 `npm run dev:server` (内部用 `tsx`):
+```json
+"dev": "node --import tsx --watch src/index.ts"
 ```
 
-或者先构建再运行编译后的版本:
-
+或者先构建再运行:
 ```bash
-npm run build
+npm run build && npm run dev:server
+```
+
+### Web: 浏览器空白 + `You cannot render a <Router> inside another <Router>`
+
+`main.tsx` 已经包了 `<HashRouter>`, `App.tsx` 不能也包. 修复: 移除 App.tsx 内的 HashRouter.
+
+**约定:** Entry = Router, App = routed app, App 内不放 Router.
+
+### Server: `Error: listen EADDRINUSE: address already in use :::3000`
+
+前一个 server 没杀干净:
+```bash
+ss -tlnp 2>/dev/null | grep :3000    # 找 PID
+kill <PID>                            # 杀
 npm run dev:server
 ```
 
-### Web build: `useState` 已声明但未使用 / 找不到 `HashRouter`
-
-通常是 React 或 React Router 的 import 被意外删了. 确保 `App.tsx` 有:
-
-```ts
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+或一键:
+```bash
+pkill -f "node.*src/index" 2>/dev/null
+pkill -f "node.*dist/index" 2>/dev/null
+sleep 1
+npm run dev
 ```
-
-如果 `paletteOpen` 未使用,要么用它,要么删掉 `useState` 声明.
 
 ### CLI: `ai-team: command not found`
 
 `npm install` 后,全局链接 CLI:
-
 ```bash
 cd packages/ai-team-cli && npm link
 ```
 
 或直接用 node 调用:
-
 ```bash
 node packages/ai-team-cli/bin/ai-team --help
 ```
 
-### Git on Windows 文件系统 (大小写不敏感)
+### Git 在 Windows 文件系统 (大小写不敏感) 出现 "both modified" 幻像
 
-`git status` 可能显示 "both modified" 幻像 (文件只差大小写). 在 WSL bash (大小写敏感的 ext4) 里跑 git,不要在 PowerShell 访问 `\\wsl$\Ubuntu\...` 跑.
+在 WSL bash (大小写敏感的 ext4) 里跑 git,不要在 PowerShell 访问 `\\wsl$\Ubuntu\...` 跑.
 
-## 文档
+### Web 构建: `useState` / `HashRouter` 找不到
+
+检查 import 列表是否完整. App.tsx 必须:
+```ts
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+```
+
+或如果用 `main.tsx` 包 Router, App.tsx 只 import `Routes, Route, NavLink`.
+
+## 📚 文档
 
 - **English**: [README.md](./README.md)
 - **中文**: this file
+
+## 🧠 沉淀到 pi-mono 知识库
+
+5 个新 skills (在 `~/.hermes/skills/`):
+- `architecture/ai-monorepo-architecture` - 7 包架构
+- `software-development/mock-llm-context-priority` - mock LLM 设计模式
+- `software-development/vitest-monorepo-setup` - 测试基础设施
+- `devops/wsl-npm-dev-environment` - WSL + npm + Node 全套坑
+- `workflow/ai-monorepo-iteration-workflow` - P-XXX 迭代模式

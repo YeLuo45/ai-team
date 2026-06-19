@@ -10,6 +10,24 @@
 
 A TypeScript monorepo inspired by [pi-mono](https://github.com/YeLuo45/pi-mono)'s clean architecture (pi-ai / pi-agent-core / pi-coding-agent / pi-tui), applied to the **AI team management** domain.
 
+## ⚡ 30-second Quick Start
+
+```bash
+git clone https://github.com/YeLuo45/ai-team.git
+cd ai-team
+unset NODE_ENV && NODE_ENV=development npm install --include=dev
+npm run build
+npm run dev           # ← one command: server (3000) + web (5173) together
+```
+
+Open browser:
+- **Web UI**: http://localhost:5173 (proxies `/api` → 3000)
+- **API**: http://localhost:3000/api/health
+
+Press `Ctrl+C` to clean shutdown.
+
+> For WSL users: see [Troubleshooting](#troubleshooting) section below for the 5 most common gotchas.
+
 ## What's Inside (V1-V19, 19 proposals)
 
 - 🎤 **Smart Interviews** (V1) — AI-driven multi-turn dialogue + auto-evaluation
@@ -43,14 +61,14 @@ A TypeScript monorepo inspired by [pi-mono](https://github.com/YeLuo45/pi-mono)'
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js ≥ 20 (Node 22+ for `tsx watch` autoreload)
 - npm 10+
 - (Optional) `AI_TEAM_LLM_API_KEY` for real LLM (OpenAI-compatible)
 
 ### Install
 
 ```bash
-# IMPORTANT: WSL users see Troubleshooting first
+# WSL users see Troubleshooting first
 npm install
 ```
 
@@ -69,28 +87,29 @@ npm run build
 
 This builds in order: `core → ai → agent → server → tui → cli → web`.
 
-### Run the four modes
+### Run modes
 
-#### 1. Server (Express REST API, port 3000)
+#### Mode 1: `npm run dev` — **recommended** (one command, server + web together)
 
 ```bash
-# Production (uses prebuilt dist/)
-npm run dev:server
-
-# Development with auto-reload (uses tsx)
-cd packages/ai-team-server && npm run dev
+npm run dev
+# → [server] listening on http://localhost:3000
+# → [web]    VITE ready, http://localhost:5173
 ```
 
-**Endpoints (50+):** `/api/candidates`, `/api/members`, `/api/interviews`, `/api/trainings`, `/api/reviews`, `/api/skills`, `/api/plugins`, `/api/notifications`, `/api/insights/*`, `/api/search`, `/api/resume/*`, `/api/one-on-one/*`, `/api/export`, `/api/import`, `/api/events/stream` (SSE).
+Two processes run concurrently with colored output (blue=server, green=web). `Ctrl+C`
+gracefully shuts down both.
 
-#### 2. CLI (one-shot commands)
+> For dev mode with hot reload: `npm run dev:tsc` (uses `tsx watch` instead of dist)
+
+#### Mode 2: CLI (one-shot commands)
 
 ```bash
 # After build, link the CLI globally (or call via node)
 cd packages/ai-team-cli && npm link
 ai-team --help
 
-# Or call via node
+# Or call via node directly
 node packages/ai-team-cli/bin/ai-team --help
 
 # Examples
@@ -101,7 +120,7 @@ ai-team team overview
 ai-team tui  # Launch interactive TUI
 ```
 
-#### 3. TUI (Ink-based terminal UI)
+#### Mode 3: TUI (Ink-based terminal UI)
 
 ```bash
 ai-team tui
@@ -111,28 +130,24 @@ Or: `node packages/ai-team-cli/bin/ai-team tui`
 
 Views: Dashboard / Candidates / Members / Interviews. Press `?` for help, `q` to quit.
 
-#### 4. Web (React dashboard)
+#### Mode 4: Run server or web alone (advanced)
 
 ```bash
-cd packages/ai-team-web && npm run dev
-# → http://localhost:5173 (proxies /api → :3000)
+# Server only (no web)
+npm run dev:server
+
+# Web only (requires server running, else 503)
+npm run dev:web
 ```
 
-**Pages:** Dashboard / Candidates / Members / Interviews / Skills / Trainings / Reviews / Plugins / Insights / Notifications / Data
-
-**Features:**
-- `⌘K` / `Ctrl+K` — open command palette (global search)
-- 6 dashboard widgets (draggable, localStorage layout)
-- Toast notifications
-- AI interview simulator
-- Resume upload + parse
-- Skill graph (D3.js)
-
-#### 5. Tests
+#### Mode 5: Tests
 
 ```bash
 # Run all 390 tests (100% pass rate)
 npm test
+
+# Single package
+cd packages/ai-team-core && npm test
 
 # With coverage
 npm run test:coverage
