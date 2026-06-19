@@ -1,6 +1,6 @@
 # ai-team
 
-> AI 驱动的团队管理：智能面试、成员培养、技能追踪、成长轨迹。
+> AI 驱动的团队管理：智能面试、成员培养、技能追踪、成长轨迹、实时洞察。
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-blue)](https://yeluo45.github.io/ai-team/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
@@ -8,182 +8,283 @@
 [![Vite](https://img.shields.io/badge/Vite-6-blue)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-blue)](https://tailwindcss.com/)
 
-一个 TypeScript monorepo，受 [pi-mono](https://github.com/YeLuo45/pi-mono) 架构启发（pi-ai / pi-agent-core / pi-coding-agent / pi-tui），应用到 **AI 团队管理** 领域：智能面试、成员培养、技能追踪、成长轨迹。
+基于 [pi-mono](https://github.com/YeLuo45/pi-mono) 干净架构 (pi-ai / pi-agent-core / pi-coding-agent / pi-tui) 的 TypeScript monorepo,应用于 **AI 团队管理** 领域。
 
-## 截图
+## 已交付 (V1-V19, 19 个提案)
 
-**Dashboard** - 团队概览、统计卡片、最近面试/候选人
-**面试详情** - 总评分 + 四维评分条 + 对话记录
+- 🎤 **智能面试** (V1) - AI 多轮对话 + 自动评估
+- 🧑‍💼 **成员培养** (V1) - AI 生成技能培训计划
+- 📊 **技能图谱** (V3) - D3.js 力导向技能/成员关系
+- 🎭 **1:1 对话** (V4) - AI 扮演成员,经理 5 种场景
+- ⭐ **绩效评估** (V4) - 基于历史自动生成 Review
+- 📄 **简历解析** (V6) - PDF 上传 + LLM 提取 + 评分
+- 🔌 **插件系统** (V7) - 钩子事件 + 3 个示例插件
+- 📥📤 **数据导入导出** (V8b) - JSON / CSV / Markdown
+- 🔔 **通知中心** (V8c) - 应用内通知聚合
+- 🎛️ **自定义仪表盘** (V8d) - 拖拽 widgets
+- 🧠 **AI 智能分析** (V14) - 漏斗/技能缺口/成长/建议/异常
+- 📡 **实时 SSE** (V15) - Server-Sent Events
+- 🔍 **全文搜索** (V16) - `⌘K` 命令面板 (跨 6 实体)
+- 🎯 **上下文简历评分** (V19) - 综合简历 + 团队缺口
 
-👉 在线访问：https://yeluo45.github.io/ai-team/
+## 7 个包
 
-## 包结构
-
-| 包 | 职责 |
+| 包 | 描述 |
 |----|------|
-| **[@ai-team/core](./packages/ai-team-core)** | 领域类型 (Candidate/Member/Skill/Interview/Training/Review) + JSON 文件存储 |
-| **[@ai-team/ai](./packages/ai-team-ai)** | LLM 包装 (OpenAI 兼容 + Mock) + 面试/培训 prompt 模板 |
-| **[@ai-team/agent](./packages/ai-team-agent)** | 面试 Agent (多轮对话 + 评估) + 培训计划 Agent |
-| **[@ai-team/server](./packages/ai-team-server)** | Express REST API 服务器 (3000 端口) + LLM 代理 |
+| **[@ai-team/core](./packages/ai-team-core)** | 领域类型 (Candidate/Member/Skill/Interview/Training/Review) + JSON 存储 + 工具 |
+| **[@ai-team/ai](./packages/ai-team-ai)** | LLM 封装 (OpenAI 兼容 + Mock) + 面试/培训/洞察 prompt 模板 |
+| **[@ai-team/agent](./packages/ai-team-agent)** | 8 个 agent: Interview/Training/1:1/Review/Resume/Insights/Score + 搜索引擎 |
+| **[@ai-team/server](./packages/ai-team-server)** | Express REST API (3000) + 50+ 端点 + SSE + LLM 代理 |
 | **[@ai-team/tui](./packages/ai-team-tui)** | Ink 交互式 TUI (4 视图 + 表单) |
 | **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
-| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 Dashboard (含表单 + 面试模拟器) |
+| **[@ai-team/web](./packages/ai-team-web)** | React 19 + Vite 6 + Tailwind 4 + D3.js (10 页面, 7 模态框, 命令面板, Toast) |
 
 ## 快速开始
 
+### 前置条件
+
+- Node.js ≥ 20 (Node 22+ 用于 `tsx watch` 自动重载)
+- npm 10+
+- (可选) `AI_TEAM_LLM_API_KEY` 用于真实 LLM (OpenAI 兼容)
+
+### 安装
+
 ```bash
-# 安装
+# WSL 用户请先看故障排除
 npm install
-
-# 构建 7 个包
-npm run build
-
-# 1. 启动 server (一个终端)
-npm run dev:server
-# → 监听 http://localhost:3000
-
-# 2. CLI 模式 (另一个终端)
-node packages/ai-team-cli/bin/ai-team --help
-node packages/ai-team-cli/bin/ai-team candidate add "张三" \
-  --position "前端工程师" --source linkedin --email "zhangsan@example.com"
-
-# 3. TUI 模式 (终端内交互)
-node packages/ai-team-cli/bin/ai-team tui
-
-# 4. Web 模式 (浏览器内交互)
-cd packages/ai-team-web && npm run dev
-# → http://localhost:5173 (proxy /api → :3000)
 ```
 
-## 三种模式 (V2+)
+如果 `tsc`, `vite` 等不在 `node_modules/.bin/`,可能需要:
 
-### 🖥️ CLI 模式 — 一次性命令
 ```bash
-ai-team candidate add "张三" --position "前端工程师"
+unset NODE_ENV
+NODE_ENV=development npm install --include=dev
+```
+
+### 构建全部 7 个包
+
+```bash
+npm run build
+```
+
+按顺序构建: `core → ai → agent → server → tui → cli → web`.
+
+### 4 种运行模式
+
+#### 1. Server (Express REST, 3000)
+
+```bash
+# 生产模式 (用预编译的 dist/)
+npm run dev:server
+
+# 开发模式 (热重载)
+cd packages/ai-team-server && npm run dev
+```
+
+**50+ 端点:** `/api/candidates`, `/api/members`, `/api/interviews`, `/api/trainings`, `/api/reviews`, `/api/skills`, `/api/plugins`, `/api/notifications`, `/api/insights/*`, `/api/search`, `/api/resume/*`, `/api/one-on-one/*`, `/api/export`, `/api/import`, `/api/events/stream` (SSE).
+
+#### 2. CLI (一次性命令)
+
+```bash
+# 构建后,全局链接 CLI
+cd packages/ai-team-cli && npm link
+ai-team --help
+
+# 或通过 node 调用
+node packages/ai-team-cli/bin/ai-team --help
+
+# 示例
+ai-team candidate add "张三" --position "前端工程师" --source linkedin
+ai-team member add "李四" --role "Tech Lead" --team "Platform" --level "P7"
 ai-team interview start <candidate-id>
 ai-team team overview
+ai-team tui  # 启动交互式 TUI
 ```
 
-### ⌨️ TUI 模式 — 交互式终端 UI
+#### 3. TUI (Ink 终端 UI)
+
 ```bash
 ai-team tui
 ```
-基于 Ink 的 4 视图: Dashboard / Candidates / Members / Interviews。可在 Candidates 页添加候选人、启动面试。按 `?` 看帮助，`q` 退出。
 
-### 🌐 Web 模式 — 浏览器内交互
+或: `node packages/ai-team-cli/bin/ai-team tui`
+
+视图: Dashboard / Candidates / Members / Interviews. 按 `?` 看帮助, `q` 退出.
+
+#### 4. Web (React 仪表盘)
+
 ```bash
-# 需要先启动 server
 cd packages/ai-team-web && npm run dev
-```
-React 19 Dashboard，支持:
-- Candidates / Members 页 "添加" 按钮 (实时数据)
-- 每个候选人 "开始面试" 按钮 → 浏览器内 AI 聊天
-- 实时数据刷新
-
-**注意**: Web 模式自动检测 server 状态:
-- 启动 server → 实时数据，可添加、面试
-- 未启动 → 回退到构建时静态数据 (只读)
-
-> **⚠️ WSL 用户**: 永远在 **WSL bash** 里跑 `npm install` 和 `node`，不要在 PowerShell 里通过 `\\wsl$\Ubuntu\...` 路径访问。9P/drvfs 挂载是 case-insensitive 且 symlink 语义损坏 — npm workspace 软链会 `EISDIR` 失败，运行时找不到 `@ai-team/core`。详见下方 [常见问题](#常见问题)。
-
-### 🚀 PowerShell 一键搭建 (WSL 用户推荐)
-
-如果你在 PowerShell，但项目在 WSL 里:
-
-```powershell
-wsl -e bash -c "cd /home/hermes/projects/ai-team && unset NODE_ENV && npm install --include=dev && npm run build"
+# → http://localhost:5173 (代理 /api → :3000)
 ```
 
-之后可以在 PowerShell 通过 WSL 调用 CLI:
+**页面:** Dashboard / Candidates / Members / Interviews / Skills / Trainings / Reviews / Plugins / Insights / Notifications / Data
 
-```powershell
-wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team --help"
-wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team team overview"
+**功能:**
+- `⌘K` / `Ctrl+K` - 命令面板 (全局搜索)
+- 6 个 dashboard widgets (可拖拽, localStorage 布局)
+- Toast 通知
+- AI 面试模拟器
+- 简历上传 + 解析
+- 技能图谱 (D3.js)
+
+#### 5. 测试
+
+```bash
+# 运行全部 390 个测试 (100% 通过率)
+npm test
+
+# 带覆盖率
+npm run test:coverage
 ```
 
-或者在 PowerShell 里定义个 wrapper:
+## 架构
 
-```powershell
-function ai-team { wsl -e bash -c "cd /home/hermes/projects/ai-team && node packages/ai-team-cli/bin/ai-team $args" }
-ai-team --help
-ai-team team overview
-ai-team candidate add "李四" --position "PM" --source referral
+```
+ai-team (root, npm workspaces)
+├── packages/ai-team-core       (领域: 类型 + JSON 存储)
+├── packages/ai-team-ai         (LLM: OpenAI 兼容 + Mock + prompts)
+├── packages/ai-team-agent      (8 个 agent + 搜索引擎)
+├── packages/ai-team-server     (Express: 50+ REST 端点 + SSE)
+├── packages/ai-team-tui        (Ink 4 视图交互式终端)
+├── packages/ai-team-cli        (commander.js CLI → tui 入口)
+└── packages/ai-team-web        (React 19 + Vite 6 + Tailwind 4)
 ```
 
-## 端到端 Demo
+**数据流:** TUI / Web → Express Server (3000) → JSON 文件 (按实体) → `@ai-team/core`
 
-1. CLI 录入候选人
-2. 启动 AI 面试（多轮对话）
-3. 打开 Dashboard `https://yeluo45.github.io/ai-team/` 查看评估结果
+**LLM 流:** 所有客户端 (CLI / TUI / Web) → REST `/api/*` → Server → LLM Client (OpenAI 兼容 或 Mock)
 
-## LLM 提供商
+## LLM 提供方
 
-设置 `AI_TEAM_LLM_API_KEY` (或 `OPENAI_API_KEY`) 启用真实 LLM。无 key 时使用确定性 Mock client。
+设置 `AI_TEAM_LLM_API_KEY` (或 `OPENAI_API_KEY`) 使用真实 LLM. 不设置则用确定性 Mock.
 
 ```bash
 export AI_TEAM_LLM_API_KEY=sk-xxx
-export AI_TEAM_LLM_BASE_URL=https://api.openai.com/v1  # 或 OpenRouter / Ollama
-export AI_TEAM_LLM_MODEL=gpt-4o-mini
+export AI_TEAM_LLM_BASE_URL=https://api.openai.com/v1  # 可选
+export AI_TEAM_LLM_MODEL=gpt-4o-mini  # 可选
 ```
 
-支持所有 OpenAI 兼容 API：OpenAI / Azure / OpenRouter / Ollama / vLLM / LM Studio。
+支持任何 OpenAI 兼容 API: OpenAI / Azure / OpenRouter / Ollama / vLLM / LM Studio.
 
-## 后续规划 (V2+)
+## 提案历史 (19 个)
 
-- V2: 技能图谱可视化 (D3.js force graph)
-- V3: 培训计划 + 课程推荐
-- V4: 1:1 对话模拟 + 绩效评估
-- V5: 团队组成分析 + 自动 JD 生成
+| # | 版本 | 描述 |
+|---|------|------|
+| P-20260618-001 | V1 | 启动 (TS monorepo + 5 agents + 5 包) |
+| P-20260618-002 | V2 | TUI 模式 (Ink) + Web 模式 + Express server |
+| P-20260619-001 | V3 | 技能图谱 (D3.js) + 培训计划 UI |
+| P-20260619-002 | V4+V5 | 1:1 对话模拟 + 绩效评估 |
+| P-20260619-003 | V6+V7 | 简历解析 (PDF/LLM) + 插件系统 |
+| P-20260619-004 | V8b/c/d | 数据导入导出 + 通知中心 + 自定义仪表盘 |
+| P-20260619-005 | V9-V13 | 测试基础设施 (vitest) + 覆盖率 |
+| P-20260619-006 | V14+V15 | AI 智能分析 + 实时 SSE |
+| P-20260619-007 | V16+V19 | 全文搜索 (⌘K) + 上下文简历评分 |
+
+## 测试
+
+- **390 个测试** (100% 通过率, 7 个跳过)
+- **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
+- 覆盖率重点: core (100%), ai (98%), agent (80-95%), server (87%), tui API (90%), web lib (53%), CLI (50-90%)
+
+```bash
+npm test              # 运行全部
+npm run test:coverage # 带覆盖率报告
+```
 
 ## 许可
 
 MIT
 
-## 常见问题
+## 故障排除
 
 ### WSL: `npm install` 报 `EISDIR` 或 `ERR_MODULE_NOT_FOUND @ai-team/core`
 
-**症状** (在 PowerShell 通过 `\\wsl$\Ubuntu\...` 访问时):
+**症状** (PowerShell 访问 `\\wsl$\Ubuntu\...` 路径):
 ```
 npm error code EISDIR
 npm error syscall symlink
-npm error path \\wsl$\Ubuntu\wsl$\Ubuntu\...
 ```
 或
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@ai-team/core'
 ```
 
-**根因**: PowerShell 通过 9P/drvfs 挂载访问 WSL 文件 (`\\wsl$\Ubuntu\...`)。这个挂载是 case-insensitive 且 symlink 语义损坏，所以 npm workspace 软链会失败。
+**根因**: PowerShell 通过 9P/drvfs 挂载 (`\\wsl$\Ubuntu\...`) 访问 WSL 文件. 这个挂载是大小写不敏感的,软链语义有问题,npm workspace 软链会失败.
 
-**解决**: 永远在 **WSL bash** 里跑，不要在 PowerShell 里:
+**修复**: 始终在 **WSL bash** 里运行,不要用 PowerShell:
 
 ```powershell
 # 打开 WSL bash
 wsl -e bash
 
-# 或者从 PowerShell 直接派发到 WSL:
+# 或从 PowerShell 直接派发:
 wsl -e bash -c "cd /home/hermes/projects/ai-team && npm install && npm run build"
 ```
 
-如果必须在 PowerShell，强制使用扁平 `node_modules`（无软链）:
+如果必须留在 PowerShell,用 flat `node_modules` (无软链):
 
 ```powershell
 npm install --install-strategy=nested
 ```
 
-但这样更慢且占更多磁盘。**推荐用 WSL bash。**
+但这样更慢且占更多磁盘. **WSL bash 始终是首选.**
 
 ### WSL: `NODE_ENV=production` 静默跳过 devDependencies
 
-如果 `tsc`、`vite` 等不在 `node_modules/.bin/` 里，检查:
+如果 `tsc`, `vite` 等不在 `node_modules/.bin/`,检查:
 
 ```bash
-echo $NODE_ENV    # 如果是 'production'，npm 会 omit devDeps
+echo $NODE_ENV    # 如果是 'production',npm 会省略 devDeps
 ```
 
-修复: `unset NODE_ENV` 或在 `npm install` 前 `export NODE_ENV=development`。
+修复: `npm install` 之前 `unset NODE_ENV` 或 `export NODE_ENV=development`.
 
-### Windows 文件系统上 git 大小写问题
+### Server: `node: bad option: --experimental-strip-types`
 
-`git status` 可能显示只有大小写差异的文件（如 `AgentRegistry.ts` vs `agentRegistry.ts`）为 "both modified"。所有 git 操作请在 WSL bash 的 case-sensitive ext4 文件系统上跑，不要在 PowerShell 的 `\\wsl$\Ubuntu\...` 路径上。
+这个选项只在 Node 22+ 可用. 如果你是 Node 20,用:
+
+```bash
+cd packages/ai-team-server
+npx tsx watch src/index.ts
+```
+
+或者先构建再运行编译后的版本:
+
+```bash
+npm run build
+npm run dev:server
+```
+
+### Web build: `useState` 已声明但未使用 / 找不到 `HashRouter`
+
+通常是 React 或 React Router 的 import 被意外删了. 确保 `App.tsx` 有:
+
+```ts
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+```
+
+如果 `paletteOpen` 未使用,要么用它,要么删掉 `useState` 声明.
+
+### CLI: `ai-team: command not found`
+
+`npm install` 后,全局链接 CLI:
+
+```bash
+cd packages/ai-team-cli && npm link
+```
+
+或直接用 node 调用:
+
+```bash
+node packages/ai-team-cli/bin/ai-team --help
+```
+
+### Git on Windows 文件系统 (大小写不敏感)
+
+`git status` 可能显示 "both modified" 幻像 (文件只差大小写). 在 WSL bash (大小写敏感的 ext4) 里跑 git,不要在 PowerShell 访问 `\\wsl$\Ubuntu\...` 跑.
+
+## 文档
+
+- **English**: [README.md](./README.md)
+- **中文**: this file

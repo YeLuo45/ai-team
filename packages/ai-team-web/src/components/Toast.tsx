@@ -1,7 +1,6 @@
 // Toast notification system
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import { useEventSource } from '../hooks/useEventSource';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
 export interface Toast {
   id: string;
@@ -34,50 +33,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
   const showToast = useCallback((t: Omit<Toast, 'id'>) => {
     const id = `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const toast: Toast = { id, duration: 5000, type: 'info', ...t };
+    const toast: Toast = { id, ...t, duration: t.duration ?? 5000 };
     setToasts((prev) => [...prev, toast]);
-    // Auto-remove after duration
     if (toast.duration && toast.duration > 0) {
       setTimeout(() => removeToast(id), toast.duration);
     }
   }, [removeToast]);
   const clearToasts = useCallback(() => setToasts([]), []);
-
-  // Subscribe to SSE for real-time notifications (only when explicitly enabled)
-  const { connected } = useEventSource<any>('/api/events/stream', (event) => {
-    if (event.event === 'interview.completed' && event.data) {
-      const iv = event.data;
-      showToast({
-        type: 'success',
-        title: '✅ 面试完成',
-        message: `${iv.candidateId} · 评分 ${iv.evaluation?.overall ?? '?'} · ${iv.evaluation?.recommendation ?? ''}`,
-        link: '#/interviews',
-      });
-    } else if (event.event === 'candidate.created' && event.data) {
-      const c = event.data;
-      showToast({
-        type: 'info',
-        title: '👤 新候选人',
-        message: `${c.name} (${c.position})`,
-        link: '#/candidates',
-      });
-    } else if (event.event === 'review.saved' && event.data) {
-      const r = event.data;
-      showToast({
-        type: 'success',
-        title: '⭐ Review 保存',
-        message: `${r.memberId} · ${r.period} · ${r.rating}★`,
-        link: '#/reviews',
-      });
-    } else if (event.event === 'training.created' && event.data) {
-      const t = event.data;
-      showToast({
-        type: 'info',
-        title: '📚 培训计划',
-        message: `${t.title} - ${t.memberId}`,
-      });
-    }
-  }, { enabled: false });  // TODO: re-enable when SSE auth/filtering is sorted out
 
   return (
     <ToastContext.Provider value={{ toasts, showToast, removeToast, clearToasts }}>
@@ -94,7 +56,7 @@ function ToastContainer() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`card flex animate-pulse-once items-start gap-3 p-3 shadow-lg ${getToastClass(t.type)}`}
+          className={`card flex items-start gap-3 p-3 shadow-lg ${getToastClass(t.type)}`}
           onClick={() => t.link && (window.location.hash = t.link.slice(1))}
           style={{ cursor: t.link ? 'pointer' : 'default' }}
         >

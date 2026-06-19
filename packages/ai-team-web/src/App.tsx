@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { Candidates } from './pages/Candidates';
 import { Members } from './pages/Members';
@@ -14,7 +14,6 @@ import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 
 export default function App() {
-  const [paletteOpen, setPaletteOpen] = useState(false);
   return (
     <ToastProvider>
       <HashRouter>
@@ -22,7 +21,7 @@ export default function App() {
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-sm font-bold text-white" onClick={() => setPaletteOpen(true)}>
+            <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-sm font-bold text-white" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
               ai
             </div>
             <div>
@@ -91,14 +90,21 @@ export default function App() {
       </footer>
         </div>
         <CommandPalette />
-        <button
-          onClick={() => setPaletteOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg hover:bg-brand-600"
-          title="搜索 (⌘K)"
-        >
-          🔍
-        </button>
+        <SearchTrigger />
       </HashRouter>
     </ToastProvider>
+  );
+}
+
+function SearchTrigger() {
+  // Trigger palette via custom event (decoupled from CommandPalette internals)
+  return (
+    <button
+      onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+      className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg hover:bg-brand-600"
+      title="搜索 (⌘K)"
+    >
+      🔍
+    </button>
   );
 }

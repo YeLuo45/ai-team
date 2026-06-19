@@ -1,6 +1,6 @@
 // useEventSource hook - subscribes to SSE stream
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface SSEEvent<T = any> {
   event: string;
@@ -20,17 +20,20 @@ export function useEventSource<T = any>(
   const enabled = options.enabled ?? true;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || typeof window === 'undefined') return;
     let es: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
-      es = new EventSource(url);
+      try {
+        es = new EventSource(url);
+      } catch {
+        return;
+      }
       es.onopen = () => setConnected(true);
       es.onerror = () => {
         setConnected(false);
         es?.close();
-        // Reconnect after 3s
         reconnectTimer = setTimeout(connect, 3000);
       };
       es.onmessage = (e) => {
@@ -38,13 +41,14 @@ export function useEventSource<T = any>(
         setLastEvent(event);
         handler?.(event);
       };
-      // Also handle named events
       ['interview.completed', 'review.saved', 'candidate.created', 'training.created', 'connected'].forEach((name) => {
-        es?.addEventListener(name, (e: MessageEvent) => {
-          const event: SSEEvent<T> = { event: name, data: tryParse(e.data) };
-          setLastEvent(event);
-          handler?.(event);
-        });
+        if (es) {
+          es.addEventListener(name, ((e: MessageEvent) => {
+            const event: SSEEvent<T> = { event: name, data: tryParse(e.data) };
+            setLastEvent(event);
+            handler?.(event);
+          }) as EventListener);
+        }
       });
     };
 

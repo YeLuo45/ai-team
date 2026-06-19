@@ -697,8 +697,8 @@ app.get('/api/events/stream', (req, res) => {
 // ============== Insights (V14) ==============
 
 app.get('/api/insights/funnel', async (_req, res) => {
-  const [candidates, interviews] = await Promise.all([candidateStore.list(), interviewStore.list()]);
-  res.json(computeFunnel(candidates, interviews));
+  const candidates = await candidateStore.list();
+  res.json(computeFunnel(candidates));
 });
 
 app.get('/api/insights/skill-gaps', async (req, res) => {

@@ -1,7 +1,6 @@
 // Insights page - AI smart analytics dashboard
 
 import { useEffect, useState } from 'react';
-import { formatDate } from '../lib/format';
 
 interface FunnelResult {
   stages: Array<{ stage: string; count: number }>;

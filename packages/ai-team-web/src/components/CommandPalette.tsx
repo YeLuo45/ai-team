@@ -1,7 +1,16 @@
 // Command palette - global Cmd+K search
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import type { SearchResult } from '../lib/api';
+import { useEffect, useState, useRef } from 'react';
+
+interface SearchResult {
+  type: 'candidate' | 'member' | 'interview' | 'skill' | 'training' | 'review';
+  id: string;
+  title: string;
+  subtitle?: string;
+  snippet: string;
+  score: number;
+  link?: string;
+}
 
 const ICONS: Record<string, string> = {
   candidate: '👤',
@@ -30,7 +39,7 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Keyboard shortcut: Cmd+K / Ctrl+K
+  // Keyboard shortcut: Cmd+K / Ctrl+K + custom event
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -40,8 +49,13 @@ export function CommandPalette() {
         setOpen(false);
       }
     };
+    const customHandler = () => setOpen(true);
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('open-command-palette', customHandler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('open-command-palette', customHandler);
+    };
   }, [open]);
 
   // Focus input when opened
@@ -71,7 +85,7 @@ export function CommandPalette() {
     return () => clearTimeout(t);
   }, [query]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelected((s) => Math.min(s + 1, results.length - 1));
@@ -84,12 +98,12 @@ export function CommandPalette() {
       setOpen(false);
       setQuery('');
     }
-  }, [results, selected]);
+  };
 
   if (!open) return null;
 
   // Group by type
-  const grouped = results.reduce((acc, r) => {
+  const grouped = results.reduce((acc: Record<string, SearchResult[]>, r) => {
     if (!acc[r.type]) acc[r.type] = [];
     acc[r.type].push(r);
     return acc;

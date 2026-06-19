@@ -87,7 +87,7 @@ export class InsightsAgent {
               priority: (['high', 'medium', 'low'] as const).find((p) => p === r.priority) ?? 'medium',
               category: (['hiring', 'training', 'process', 'culture'] as const).find((c) => c === r.category) ?? 'process',
               message: String(r.message ?? ''),
-            })).filter((r) => r.message)
+            })).filter((r: { priority: string; category: string; message: string }) => r.message)
           : [],
         anomalies,
       };
@@ -116,7 +116,7 @@ export interface FunnelResult {
   overallRate: number;
 }
 
-export function computeFunnel(candidates: Candidate[], interviews: Interview[]): FunnelResult {
+export function computeFunnel(candidates: Candidate[]): FunnelResult {
   const stages: FunnelStage[] = [];
   const byStatus = new Map<string, number>();
   for (const c of candidates) {
