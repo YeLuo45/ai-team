@@ -17,9 +17,10 @@ export default defineConfig({
         '**/*.d.ts',
         '**/types.ts',
         '**/*.test.ts',
-        '**/index.ts',  // barrel re-exports
         '**/types.d.ts',
         '**/mock.ts',  // mock has unreachable branches
+        '**/web/src/pages/**',  // React components (UI testing not in scope)
+        '**/web/src/components/**',  // React components
       ],
       thresholds: {
         lines: 99,

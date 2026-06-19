@@ -829,8 +829,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: err.message ?? 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`[ai-team-server] listening on http://localhost:${PORT}`);
-  console.log(`[ai-team-server] data dir: ${DATA_DIR}`);
-  console.log(`[ai-team-server] LLM: ${process.env.AI_TEAM_LLM_API_KEY ? 'configured' : 'mock (no API key set)'}`);
-});
+if (process.env.AI_TEAM_TEST !== '1') {
+  app.listen(PORT, () => {
+    console.log(`[ai-team-server] listening on http://localhost:${PORT}`);
+    console.log(`[ai-team-server] data dir: ${DATA_DIR}`);
+    console.log(`[ai-team-server] LLM: ${process.env.AI_TEAM_LLM_API_KEY ? 'configured' : 'mock (no API key set)'}`);
+  });
+}
+
+export { app };
