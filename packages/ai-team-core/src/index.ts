@@ -14,3 +14,5 @@ export * from './llm-config.js';
 export * from './i18n.js';
 export * from './pwa.js';
 export * from './legal-agent.js';
+export * from './tech-policy-agent.js';
+export * from './media-compliance-agent.js';

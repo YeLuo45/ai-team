@@ -7,7 +7,7 @@
 [![React](https://img.shields.io/badge/React-19-blue)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6-blue)](https://vitejs.dev/)
 [![Tailwind](https://img.shields.io/badge/Tailwind-4-blue)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/tests-795%20passing-brightgreen)](./vitest.config.ts)
+[![Tests](https://img.shields.io/badge/tests-805%20passing-brightgreen)](./vitest.config.ts)
 [![License](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 基于 [pi-mono](https://github.com/YeLuo45/pi-mono) 干净架构 (pi-ai / pi-agent-core / pi-coding-agent / pi-tui) 的 TypeScript monorepo,应用于 **AI 团队管理** 领域。
@@ -48,7 +48,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 📡 **实时 SSE** | Server-Sent Events | V15 |
 | 🔍 **全文搜索** | `⌘K` 命令面板 (跨 6 实体) | V16 |
 | 🎯 **上下文简历评分** | 综合简历 + 团队缺口 | V19 |
-| 🧪 **测试基础设施** | vitest + 795 tests + 100% pass | V9-V13 |
+| 🧪 **测试基础设施** | vitest + 805 tests + 100% pass | V9-V13 |
 | 📊 **招聘漏斗看板** | sourced→screening→interview→evaluation→offer→hired | V21 |
 | 🛰️ **Agent 审计台** | 调用/耗时/失败率统计 + stats endpoint | V22 |
 | 🔥 **能力热力图** | 团队×岗位 × 技能 三维聚合 | V23 |
@@ -59,6 +59,8 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🚀 **`ai-team dev`** | 清空 → seed → 启动 server+web | V28 |
 | 🔗 **Pipeline 自动推进** | 面试结束 → pipeline evaluation | V29 |
 | ⚖️ **Legal 风险 Agent + 居中 Web Shell** | 法务风险分级 + 对称响应式布局 | V30 |
+| 🛡️ **Tech Policy Agent** | 安全/合规/运营/治理风险评分 + 整改 | V31 |
+| 📺 **Media Compliance Agent** | 微信/抖音/小红书/B站 渠道感知 PII + 授权审查 | V31 |
 
 ## 7 个包
 
@@ -66,7 +68,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 |----|------|
 | **[@ai-team/core](./packages/ai-team-core)** | 领域类型 (Candidate/Member/Skill/Interview/Training/Review) + JSON 存储 + 工具 |
 | **[@ai-team/ai](./packages/ai-team-ai)** | LLM 封装 (OpenAI 兼容 + Mock) + 面试/培训/洞察 prompt 模板 |
-| **[@ai-team/agent](./packages/ai-team-agent)** | 9 个 agent: Interview/Training/1:1/Review/Resume/Insights/Score/Legal + 搜索引擎 |
+| **[@ai-team/agent](./packages/ai-team-agent)** | 11 个 agent: Interview/Training/1:1/Review/Resume/Insights/Score/Legal/TechPolicy/MediaCompliance + 搜索引擎 |
 | **[@ai-team/server](./packages/ai-team-server)** | Express REST API (3000) + 50+ 端点 + SSE + LLM 代理 |
 | **[@ai-team/tui](./packages/ai-team-tui)** | Ink 交互式 TUI (4 视图 + 表单) |
 | **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
@@ -157,7 +159,7 @@ npm run dev:web
 ### 模式 5: 测试
 
 ```bash
-# 运行全部 795 个测试 (100% 通过率, 7 skipped)
+# 运行全部 805 个测试 (100% 通过率, 7 skipped)
 npm test
 
 # 单包测试
@@ -168,7 +170,7 @@ npm run test:coverage
 ```
 
 覆盖率门槛：确定性库/运行时模块 95%+；UI 页面、CLI 命令胶水、LLM 编排和环境 fallback 不计入全局阈值。
-当前覆盖率门槛结果：statements 99.09%，branches 96.08%，functions 99.28%，lines 99.59%。
+当前覆盖率门槛结果：statements 99.17%，branches 96.51%，functions 99.35%，lines 99.63%。
 
 ## 🌐 API 端点 (50+)
 
@@ -206,7 +208,7 @@ npm run test:coverage
 ai-team (root, npm workspaces)
 ├── packages/ai-team-core       (领域: 类型 + JSON 存储)
 ├── packages/ai-team-ai         (LLM: OpenAI 兼容 + Mock + prompts)
-├── packages/ai-team-agent      (9 个 agent + 搜索引擎)
+├── packages/ai-team-agent      (11 个 agent + 搜索引擎)
 ├── packages/ai-team-server     (Express: 50+ REST 端点 + SSE)
 ├── packages/ai-team-tui        (Ink 4 视图交互式终端)
 ├── packages/ai-team-cli        (commander.js CLI → tui 入口)
@@ -254,7 +256,7 @@ export AI_TEAM_LLM_MODEL=gpt-4o-mini  # 可选
 
 ## 🧪 测试
 
-- **795 个测试** (100% 通过率, 7 个跳过)
+- **805 个测试** (100% 通过率, 7 个跳过)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
 - 覆盖率重点: core (100%), ai (98%), agent (80-95%), server (87%), tui API (90%), web lib (53%), CLI (50-90%)
 
@@ -317,8 +319,8 @@ npm run test:coverage # 带覆盖率报告
 ## 📂 项目状态
 
 ```
-代码:       7 packages / 9 agents / 50+ 端点 / 10 页面 / 7 模态框
-测试:       795 passed (100%) / 7 skipped
+代码:       7 packages / 11 agents / 50+ 端点 / 10 页面 / 7 模态框
+测试:       805 passed (100%) / 7 skipped
 文档:       README 中英双版 + 故障排除 + 5 步快速开始
 提案:       19 个 (P-20260618-001 ~ P-20260620-003)
 沉淀:       5 个 pi-mono skill + WSL 故障排除补丁

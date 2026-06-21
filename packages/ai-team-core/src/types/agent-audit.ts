@@ -10,6 +10,8 @@ export type AgentKind =
   | 'score'
   | 'search'
   | 'legal'
+  | 'tech-policy'
+  | 'media-compliance'
   | 'pipeline'
   | 'unknown';
 

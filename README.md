@@ -54,6 +54,8 @@ Press `Ctrl+C` to clean shutdown.
 - 🚀 **`ai-team dev`** (V28) — One-command demo launcher (wipe → seed → server+web)
 - 🔗 **Pipeline Auto-Advance** (V29) — Interview finalize hooks into pipeline.advance('evaluation')
 - ⚖️ **Legal Risk Agent + Centered Web Shell** (V30) — Legal risk triage + symmetric responsive layout
+- 🛡️ **Tech Policy Agent** (V31) — Security / compliance / ops / governance risk scoring + remediation
+- 📺 **Media Compliance Agent** (V31) — WeChat/Douyin/XHS/Bilibili channel-aware PII + consent triage
 
 ## Packages (7)
 
@@ -61,7 +63,7 @@ Press `Ctrl+C` to clean shutdown.
 |---------|-------------|
 | **[@ai-team/core](./packages/ai-team-core)** | Domain types (Candidate/Member/Skill/Interview/Training/Review) + JSON file store + utils |
 | **[@ai-team/ai](./packages/ai-team-ai)** | LLM wrapper (OpenAI-compatible + Mock) + interview/training/insights/score prompt templates |
-| **[@ai-team/agent](./packages/ai-team-agent)** | 9 agents: Interview / Training / 1:1 / Review / Resume / Insights / Score / Legal + search engine |
+| **[@ai-team/agent](./packages/ai-team-agent)** | 11 agents: Interview / Training / 1:1 / Review / Resume / Insights / Score / Legal / Tech Policy / Media Compliance + search engine |
 | **[@ai-team/server](./packages/ai-team-server)** | Express REST API server (port 3000) + 50+ endpoints + SSE + LLM proxy |
 | **[@ai-team/tui](./packages/ai-team-tui)** | Ink-based interactive TUI (4 views + forms) |
 | **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
@@ -153,7 +155,7 @@ npm run dev:web
 #### Mode 5: Tests
 
 ```bash
-# Run all 795 tests (100% pass rate, 7 skipped)
+# Run all 805 tests (100% pass rate, 7 skipped)
 npm test
 
 # Single package
@@ -192,7 +194,7 @@ export AI_TEAM_JWT_EXPIRES=7d
 ai-team (root, npm workspaces)
 ├── packages/ai-team-core       (Domain: types + JSON store)
 ├── packages/ai-team-ai         (LLM: OpenAI-compat + Mock + prompts)
-├── packages/ai-team-agent      (9 agents: Interview/Training/1:1/Review/Resume/Insights/Score/Legal + search)
+├── packages/ai-team-agent      (11 agents: Interview/Training/1:1/Review/Resume/Insights/Score/Legal/TechPolicy/MediaCompliance + search)
 ├── packages/ai-team-server     (Express: 50+ REST endpoints + SSE)
 ├── packages/ai-team-tui        (Ink 4-view interactive terminal)
 ├── packages/ai-team-cli        (commander.js CLI → tui entry)
@@ -231,21 +233,21 @@ Works with any OpenAI-compatible API: OpenAI / Azure / OpenRouter / Ollama / vLL
 
 ## Testing
 
-- **795 tests** (100% pass rate, 7 skipped)
+- **805 tests** (100% pass rate, 7 skipped)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
 - Coverage gate: 95%+ for deterministic library/runtime modules; UI pages, CLI command glue, LLM orchestration, and environment fallbacks are excluded from the global threshold.
-- Current coverage gate result: statements 99.09%, branches 96.08%, functions 99.28%, lines 99.59%.
+- Current coverage gate result: statements 99.17%, branches 96.51%, functions 99.35%, lines 99.63%.
 - Strict layers (95% threshold, all passing): 7/7 including core/store, server/routes, server/middleware, server/sse, web/lib-format.
 
 ```bash
-npm test              # Run all 795 tests
+npm test              # Run all 805 tests
 npm run test:coverage # With coverage report (95% strict threshold)
 npm run test:coverage:90      # 90% strict threshold variant
 npm run test:coverage:strict  # 95% strict threshold (alias)
 npm run coverage:report        # Layered report from existing coverage data
 ```
 
-## Recent additions (V20-V30)
+## Recent additions (V20-V31)
 
 - **V20 Coverage Gate 2.0**: `scripts/coverage-report.mjs` — layered report; `npm run coverage:report`
 - **V21 Recruitment Pipeline**: `/api/pipeline/*` endpoints + `ai-team pipeline advance|funnel|show`
@@ -258,6 +260,7 @@ npm run coverage:report        # Layered report from existing coverage data
 - **V28 `ai-team dev`**: One-command demo (wipe → seed → start server+web)
 - **V29 Pipeline Auto-Advance**: Interview finalize auto-advances pipeline to `evaluation`
 - **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
+- **V31 Tech Policy + Media Compliance Agents**: tech-policy-agent (security/compliance/ops/governance) and media-compliance-agent (wechat/douyin/xiaohongshu/bilibili/feishu/other) both reach 100% module coverage
 
 ## License
 

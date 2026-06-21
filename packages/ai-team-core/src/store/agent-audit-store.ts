@@ -3,14 +3,14 @@ import { JsonStore } from './json-store.js';
 import type { AgentCallRecord, AgentCallStats, AgentKind, AgentCallStatus } from '../types/agent-audit.js';
 
 export const AGENT_KINDS: AgentKind[] = [
-  'interview', 'training', 'one-on-one', 'review', 'resume', 'insights', 'score', 'search', 'legal', 'pipeline', 'unknown',
+  'interview', 'training', 'one-on-one', 'review', 'resume', 'insights', 'score', 'search', 'legal', 'tech-policy', 'media-compliance', 'pipeline', 'unknown',
 ];
 export const AGENT_STATUSES: AgentCallStatus[] = ['success', 'failed', 'cancelled'];
 
 function emptyByKind(): Record<AgentKind, number> {
   return {
     interview: 0, training: 0, 'one-on-one': 0, review: 0, resume: 0,
-    insights: 0, score: 0, search: 0, legal: 0, pipeline: 0, unknown: 0,
+    insights: 0, score: 0, search: 0, legal: 0, 'tech-policy': 0, 'media-compliance': 0, pipeline: 0, unknown: 0,
   };
 }
 function emptyByStatus(): Record<AgentCallStatus, number> {
