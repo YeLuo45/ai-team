@@ -11,6 +11,8 @@ import {
   InterviewStore,
   TrainingStore,
   JsonStore,
+  PipelineStore,
+  AgentAuditStore,
   generateId,
   nowIso,
   type Candidate,
@@ -28,6 +30,11 @@ import { InterviewAgent, TrainingAgent, OneOnOneAgent, ReviewAgent, ResumeAgent,
 import type { Review } from '@ai-team/core';
 import { createAuthRouter } from './routes/auth.js';
 import { createAuthMiddleware } from './middleware/auth.js';
+import { createPipelineRouter } from './routes/pipeline.js';
+import { createAgentAuditRouter } from './routes/agent-audit.js';
+import { createHeatmapRouter } from './routes/heatmap.js';
+import { createAuditStreamHandler, wrapAuditStoreWithBroadcast } from './routes/agent-audit-stream.js';
+import { handlePipelineEvent } from './pipeline-hooks.js';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
 import { sseManager } from './sse.js';
 
@@ -67,6 +74,21 @@ app.use(createAuthMiddleware(jwtConfig));
 
 // V20: Auth routes (register, login, me, logout, users, audit)
 app.use('/api/auth', createAuthRouter({ userStore, auditStore, jwtConfig }));
+
+// V21: Pipeline routes
+const pipelineStore = PipelineStore.create(DATA_DIR);
+app.use('/api/pipeline', createPipelineRouter({ pipelineStore }));
+
+// V22: Agent audit routes
+const agentAuditStore = AgentAuditStore.create(DATA_DIR);
+app.use('/api/agent-audit', createAgentAuditRouter({ auditStore: agentAuditStore }));
+
+// V27: Wrap audit store to broadcast SSE on every record/trace
+wrapAuditStoreWithBroadcast({ auditStore: agentAuditStore, sseManager });
+
+// V27: SSE stream for live audit feed
+const auditStreamHandler = createAuditStreamHandler({ auditStore: agentAuditStore, sseManager });
+app.get('/api/agent-audit/stream', auditStreamHandler);
 
 // Seed default admin if no users
 async function seedDefaultAdmin() {
@@ -203,6 +225,16 @@ app.put('/api/candidates/:id', async (req, res) => {
   const patch = { ...(req.body as Partial<Candidate>), updatedAt: nowIso() };
   const updated = await candidateStore.update(req.params.id, patch);
   if (!updated) return res.status(404).json({ error: 'Candidate not found' });
+  // V30: auto-advance pipeline on status changes
+  if (patch.status === 'hired') {
+    handlePipelineEvent({ pipelineStore }, {
+      type: 'candidate.hired', candidateId: updated.id, actorId: 'system',
+    }).catch((e) => console.warn('pipeline auto-advance (hired) failed:', e?.message ?? e));
+  } else if (patch.status === 'rejected') {
+    handlePipelineEvent({ pipelineStore }, {
+      type: 'candidate.rejected', candidateId: updated.id, actorId: 'system',
+    }).catch((e) => console.warn('pipeline auto-advance (rejected) failed:', e?.message ?? e));
+  }
   res.json(updated);
 });
 
@@ -279,6 +311,11 @@ app.post('/api/interviews/start', async (req, res) => {
   const session = agent.start(candidate, { ...(type && { type }) });
   sessions.set(session.interview.id, { session, candidate });
 
+  // V30: auto-advance pipeline to 'interview' on interview start
+  handlePipelineEvent({ pipelineStore }, {
+    type: 'interview.started', candidateId: candidate.id, actorId: 'system',
+  }).catch((e) => console.warn('pipeline auto-advance (interview.started) failed:', e?.message ?? e));
+
   // First question
   try {
     const q = await session.nextQuestion();
@@ -335,6 +372,10 @@ app.post('/api/interviews/:id/finalize', async (req, res) => {
     pluginManager.fireHook('interview.completed', finalInterview);
     // Broadcast via SSE
     sseManager.broadcast('interview.completed', finalInterview);
+    // V29: auto-advance pipeline to evaluation
+    handlePipelineEvent({ pipelineStore }, {
+      type: 'interview.finalized', candidateId: ctx.candidate.id, actorId: 'system',
+    }).catch((e) => console.warn('pipeline auto-advance failed:', e?.message ?? e));
     res.json(finalInterview);
   } catch (err) {
     res.status(500).json({ error: (err as Error).message });
@@ -776,6 +817,9 @@ app.get('/api/insights/anomalies', async (_req, res) => {
   ]);
   res.json({ anomalies: detectAnomalies({ members, candidates, interviews, reviews }) });
 });
+
+// V23: Capability heatmap router (mounted as Router on /api/insights/capability-heatmap)
+app.use('/api/insights/capability-heatmap', createHeatmapRouter({ memberStore, skillStore }));
 
 // ============== Reviews ==============
 app.get('/api/reviews', async (_req, res) => res.json(await reviewStore.list().catch(() => [])));

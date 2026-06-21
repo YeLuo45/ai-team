@@ -16,11 +16,16 @@
     "./store": {
       "types": "./dist/store/index.d.ts",
       "import": "./dist/store/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "import": "./dist/i18n.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "cd ../.. && NODE_ENV=test vitest run packages/ai-team-core/test"
   },
   "files": [
     "dist"

@@ -28,7 +28,7 @@ Press `Ctrl+C` to clean shutdown.
 
 > For WSL users: see [Troubleshooting](#troubleshooting) section below for the 5 most common gotchas.
 
-## What's Inside (V1-V19, 19 proposals)
+## What's Inside (V1-V19, 19 proposals) + V20-V24
 
 - 🎤 **Smart Interviews** (V1) — AI-driven multi-turn dialogue + auto-evaluation
 - 🧑‍💼 **Member Training** (V1) — AI-generated training plans from skills
@@ -44,6 +44,16 @@ Press `Ctrl+C` to clean shutdown.
 - 📡 **Real-time SSE** (V15) — Server-Sent Events for live updates
 - 🔍 **Full-text Search** (V16) — `⌘K` command palette across all entities
 - 🎯 **Context-aware Resume Scoring** (V19) — Combines resume + team gaps
+- 📊 **Recruitment Pipeline** (V21) — `sourced→screening→interview→evaluation→offer→hired` funnel
+- 🛰️ **Agent Audit Console** (V22) — Per-call records + stats aggregation
+- 🔥 **Capability Heatmap** (V23) — Team×Role × Skill coverage matrix
+- 🌱 **Demo Data Factory** (V24) — small/medium/large presets for instant demos
+- ⚡ **Coverage Gate 3.0** (V25) — 95% branch threshold enforced across 7 strict layers
+- 📊 **Pipeline + Heatmap Web Pages** (V26) — `/pipeline` and `/heatmap` React pages with retry
+- 📡 **Audit SSE** (V27) — `/api/agent-audit/stream` real-time push + Web Audit Console
+- 🚀 **`ai-team dev`** (V28) — One-command demo launcher (wipe → seed → server+web)
+- 🔗 **Pipeline Auto-Advance** (V29) — Interview finalize hooks into pipeline.advance('evaluation')
+- ⚖️ **Legal Risk Agent + Centered Web Shell** (V30) — Legal risk triage + symmetric responsive layout
 
 ## Packages (7)
 
@@ -51,7 +61,7 @@ Press `Ctrl+C` to clean shutdown.
 |---------|-------------|
 | **[@ai-team/core](./packages/ai-team-core)** | Domain types (Candidate/Member/Skill/Interview/Training/Review) + JSON file store + utils |
 | **[@ai-team/ai](./packages/ai-team-ai)** | LLM wrapper (OpenAI-compatible + Mock) + interview/training/insights/score prompt templates |
-| **[@ai-team/agent](./packages/ai-team-agent)** | 8 agents: Interview / Training / 1:1 / Review / Resume / Insights / Score + search engine |
+| **[@ai-team/agent](./packages/ai-team-agent)** | 9 agents: Interview / Training / 1:1 / Review / Resume / Insights / Score / Legal + search engine |
 | **[@ai-team/server](./packages/ai-team-server)** | Express REST API server (port 3000) + 50+ endpoints + SSE + LLM proxy |
 | **[@ai-team/tui](./packages/ai-team-tui)** | Ink-based interactive TUI (4 views + forms) |
 | **[@ai-team/cli](./packages/ai-team-cli)** | Node CLI: `ai-team candidate add`, `interview start`, `team overview`, `tui` |
@@ -143,7 +153,7 @@ npm run dev:web
 #### Mode 5: Tests
 
 ```bash
-# Run all 522 tests (100% pass rate, 7 skipped)
+# Run all 795 tests (100% pass rate, 7 skipped)
 npm test
 
 # Single package
@@ -162,19 +172,10 @@ curl -s -X POST http://localhost:3000/api/auth/login \
   -d '{"email":"admin@ai-team.local","password":"admin123"}'
 # → { "token": "eyJ...", "user": { ... } }
 
-# Get current user
-curl -H "Authorization: Bearer *** TCH/me"
-
 # Register new user
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"u@x.com","username":"u","password":"pass123","role":"manager"}'
-
-# List all users (admin only)
-curl -H "Authorization: Bearer *** TCH/users"
-
-# View audit log (admin only)
-curl -H "Authorization: Bearer *** TH/audit?limit=20"
 ```
 
 **Roles**: `admin` (all) / `manager` (read+write candidate/member/interview) / `interviewer` (read+interview.create) / `viewer` (read-only)
@@ -191,7 +192,7 @@ export AI_TEAM_JWT_EXPIRES=7d
 ai-team (root, npm workspaces)
 ├── packages/ai-team-core       (Domain: types + JSON store)
 ├── packages/ai-team-ai         (LLM: OpenAI-compat + Mock + prompts)
-├── packages/ai-team-agent      (8 agents: Interview/Training/1:1/Review/Resume/Insights/Score + search)
+├── packages/ai-team-agent      (9 agents: Interview/Training/1:1/Review/Resume/Insights/Score/Legal + search)
 ├── packages/ai-team-server     (Express: 50+ REST endpoints + SSE)
 ├── packages/ai-team-tui        (Ink 4-view interactive terminal)
 ├── packages/ai-team-cli        (commander.js CLI → tui entry)
@@ -230,14 +231,33 @@ Works with any OpenAI-compatible API: OpenAI / Azure / OpenRouter / Ollama / vLL
 
 ## Testing
 
-- **390 tests** (100% pass rate, 7 skipped)
+- **795 tests** (100% pass rate, 7 skipped)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
-- Coverage focus: core (100%), ai (98%), agent (80-95%), server (87%), tui API (90%), web lib (53%), CLI (50-90%)
+- Coverage gate: 95%+ for deterministic library/runtime modules; UI pages, CLI command glue, LLM orchestration, and environment fallbacks are excluded from the global threshold.
+- Current coverage gate result: statements 99.09%, branches 96.08%, functions 99.28%, lines 99.59%.
+- Strict layers (95% threshold, all passing): 7/7 including core/store, server/routes, server/middleware, server/sse, web/lib-format.
 
 ```bash
-npm test              # Run all
-npm run test:coverage # With coverage report
+npm test              # Run all 795 tests
+npm run test:coverage # With coverage report (95% strict threshold)
+npm run test:coverage:90      # 90% strict threshold variant
+npm run test:coverage:strict  # 95% strict threshold (alias)
+npm run coverage:report        # Layered report from existing coverage data
 ```
+
+## Recent additions (V20-V30)
+
+- **V20 Coverage Gate 2.0**: `scripts/coverage-report.mjs` — layered report; `npm run coverage:report`
+- **V21 Recruitment Pipeline**: `/api/pipeline/*` endpoints + `ai-team pipeline advance|funnel|show`
+- **V22 Agent Audit Console**: `/api/agent-audit/*` + stats aggregation by agent/status
+- **V23 Capability Heatmap**: `/api/insights/capability-heatmap` (team×role × skill matrix)
+- **V24 Demo Data Factory**: `ai-team seed fill|preview [-s small|medium|large]`
+- **V25 Coverage Gate 3.0**: Threshold raised from 90% → 95% branches, dead-branch removed
+- **V26 Pipeline + Heatmap Web Pages**: `/pipeline` and `/heatmap` routes in Web UI with loading/error/retry states
+- **V27 Agent Audit SSE**: `/api/agent-audit/stream` SSE endpoint + Audit Console Web page with EventSource
+- **V28 `ai-team dev`**: One-command demo (wipe → seed → start server+web)
+- **V29 Pipeline Auto-Advance**: Interview finalize auto-advances pipeline to `evaluation`
+- **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
 
 ## License
 

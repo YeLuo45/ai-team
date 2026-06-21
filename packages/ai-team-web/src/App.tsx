@@ -10,6 +10,9 @@ import { Plugins } from './pages/Plugins';
 import { Notifications } from './pages/Notifications';
 import { Data } from './pages/Data';
 import { Insights } from './pages/Insights';
+import Pipeline from './pages/Pipeline';
+import Heatmap from './pages/Heatmap';
+import AuditConsole from './pages/AuditConsole';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 
@@ -18,7 +21,7 @@ export default function App() {
     <ToastProvider>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <header className="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <div data-testid="app-header-shell" className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 px-6 py-4 lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 text-sm font-bold text-white" onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}>
               ai
@@ -28,7 +31,7 @@ export default function App() {
               <p className="text-xs text-slate-500 dark:text-slate-400">AI 驱动的团队管理 · 按 ⌘K 搜索</p>
             </div>
           </div>
-          <nav className="flex items-center gap-1">
+          <nav data-testid="app-primary-nav" className="flex max-w-full flex-wrap items-center justify-center gap-1">
             <NavLink to="/" end className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               概览
             </NavLink>
@@ -56,6 +59,15 @@ export default function App() {
             <NavLink to="/insights" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               智能
             </NavLink>
+            <NavLink to="/pipeline" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              漏斗
+            </NavLink>
+            <NavLink to="/heatmap" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              热力图
+            </NavLink>
+            <NavLink to="/audit" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              审计
+            </NavLink>
             <NavLink to="/notifications" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               通知
             </NavLink>
@@ -66,7 +78,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main data-testid="app-main-shell" className="mx-auto max-w-7xl px-6 py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/candidates" element={<Candidates />} />
@@ -77,13 +89,16 @@ export default function App() {
           <Route path="/reviews" element={<Reviews />} />
           <Route path="/plugins" element={<Plugins />} />
           <Route path="/insights" element={<Insights />} />
+          <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/heatmap" element={<Heatmap />} />
+          <Route path="/audit" element={<AuditConsole />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/data" element={<Data />} />
         </Routes>
       </main>
 
       <footer className="mt-12 border-t border-slate-200 bg-white py-6 dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto max-w-6xl px-6 text-center text-xs text-slate-500 dark:text-slate-400">
+        <div data-testid="app-footer-shell" className="mx-auto max-w-7xl px-6 text-center text-xs text-slate-500 dark:text-slate-400">
           ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4 · D3.js 7
         </div>
       </footer>

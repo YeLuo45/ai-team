@@ -46,3 +46,5 @@ export interface TeamData {
 }
 
 export { JsonStore } from './json-store.js';
+export { PipelineStore } from './pipeline-store.js';
+export { AgentAuditStore } from './agent-audit-store.js';
