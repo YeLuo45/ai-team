@@ -216,6 +216,21 @@ describe('Agent config routes', () => {
     expect(r.status).toBe(400);
   });
 
+  it('isAgentKind false branch: PUT /:kind with bogus kind returns 400', async () => {
+    const r = await request(app).put('/api/agent-config/bogus').send({});
+    expect(r.status).toBe(400);
+  });
+
+  it('isAgentKind false branch: GET /:kind with bogus kind returns 400', async () => {
+    const r = await request(app).get('/api/agent-config/bogus');
+    expect(r.status).toBe(400);
+  });
+
+  it('isAgentKind false branch: DELETE /:kind with bogus kind returns 400', async () => {
+    const r = await request(app).delete('/api/agent-config/bogus');
+    expect(r.status).toBe(400);
+  });
+
   it('GET / uses "unknown" fallback when non-Error thrown', async () => {
     const store = new AgentConfigStore({ baseDir: dir });
     store.list = async () => { throw 'string-error'; };
@@ -269,6 +284,28 @@ describe('Agent config routes', () => {
     appErr.use(express.json());
     appErr.use('/api/agent-config', createAgentConfigRouter({ store }));
     const r = await request(appErr).post('/api/agent-config/interview/reset-llm');
+    expect(r.status).toBe(500);
+    expect(r.body.message).toBe('unknown');
+  });
+
+  it('GET /:kind catch returns 500 even for non-Error throw', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    store.get = async () => { throw 'plain-string'; };
+    const appErr = express();
+    appErr.use(express.json());
+    appErr.use('/api/agent-config', createAgentConfigRouter({ store }));
+    const r = await request(appErr).get('/api/agent-config/interview');
+    expect(r.status).toBe(500);
+    expect(r.body.message).toBe('unknown');
+  });
+
+  it('DELETE /:kind catch returns 500 even for non-Error throw', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    store.delete = async () => { throw ['array', 'error']; };
+    const appErr = express();
+    appErr.use(express.json());
+    appErr.use('/api/agent-config', createAgentConfigRouter({ store }));
+    const r = await request(appErr).delete('/api/agent-config/interview');
     expect(r.status).toBe(500);
     expect(r.body.message).toBe('unknown');
   });

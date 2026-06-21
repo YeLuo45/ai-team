@@ -56,6 +56,9 @@ Press `Ctrl+C` to clean shutdown.
 - ⚖️ **Legal Risk Agent + Centered Web Shell** (V30) — Legal risk triage + symmetric responsive layout
 - 🛡️ **Tech Policy Agent** (V31) — Security / compliance / ops / governance risk scoring + remediation
 - 📺 **Media Compliance Agent** (V31) — WeChat/Douyin/XHS/Bilibili channel-aware PII + consent triage
+- 🧩 **Per-agent Independent Configuration** (V32) — soul.md / user.md / memory.md + LLM model override per AgentKind
+- 🌐 **Web Agent Config Console** (V34) — React UI to edit each agent's runtime config
+- 📦 **Agent Config Templates** (V35) — bulk export / import + 3 built-in presets (default / hr-friendly / strict-interviewer)
 
 ## Packages (7)
 
@@ -233,18 +236,37 @@ Works with any OpenAI-compatible API: OpenAI / Azure / OpenRouter / Ollama / vLL
 
 ## Testing
 
-- **859 tests** (852 passed, 7 skipped)
+- **974 tests** (967 passed, 7 skipped, 100% pass rate)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
 - Coverage gate: 95%+ for deterministic library/runtime modules; UI pages, CLI command glue, LLM orchestration, and environment fallbacks are excluded from the global threshold.
-- Current coverage gate result: statements 99.15%, branches 96.18%, functions 98.83%, lines 99.68%.
-- Strict layers (95% threshold, all passing): 7/7 including core/store, server/routes, server/middleware, server/sse, web/lib-format.
+- Current coverage gate result: statements 98.11%, branches 94.65%, functions 98.11%, lines 98.72%.
+- Strict layers (95% threshold, all passing): 9/10 including core/store, server/routes, server/middleware, server/sse, web/lib-format.
+- Incremental layers (V32+V35, all ≥95%): v32/core-agent-config, v32/agent-config-loader, v35/core-agent-config-template.
 
 ```bash
-npm test              # Run all 859 tests (852 passed, 7 skipped)
-npm run test:coverage # With coverage report (95% strict threshold)
-npm run test:coverage:90      # 90% strict threshold variant
-npm run test:coverage:strict  # 95% strict threshold (alias)
+npm test                       # Run all 974 tests (967 passed, 7 skipped)
+npm run test:coverage          # Full coverage report
+npm run test:coverage:strict   # 95% global strict threshold
+npm run test:coverage:incremental  # V32/V35 incremental layers only (CI gate for this iteration)
+npm run test:coverage:90       # 90% strict threshold variant
 npm run coverage:report        # Layered report from existing coverage data
+```
+
+## Agent Config CLI (V32/V35)
+
+```bash
+# Export all configured agents to stdout
+ai-team agent-config export > my-config.json
+
+# Import from JSON envelope
+ai-team agent-config import --file my-config.json
+
+# Apply a built-in preset (default / hr-friendly / strict-interviewer)
+ai-team agent-config apply hr-friendly
+ai-team agent-config apply strict-interviewer --dry-run
+
+# List presets
+ai-team agent-config presets
 ```
 
 ## Recent additions (V20-V31)

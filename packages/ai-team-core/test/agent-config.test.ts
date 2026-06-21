@@ -198,6 +198,109 @@ describe('AgentConfigStore', () => {
     const now = (await store.get(KIND))!;
     expect(now.updatedAt >= prev.updatedAt).toBe(true);
   });
+
+  it('save with patch.llm undefined falls back to {} llm', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    await store.save(KIND, { soul: 'x', user: '', memory: '' });
+    const got = await store.get(KIND);
+    expect(got?.llm).toEqual({});
+  });
+
+  it('save with patch.soul undefined falls back to ""', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    // @ts-expect-error - intentionally partial patch
+    await store.save(KIND, { user: 'u', memory: 'm', llm: {} });
+    const got = await store.get(KIND);
+    expect(got?.soul).toBe('');
+    expect(got?.user).toBe('u');
+    expect(got?.memory).toBe('m');
+  });
+
+  it('save with patch.user and memory undefined falls back to ""', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    // @ts-expect-error - intentionally partial patch
+    await store.save(KIND, { soul: 's', llm: {} });
+    const got = await store.get(KIND);
+    expect(got?.user).toBe('');
+    expect(got?.memory).toBe('');
+  });
+
+  it('readFile falls back to nowIso() when updatedAt missing', async () => {
+    const fs = await import('node:fs/promises');
+    const dir2 = mkdtempSync(join(tmpdir(), 'agent-config-disk-'));
+    const file = join(dir2, 'agent-configs', `${KIND}.json`);
+    await fs.mkdir(join(dir2, 'agent-configs'), { recursive: true });
+    await fs.writeFile(file, JSON.stringify({
+      agent: KIND,
+      soul: 'no-ts',
+      user: '',
+      memory: '',
+      llm: {},
+      // intentionally missing updatedAt
+    }), 'utf-8');
+    const store = new AgentConfigStore({ baseDir: dir2 });
+    const got = await store.get(KIND);
+    expect(got?.soul).toBe('no-ts');
+    expect(typeof got?.updatedAt).toBe('string');
+    expect(got!.updatedAt.length).toBeGreaterThan(0);
+  });
+
+  it('readFile falls back to "" for non-string soul/user/memory', async () => {
+    const fs = await import('node:fs/promises');
+    const dir2 = mkdtempSync(join(tmpdir(), 'agent-config-disk-'));
+    const file = join(dir2, 'agent-configs', `${KIND}.json`);
+    await fs.mkdir(join(dir2, 'agent-configs'), { recursive: true });
+    await fs.writeFile(file, JSON.stringify({
+      agent: KIND,
+      soul: 42,    // wrong type
+      user: null,   // wrong type
+      memory: undefined, // wrong type
+      llm: null,
+      updatedAt: '2026-06-21T00:00:00Z',
+    }), 'utf-8');
+    const store = new AgentConfigStore({ baseDir: dir2 });
+    const got = await store.get(KIND);
+    expect(got?.soul).toBe('');
+    expect(got?.user).toBe('');
+    expect(got?.memory).toBe('');
+  });
+
+  it('list returns empty array when no configs saved', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    expect(await store.list()).toEqual([]);
+  });
+
+  it('save/delete/resetLlm with VALID kinds hit both branches of isAgentKind', async () => {
+    const store = new AgentConfigStore({ baseDir: dir });
+    // valid → isAgentKind false branch (the throw is skipped)
+    await store.save(KIND, { soul: 's', user: '', memory: '', llm: {} });
+    await store.save(KIND, { soul: 's2', user: '', memory: '', llm: {} });
+    expect(await store.delete(KIND)).toBe(true);
+    expect(await store.resetLlm(KIND)).toBeNull(); // not exists → null branch
+    // re-save so resetLlm succeeds and exercises both null + truthy branches
+    await store.save(KIND, { soul: 's3', user: '', memory: '', llm: { temperature: 0.5 } });
+    const reset = await store.resetLlm(KIND);
+    expect(reset?.llm).toEqual({});
+    expect(reset?.soul).toBe('s3');
+  });
+
+  it('validate with maxTokens undefined hits both branches (true via present, false via absent)', () => {
+    // absent → maxTokens !== undefined === false
+    const r1 = validateAgentConfigPatch({ soul: '', user: '', memory: '', llm: {} });
+    expect(r1.ok).toBe(true);
+    // present and valid → maxTokens !== undefined === true, then inner check false branch (positive int)
+    const r2 = validateAgentConfigPatch({ soul: '', user: '', memory: '', llm: { maxTokens: 1024 } });
+    expect(r2.ok).toBe(true);
+  });
+
+  it('validate with model undefined hits both branches', () => {
+    // absent → false branch
+    const r1 = validateAgentConfigPatch({ soul: '', user: '', memory: '', llm: {} });
+    expect(r1.ok).toBe(true);
+    // present and valid → true branch, inner length OK
+    const r2 = validateAgentConfigPatch({ soul: '', user: '', memory: '', llm: { model: 'gpt-5.5' } });
+    expect(r2.ok).toBe(true);
+  });
 });
 
 describe('validateAgentConfigPatch', () => {

@@ -69,6 +69,49 @@ export class ApiClient {
   }
 }
 
+// V34: Per-agent configuration
+export interface AgentConfigItem {
+  agent: string;
+  soul: string;
+  user: string;
+  memory: string;
+  llm: { providerId?: string; model?: string; temperature?: number; maxTokens?: number };
+  updatedAt: string;
+}
+
+export interface AgentConfigPatch {
+  soul?: string;
+  user?: string;
+  memory?: string;
+  llm?: { providerId?: string; model?: string; temperature?: number; maxTokens?: number };
+}
+
+export class AgentConfigApi {
+  list() { return this.request<{ items: AgentConfigItem[] }>('/agent-config'); }
+  get(kind: string) { return this.request<{ config: AgentConfigItem }>(`/agent-config/${kind}`); }
+  put(kind: string, patch: AgentConfigPatch) {
+    return this.request<{ config: AgentConfigItem }>(`/agent-config/${kind}`, {
+      method: 'PUT',
+      body: JSON.stringify(patch),
+    });
+  }
+  delete(kind: string) { return this.request<{ deleted: boolean }>(`/agent-config/${kind}`, { method: 'DELETE' }); }
+  resetLlm(kind: string) {
+    return this.request<{ config: AgentConfigItem }>(`/agent-config/${kind}/reset-llm`, { method: 'POST' });
+  }
+  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const r = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    });
+    if (!r.ok) throw new Error(`API ${r.status}: ${await r.text()}`);
+    if (r.status === 204) return undefined as T;
+    return r.json() as Promise<T>;
+  }
+}
+
+export const agentConfigApi = new AgentConfigApi();
+
 // Plugins
 export interface PluginManifest {
   id: string;

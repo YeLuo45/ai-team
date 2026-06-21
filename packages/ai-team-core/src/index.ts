@@ -18,3 +18,5 @@ export * from './tech-policy-agent.js';
 export * from './media-compliance-agent.js';
 export * from './sibling-org-conflict-agent.js';
 export * from './agent-config.js';
+export * from './agent-config-template.js';
+export { AgentConfigStore } from './agent-config.js';

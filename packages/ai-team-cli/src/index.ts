@@ -8,6 +8,7 @@ import { registerTeamCommands } from './commands/team.js';
 import { registerPipelineCommands } from './commands/pipeline.js';
 import { registerSeedCommands } from './commands/seed.js';
 import { registerDevCommands } from './commands/dev.js';
+import { registerAgentConfigCommands } from './commands/agent-config.js';
 
 const program = new Command();
 
@@ -23,6 +24,7 @@ registerTeamCommands(program);
 registerPipelineCommands(program);
 registerSeedCommands(program);
 registerDevCommands(program);
+registerAgentConfigCommands(program);
 
 // tui subcommand — delegates to @ai-team/tui
 program

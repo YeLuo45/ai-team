@@ -13,6 +13,7 @@
     "test": "NODE_ENV=test vitest run",
     "test:coverage": "NODE_ENV=test vitest run --coverage && node scripts/coverage-report.mjs",
     "test:coverage:strict": "NODE_ENV=test vitest run --coverage && node scripts/coverage-report.mjs --strict-min=95",
+    "test:coverage:incremental": "NODE_ENV=test vitest run --coverage && node scripts/coverage-report.mjs --strict-min=95 --incremental-only --incremental-prefix=v",
     "test:coverage:90": "NODE_ENV=test vitest run --coverage && node scripts/coverage-report.mjs --strict-min=90",
     "coverage:report": "node scripts/coverage-report.mjs",
     "dev:web": "npm run dev -w @ai-team/web",

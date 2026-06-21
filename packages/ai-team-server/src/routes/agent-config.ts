@@ -18,6 +18,11 @@ function isAgentKind(value: string): value is AgentKind {
   return (AGENT_KINDS as string[]).includes(value);
 }
 
+function pickKind(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) return value[0] ?? '';
+  return typeof value === 'string' ? value : '';
+}
+
 export function createAgentConfigRouter(deps: AgentConfigRouterDeps): Router {
   const router = createRouter();
 
@@ -34,7 +39,7 @@ export function createAgentConfigRouter(deps: AgentConfigRouterDeps): Router {
   });
 
   router.get('/:kind', async (req: Request, res: Response) => {
-    const kind = req.params.kind;
+    const kind = pickKind(req.params.kind);
     if (!isAgentKind(kind)) {
       return res.status(400).json({ error: 'unknown_agent_kind', kind });
     }
@@ -53,7 +58,7 @@ export function createAgentConfigRouter(deps: AgentConfigRouterDeps): Router {
   });
 
   router.put('/:kind', async (req: Request, res: Response) => {
-    const kind = req.params.kind;
+    const kind = pickKind(req.params.kind);
     if (!isAgentKind(kind)) {
       return res.status(400).json({ error: 'unknown_agent_kind', kind });
     }
@@ -74,7 +79,7 @@ export function createAgentConfigRouter(deps: AgentConfigRouterDeps): Router {
   });
 
   router.delete('/:kind', async (req: Request, res: Response) => {
-    const kind = req.params.kind;
+    const kind = pickKind(req.params.kind);
     if (!isAgentKind(kind)) {
       return res.status(400).json({ error: 'unknown_agent_kind', kind });
     }
@@ -90,7 +95,7 @@ export function createAgentConfigRouter(deps: AgentConfigRouterDeps): Router {
   });
 
   router.post('/:kind/reset-llm', async (req: Request, res: Response) => {
-    const kind = req.params.kind;
+    const kind = pickKind(req.params.kind);
     if (!isAgentKind(kind)) {
       return res.status(400).json({ error: 'unknown_agent_kind', kind });
     }

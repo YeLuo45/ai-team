@@ -37,6 +37,7 @@ import { createHeatmapRouter } from './routes/heatmap.js';
 import { createComplianceAgentRouter } from './routes/compliance-agents.js';
 import { createAuditStreamHandler, wrapAuditStoreWithBroadcast } from './routes/agent-audit-stream.js';
 import { createAgentConfigRouter } from './routes/agent-config.js';
+import { createAgentConfigTemplateRouter } from './routes/agent-config-template.js';
 import { AgentConfigStore } from '@ai-team/core';
 import { handlePipelineEvent } from './pipeline-hooks.js';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
@@ -146,6 +147,7 @@ export function agentLLM(kind: V32AgentKind): LLMClient {
   return new ConfiguredLLMClient({ baseClient: baseLLM, store: agentConfigStore, kind });
 }
 app.use('/api/agent-config', createAgentConfigRouter({ store: agentConfigStore }));
+app.use('/api/agent-config-template', createAgentConfigTemplateRouter({ store: agentConfigStore }));
 
 // Plugin manager
 const pluginManager = new PluginManager(path.join(DATA_DIR, 'plugins'));

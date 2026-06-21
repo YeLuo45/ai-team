@@ -76,6 +76,15 @@ describe('PipelineStore', () => {
     expect(cur).toBeNull();
   });
 
+  it('currentEntry tie-breaks on identical createdAt by id desc', async () => {
+    await store.add(entry({ id: 'pl_aaaa', candidateId: 'c1', stage: 'sourced', createdAt: '2026-01-01T00:00:00Z' }));
+    await store.add(entry({ id: 'pl_bbbb', candidateId: 'c1', stage: 'hired',   createdAt: '2026-01-01T00:00:00Z' }));
+    const all = await store.list();
+    const cur = store.currentEntry(all, 'c1');
+    expect(cur?.stage).toBe('hired');
+    expect(cur?.id).toBe('pl_bbbb');
+  });
+
   it('funnelReport counts each candidate by current stage', async () => {
     await store.add(entry({ candidateId: 'c1', stage: 'sourced' }));
     await store.add(entry({ candidateId: 'c1', stage: 'hired' }));

@@ -47,7 +47,12 @@ export class PipelineStore extends JsonStore<PipelineEntry> {
   currentEntry(all: PipelineEntry[], candidateId: string): PipelineEntry | null {
     const mine = all.filter((e) => e.candidateId === candidateId);
     if (mine.length === 0) return null;
-    return mine.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    // sort by createdAt desc; tie-break by id desc so newest write wins even at same ms
+    return mine.sort((a, b) => {
+      const dt = b.createdAt.localeCompare(a.createdAt);
+      if (dt !== 0) return dt;
+      return b.id.localeCompare(a.id);
+    })[0];
   }
 
   /**
@@ -57,8 +62,13 @@ export class PipelineStore extends JsonStore<PipelineEntry> {
     const currentByCandidate = new Map<string, PipelineEntry>();
     for (const e of all) {
       const prev = currentByCandidate.get(e.candidateId);
-      if (!prev || prev.createdAt.localeCompare(e.createdAt) < 0) {
+      if (!prev) {
         currentByCandidate.set(e.candidateId, e);
+      } else {
+        const dt = e.createdAt.localeCompare(prev.createdAt);
+        if (dt > 0 || (dt === 0 && e.id.localeCompare(prev.id) > 0)) {
+          currentByCandidate.set(e.candidateId, e);
+        }
       }
     }
     const currents = Array.from(currentByCandidate.values());

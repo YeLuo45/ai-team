@@ -22,6 +22,8 @@ for (const arg of process.argv.slice(2)) {
 const STRICT_MIN = Number(args.get('strict-min') ?? 95);
 const SOFT_MIN = Number(args.get('soft-min') ?? 0);
 const AS_JSON = args.get('json') === 'true';
+const INCREMENTAL_ONLY = args.get('incremental-only') === 'true';
+const INCREMENTAL_PREFIX = args.get('incremental-prefix') ?? 'v3';
 
 const STRICT_LAYERS = {
   'core/store':   /^packages\/ai-team-core\/src\/store\//,
@@ -35,6 +37,9 @@ const STRICT_LAYERS = {
   'v32/core-agent-config': /^packages\/ai-team-core\/src\/agent-config\.ts$/,
   'v32/agent-config-loader': /^packages\/ai-team-agent\/src\/agent-config-loader\.ts$/,
   'v32/server-agent-config': /^packages\/ai-team-server\/src\/routes\/agent-config\.ts$/,
+  // V35: bulk export/import templates + server route
+  'v35/core-agent-config-template': /^packages\/ai-team-core\/src\/agent-config-template\.ts$/,
+  'v35/server-agent-config-template': /^packages\/ai-team-server\/src\/routes\/agent-config-template\.ts$/,
 };
 
 const SOFT_LAYERS = {
@@ -162,6 +167,16 @@ if (AS_JSON) {
 
 const overallStrictPass = totalStrictFail === 0 && strict.length > 0;
 if (!overallStrictPass) {
-  console.error(`\nStrict coverage gate failed (${totalStrictFail} layer(s) below ${STRICT_MIN}%).`);
-  process.exit(1);
+  if (INCREMENTAL_ONLY) {
+    // incremental-only mode: only layers whose name starts with INCREMENTAL_PREFIX are gate-keepers
+    const incrFail = report.filter(r => r.kind === 'strict' && r.layer.startsWith(INCREMENTAL_PREFIX) && !r.pass).length;
+    if (incrFail > 0) {
+      console.error(`\nIncremental coverage gate failed (${incrFail} incremental layer(s) below ${STRICT_MIN}%).`);
+      process.exit(1);
+    }
+    console.log(`\nIncremental coverage gate PASSED (${report.filter(r => r.kind === 'strict' && r.layer.startsWith(INCREMENTAL_PREFIX)).length} incremental layers all ≥ ${STRICT_MIN}%).`);
+  } else {
+    console.error(`\nStrict coverage gate failed (${totalStrictFail} layer(s) below ${STRICT_MIN}%).`);
+    process.exit(1);
+  }
 }
