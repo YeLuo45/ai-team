@@ -19,4 +19,5 @@ export * from './media-compliance-agent.js';
 export * from './sibling-org-conflict-agent.js';
 export * from './agent-config.js';
 export * from './agent-config-template.js';
+export * from './team-orchestration.js';
 export { AgentConfigStore } from './agent-config.js';

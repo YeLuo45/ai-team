@@ -59,6 +59,10 @@ Press `Ctrl+C` to clean shutdown.
 - 🧩 **Per-agent Independent Configuration** (V32) — soul.md / user.md / memory.md + LLM model override per AgentKind
 - 🌐 **Web Agent Config Console** (V34) — React UI to edit each agent's runtime config
 - 📦 **Agent Config Templates** (V35) — bulk export / import + 3 built-in presets (default / hr-friendly / strict-interviewer)
+- 🧭 **Multi-Agent Workflow Orchestrator** (V36) — Resume → Interview → Score → Compliance → Recommendation workflow
+- 🧑‍⚖️ **Human Approval Gate** (V37) — high/critical risks enter a review queue before automatic decisions
+- 🧪 **What-if Lab + Org Memory + LLMOps** (V38-V40) — team impact simulation, memory context, token/cost/latency summaries
+- ✅ **README Command Verification** (V41) — `npm run verify:readme` validates core README commands with real evidence
 
 ## Packages (7)
 
@@ -158,7 +162,7 @@ npm run dev:web
 #### Mode 5: Tests
 
 ```bash
-# Run all 859 tests (852 passed, 7 skipped)
+# Run all tests
 npm test
 
 # Single package
@@ -166,6 +170,9 @@ cd packages/ai-team-core && npm test
 
 # With coverage
 npm run test:coverage
+
+# Verify core README commands are deliverable
+npm run verify:readme
 ```
 
 #### Mode 6: Authentication (V20)

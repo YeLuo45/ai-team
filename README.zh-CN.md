@@ -61,6 +61,10 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | ⚖️ **Legal 风险 Agent + 居中 Web Shell** | 法务风险分级 + 对称响应式布局 | V30 |
 | 🛡️ **Tech Policy Agent** | 安全/合规/运营/治理风险评分 + 整改 | V31 |
 | 📺 **Media Compliance Agent** | 微信/抖音/小红书/B站 渠道感知 PII + 授权审查 | V31 |
+| 🧭 **Multi-Agent Workflow Orchestrator** | Resume→Interview→Score→Legal→TechPolicy→MediaCompliance→Recommendation 编排 | V36 |
+| 🧑‍⚖️ **Human Approval Gate** | 高/关键风险自动进入人工复核队列 | V37 |
+| 🧪 **What-if Lab + Org Memory + LLMOps** | 团队影响模拟、组织记忆上下文、Token/成本/延迟摘要 | V38-V40 |
+| ✅ **README Command Verification** | `npm run verify:readme` 真实验收 README 核心命令 | V41 |
 
 ## 7 个包
 
@@ -159,7 +163,7 @@ npm run dev:web
 ### 模式 5: 测试
 
 ```bash
-# 运行全部 859 个测试 (852 passed, 7 skipped)
+# 运行全部测试
 npm test
 
 # 单包测试
@@ -167,6 +171,9 @@ cd packages/ai-team-core && npm test
 
 # 带覆盖率
 npm run test:coverage
+
+# 验证 README 核心命令可交付
+npm run verify:readme
 ```
 
 覆盖率门槛：确定性库/运行时模块 95%+；UI 页面、CLI 命令胶水、LLM 编排和环境 fallback 不计入全局阈值。
@@ -193,6 +200,13 @@ npm run test:coverage
 - `/api/insights/member-growth/:id` - 成员成长
 - `/api/insights/recommendations` - AI 建议
 - `/api/insights/anomalies` - 异常检测
+
+**团队编排 (V36-V41):**
+- `/api/team-orchestration/workflow` - 多 Agent 候选人链路编排 + 推荐
+- `/api/team-orchestration/simulate` - What-if 团队技能/人头影响模拟
+- `/api/team-orchestration/org-memory` - 组织记忆上下文与引用生成
+- `/api/team-orchestration/llmops` - LLM Token/成本/延迟/fallback 摘要
+- `/api/team-orchestration/readme-checklist` - README 命令交付检查清单
 
 **实用工具:**
 - `/api/search?q=&type=&limit=` - 全文搜索
