@@ -155,7 +155,7 @@ npm run dev:web
 #### Mode 5: Tests
 
 ```bash
-# Run all 805 tests (100% pass rate, 7 skipped)
+# Run all 859 tests (852 passed, 7 skipped)
 npm test
 
 # Single package
@@ -233,14 +233,14 @@ Works with any OpenAI-compatible API: OpenAI / Azure / OpenRouter / Ollama / vLL
 
 ## Testing
 
-- **805 tests** (100% pass rate, 7 skipped)
+- **859 tests** (852 passed, 7 skipped)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
 - Coverage gate: 95%+ for deterministic library/runtime modules; UI pages, CLI command glue, LLM orchestration, and environment fallbacks are excluded from the global threshold.
-- Current coverage gate result: statements 99.17%, branches 96.51%, functions 99.35%, lines 99.63%.
+- Current coverage gate result: statements 99.15%, branches 96.18%, functions 98.83%, lines 99.68%.
 - Strict layers (95% threshold, all passing): 7/7 including core/store, server/routes, server/middleware, server/sse, web/lib-format.
 
 ```bash
-npm test              # Run all 805 tests
+npm test              # Run all 859 tests (852 passed, 7 skipped)
 npm run test:coverage # With coverage report (95% strict threshold)
 npm run test:coverage:90      # 90% strict threshold variant
 npm run test:coverage:strict  # 95% strict threshold (alias)

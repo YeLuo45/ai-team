@@ -52,7 +52,7 @@ export const DEFAULT_PROVIDERS: ProviderConfig[] = [
 ];
 
 export const SUPPORTED_AGENTS = [
-  'interview', 'training', 'one-on-one', 'review', 'resume', 'insights', 'score', 'search', 'legal', 'tech-policy', 'media-compliance',
+  'interview', 'training', 'one-on-one', 'review', 'resume', 'insights', 'score', 'search', 'legal', 'tech-policy', 'media-compliance', 'sibling-org-conflict',
 ] as const;
 export type AgentName = typeof SUPPORTED_AGENTS[number];
 

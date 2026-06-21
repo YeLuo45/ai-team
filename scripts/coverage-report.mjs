@@ -31,6 +31,10 @@ const STRICT_LAYERS = {
   'server/middleware': /^packages\/ai-team-server\/src\/middleware\//,
   'server/routes': /^packages\/ai-team-server\/src\/routes\//,
   'web/lib-format':  /^packages\/ai-team-web\/src\/lib\/format\.ts$/,
+  // V32: per-agent independent configuration (incremental layer, exact-match files only)
+  'v32/core-agent-config': /^packages\/ai-team-core\/src\/agent-config\.ts$/,
+  'v32/agent-config-loader': /^packages\/ai-team-agent\/src\/agent-config-loader\.ts$/,
+  'v32/server-agent-config': /^packages\/ai-team-server\/src\/routes\/agent-config\.ts$/,
 };
 
 const SOFT_LAYERS = {

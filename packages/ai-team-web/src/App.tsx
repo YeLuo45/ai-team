@@ -13,6 +13,7 @@ import { Insights } from './pages/Insights';
 import Pipeline from './pages/Pipeline';
 import Heatmap from './pages/Heatmap';
 import AuditConsole from './pages/AuditConsole';
+import AgentReviewConsole from './pages/AgentReviewConsole';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 
@@ -68,6 +69,9 @@ export default function App() {
             <NavLink to="/audit" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               审计
             </NavLink>
+            <NavLink to="/agents" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              合规 Agent
+            </NavLink>
             <NavLink to="/notifications" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               通知
             </NavLink>
@@ -92,6 +96,7 @@ export default function App() {
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/heatmap" element={<Heatmap />} />
           <Route path="/audit" element={<AuditConsole />} />
+          <Route path="/agents" element={<AgentReviewConsole />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/data" element={<Data />} />
         </Routes>

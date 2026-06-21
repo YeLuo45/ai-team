@@ -1,5 +1,5 @@
 // V22: Agent audit routes — list recent calls, get stats, filter by agent
-import type { Router, Request, Response } from 'express';
+import type { Router, Request, Response, NextFunction } from 'express';
 import { Router as createRouter } from 'express';
 import type { AgentAuditStore, AgentKind } from '@ai-team/core';
 import { AGENT_KINDS } from '@ai-team/core';
@@ -50,9 +50,10 @@ export function createAgentAuditRouter(deps: AgentAuditDeps): Router {
   });
 
   // GET /api/agent-audit/:id — single record
-  router.get('/:id', async (req: Request, res: Response) => {
+  router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = String(req.params.id);
+      if (id === 'stream') return next();
       const all = await deps.auditStore.list();
       const found = all.find((r) => r.id === id);
       if (!found) {

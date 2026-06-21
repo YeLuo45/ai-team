@@ -118,7 +118,7 @@ describe('CapabilityHeatmap page', () => {
     };
     globalThis.fetch = vi.fn(async () => jsonResponse(report)) as any;
     render(<CapabilityHeatmap />);
-    await waitFor(() => screen.getByTestId('capability-heatmap'));
+    await waitFor(() => screen.getByTestId('cell-button-Web-FE-sk_ts'));
     expect(screen.getByTestId('cell-Web-FE-sk_ts')).toBeTruthy();
     expect(screen.getByTestId('heatmap-table')).toBeTruthy();
   });
@@ -201,7 +201,7 @@ describe('CapabilityHeatmap page', () => {
       });
     }) as any;
     render(<CapabilityHeatmap />);
-    await waitFor(() => screen.getByTestId('capability-heatmap'));
+    await waitFor(() => screen.getByTestId('cell-button-Web-FE-sk_ts'));
     fireEvent.click(screen.getByTestId('cell-button-Web-FE-sk_ts'));
     await waitFor(() => screen.getByTestId('cell-modal'));
     expect(screen.getByText('Web · FE')).toBeTruthy();
@@ -222,7 +222,7 @@ describe('CapabilityHeatmap page', () => {
       });
     }) as any;
     render(<CapabilityHeatmap />);
-    await waitFor(() => screen.getByTestId('capability-heatmap'));
+    await waitFor(() => screen.getByTestId('cell-button-A-B-s'));
     fireEvent.click(screen.getByTestId('cell-button-A-B-s'));
     await waitFor(() => screen.getByTestId('cell-modal'));
     fireEvent.click(screen.getByTestId('cell-modal-close'));
@@ -243,7 +243,7 @@ describe('CapabilityHeatmap page', () => {
     render(<CapabilityHeatmap />);
     await waitFor(() => screen.getByTestId('cell-button-Empty-FE-sk_ts'));
     fireEvent.click(screen.getByTestId('cell-button-Empty-FE-sk_ts'));
-    await waitFor(() => screen.getByTestId('cell-modal'));
+    await waitFor(() => screen.getByTestId('cell-modal-body'));
     expect(screen.getByText(/没有成员/)).toBeTruthy();
   });
 

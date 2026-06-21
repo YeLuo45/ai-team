@@ -8,3 +8,4 @@ export * from './resume-agent.js';
 export * from './insights-agent.js';
 export * from './search.js';
 export * from './score-agent.js';
+export * from './agent-config-loader.js';

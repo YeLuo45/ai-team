@@ -16,3 +16,5 @@ export * from './pwa.js';
 export * from './legal-agent.js';
 export * from './tech-policy-agent.js';
 export * from './media-compliance-agent.js';
+export * from './sibling-org-conflict-agent.js';
+export * from './agent-config.js';

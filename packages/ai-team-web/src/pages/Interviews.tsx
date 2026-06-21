@@ -18,6 +18,16 @@ export function Interviews() {
   const sorted = [...data.interviews].sort((a, b) =>
     (b.completedAt ?? b.startedAt ?? '').localeCompare(a.completedAt ?? a.startedAt ?? '')
   );
+  const attemptById = new Map<string, number>();
+  for (const interview of [...data.interviews].sort((a, b) =>
+    (a.startedAt ?? a.completedAt ?? '').localeCompare(b.startedAt ?? b.completedAt ?? '')
+  )) {
+    const previousAttempts = [...attemptById.entries()].filter(([id]) => {
+      const item = data.interviews.find((candidateInterview) => candidateInterview.id === id);
+      return item?.candidateId === interview.candidateId;
+    }).length;
+    attemptById.set(interview.id, previousAttempts + 1);
+  }
 
   const selectedIv = selected ? sorted.find((i) => i.id === selected) : null;
 
@@ -60,6 +70,7 @@ export function Interviews() {
                   <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{iv.position}</p>
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                     <span>{formatDate(iv.completedAt ?? iv.startedAt)}</span>
+                    <span data-testid={`interview-attempt-${iv.id}`}>第 {attemptById.get(iv.id) ?? 1} 面</span>
                     {iv.evaluation && (
                       <span className="flex items-center gap-2">
                         <span className="text-lg font-bold text-brand-600">{iv.evaluation.overall}</span>

@@ -133,14 +133,15 @@ export function InterviewSimulator({ candidate, onClose, onComplete }: Props) {
         ) : (
           <div className="mt-4 flex gap-2">
             <input
+              data-testid="interview-answer-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAnswer(); } }}
-              disabled={busy || done || messages.length === 0}
+              disabled={busy || done || !interview}
               placeholder={busy ? 'AI 思考中...' : '输入你的回答，按 Enter 发送'}
               className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800"
             />
-            <button onClick={sendAnswer} disabled={busy || done || !input.trim()} className="btn-primary disabled:opacity-50">
+            <button data-testid="interview-send-button" onClick={sendAnswer} disabled={busy || done || !input.trim()} className="btn-primary disabled:opacity-50">
               发送
             </button>
           </div>

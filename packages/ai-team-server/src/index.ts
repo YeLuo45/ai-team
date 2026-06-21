@@ -21,7 +21,8 @@ import {
   type Training,
   type Skill,
 } from '@ai-team/core';
-import { createFromEnv } from '@ai-team/ai';
+import { createFromEnv, type LLMClient } from '@ai-team/ai';
+import { ConfiguredLLMClient } from '@ai-team/agent';
 import {
   createUserStore, createAuditStore,
   type User, type AuditEntry, type JwtConfig,
@@ -33,7 +34,10 @@ import { createAuthMiddleware } from './middleware/auth.js';
 import { createPipelineRouter } from './routes/pipeline.js';
 import { createAgentAuditRouter } from './routes/agent-audit.js';
 import { createHeatmapRouter } from './routes/heatmap.js';
+import { createComplianceAgentRouter } from './routes/compliance-agents.js';
 import { createAuditStreamHandler, wrapAuditStoreWithBroadcast } from './routes/agent-audit-stream.js';
+import { createAgentConfigRouter } from './routes/agent-config.js';
+import { AgentConfigStore } from '@ai-team/core';
 import { handlePipelineEvent } from './pipeline-hooks.js';
 import { PluginManager, HOOK_EVENTS, type PluginConfig } from './plugins.js';
 import { sseManager } from './sse.js';
@@ -90,6 +94,9 @@ wrapAuditStoreWithBroadcast({ auditStore: agentAuditStore, sseManager });
 const auditStreamHandler = createAuditStreamHandler({ auditStore: agentAuditStore, sseManager });
 app.get('/api/agent-audit/stream', auditStreamHandler);
 
+// V32: Compliance agent routes (legal / tech-policy / media-compliance)
+app.use('/api/compliance', createComplianceAgentRouter({ auditStore: agentAuditStore }));
+
 // Seed default admin if no users
 async function seedDefaultAdmin() {
   const users = await userStore.list();
@@ -129,8 +136,16 @@ function notify(partial: Omit<Notification, 'id' | 'read' | 'createdAt'>) {
   return n;
 }
 
-// LLM client
-const llm = createFromEnv();
+// LLM client (base, env-driven)
+const baseLLM = createFromEnv();
+
+// V32: per-agent configuration store + per-agent LLM client wrapper
+const agentConfigStore = new AgentConfigStore({ baseDir: DATA_DIR });
+type V32AgentKind = 'interview' | 'training' | 'review' | 'resume' | 'one-on-one' | 'insights' | 'score' | 'search' | 'legal' | 'tech-policy' | 'media-compliance' | 'sibling-org-conflict' | 'pipeline';
+export function agentLLM(kind: V32AgentKind): LLMClient {
+  return new ConfiguredLLMClient({ baseClient: baseLLM, store: agentConfigStore, kind });
+}
+app.use('/api/agent-config', createAgentConfigRouter({ store: agentConfigStore }));
 
 // Plugin manager
 const pluginManager = new PluginManager(path.join(DATA_DIR, 'plugins'));
@@ -307,7 +322,7 @@ app.post('/api/interviews/start', async (req, res) => {
   const candidate = await candidateStore.get(candidateId);
   if (!candidate) return res.status(404).json({ error: 'Candidate not found' });
 
-  const agent = new InterviewAgent(llm);
+  const agent = new InterviewAgent(agentLLM('interview'));
   const session = agent.start(candidate, { ...(type && { type }) });
   sessions.set(session.interview.id, { session, candidate });
 
@@ -438,7 +453,7 @@ app.post('/api/resume/parse', upload.single('file'), async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Either file or text is required' });
     }
-    const agent = new ResumeAgent(llm);
+    const agent = new ResumeAgent(agentLLM('resume'));
     const extracted = await agent.extract(text);
     res.json({ rawTextLength: text.length, rawTextPreview: text.slice(0, 500), extracted });
   } catch (err) {
@@ -456,7 +471,7 @@ app.post('/api/resume/score', async (req, res) => {
     return res.status(400).json({ error: 'extracted and position are required' });
   }
   try {
-    const agent = new ResumeAgent(llm);
+    const agent = new ResumeAgent(agentLLM('resume'));
     const score = await agent.scoreMatch(extracted, jobDescription ?? position, position);
     res.json(score);
   } catch (err) {
@@ -471,7 +486,7 @@ app.post('/api/resume/import', async (req, res) => {
     return res.status(400).json({ error: 'extracted must have name and position' });
   }
   try {
-    const agent = new ResumeAgent(llm);
+    const agent = new ResumeAgent(agentLLM('resume'));
     const candidate = agent.toCandidate(extracted, source ?? 'pasted');
     const saved = await candidateStore.add(candidate);
     pluginManager.fireHook('candidate.created', saved);
@@ -755,7 +770,7 @@ app.post('/api/resume/score-with-context', async (req, res) => {
       memberStore.list().catch(() => []),
       skillStore.list().catch(() => []),
     ]);
-    const agent = new ScoreAgent(llm);
+    const agent = new ScoreAgent(agentLLM('score'));
     const score = await agent.scoreWithContext({
       resume,
       position,
@@ -803,7 +818,7 @@ app.get('/api/insights/recommendations', async (_req, res) => {
     interviewStore.list(),
     reviewStore.list().catch(() => []),
   ]);
-  const agent = new InsightsAgent(llm);
+  const agent = new InsightsAgent(agentLLM('insights'));
   const result = await agent.analyze({ members, candidates, interviews, reviews });
   res.json(result);
 });
@@ -874,7 +889,7 @@ app.post('/api/performance-reviews/generate', async (req, res) => {
       interviewStore.list(),
       reviewStore.list(),
     ]);
-    const agent = new ReviewAgent(llm);
+    const agent = new ReviewAgent(agentLLM('review'));
     const draft = await agent.generateDraft({
       member,
       period,
@@ -898,7 +913,7 @@ app.post('/api/one-on-one/start', async (req, res) => {
   const member = await memberStore.get(memberId);
   if (!member) return res.status(404).json({ error: 'Member not found' });
   try {
-    const agent = new OneOnOneAgent(llm);
+    const agent = new OneOnOneAgent(agentLLM('one-on-one'));
     const session = agent.start(member, { scenario: (scenario as any) ?? 'general', managerName: managerName ?? 'Manager' });
     const opening = await agent.openingMessage(session, member);
     oneOnOneSessions.set(session.id, { session, member });
@@ -914,7 +929,7 @@ app.post('/api/one-on-one/:id/respond', async (req, res) => {
   const ctx = oneOnOneSessions.get(req.params.id);
   if (!ctx) return res.status(404).json({ error: 'Session not found' });
   try {
-    const agent = new OneOnOneAgent(llm);
+    const agent = new OneOnOneAgent(agentLLM('one-on-one'));
     const response = await agent.respond(ctx.session, ctx.member, content);
     if (response === null) {
       res.json({ session: ctx.session, memberResponse: null, done: true });
@@ -930,7 +945,7 @@ app.post('/api/one-on-one/:id/finalize', async (req, res) => {
   const ctx = oneOnOneSessions.get(req.params.id);
   if (!ctx) return res.status(404).json({ error: 'Session not found' });
   try {
-    const agent = new OneOnOneAgent(llm);
+    const agent = new OneOnOneAgent(agentLLM('one-on-one'));
     const summary = await agent.generateSummary(ctx.session, ctx.member);
     ctx.session.summary = summary;
     oneOnOneSessions.delete(req.params.id);
@@ -1018,7 +1033,7 @@ app.post('/api/training-plans/generate', async (req, res) => {
   if (!member) return res.status(404).json({ error: 'Member not found' });
 
   try {
-    const agent = new TrainingAgent(llm);
+    const agent = new TrainingAgent(agentLLM('training'));
     const trainings = await agent.generateTrainingRecords({
       member,
       targetRole: targetRole ?? member.role,

@@ -12,6 +12,7 @@ export type AgentKind =
   | 'legal'
   | 'tech-policy'
   | 'media-compliance'
+  | 'sibling-org-conflict'
   | 'pipeline'
   | 'unknown';
 

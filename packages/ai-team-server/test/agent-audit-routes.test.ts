@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentAuditStore } from '@ai-team/core';
 import { createAgentAuditRouter } from '../src/routes/agent-audit.js';
+import { createAuditStreamHandler, wrapAuditStoreWithBroadcast } from '../src/routes/agent-audit-stream.js';
+import { SSEManager } from '../src/sse.js';
 import type { AgentCallRecord } from '@ai-team/core';
 
 function makeApp(): { app: express.Express; store: AgentAuditStore } {
@@ -115,6 +117,34 @@ describe('Agent audit routes', () => {
     const r = await request(app).get('/api/agent-audit/any-id');
     expect(r.status).toBe(500);
     expect(r.body.error).toBe('agent_audit_get_failed');
+  });
+
+  it('does not let /:id shadow the SSE stream route', async () => {
+    const sseManager = new SSEManager();
+    wrapAuditStoreWithBroadcast({ auditStore: store, sseManager });
+    const streamApp = express();
+    streamApp.use(express.json());
+    streamApp.use('/api/agent-audit', createAgentAuditRouter({ auditStore: store }));
+    streamApp.get('/api/agent-audit/stream', createAuditStreamHandler({ auditStore: store, sseManager }));
+
+    const r = await request(streamApp)
+      .get('/api/agent-audit/stream')
+      .buffer(true)
+      .parse((res, cb) => {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          body += chunk;
+          if (body.includes('event: connected')) {
+            res.destroy();
+          }
+        });
+        res.on('close', () => cb(null, body));
+        res.on('error', () => cb(null, body));
+      });
+
+    expect(r.status).toBe(200);
+    expect(r.text ?? r.body).toContain('event: connected');
   });
 
   it('GET /api/agent-audit/:id uses "unknown" fallback for non-Error throws', async () => {
