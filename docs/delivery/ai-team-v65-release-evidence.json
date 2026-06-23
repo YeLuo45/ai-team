@@ -1,0 +1,15 @@
+{
+  "version": "V65",
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "summary": {
+    "ready": true,
+    "headline": "V65 ready — tests 100%, coverage 98.36%, README 13/13",
+    "testPassRatePct": 100,
+    "coverageStatus": "pass",
+    "readmeStatus": "pass",
+    "buildStatus": "pass",
+    "blockers": []
+  },
+  "reportMarkdown": "# Delivery Report — ai-team\n\n**Ready**: yes\n**Headline**: V65 ready — tests 100%, coverage 98.36%, README 13/13\n\n**Commit**: d8013fb\n\n## Validation\n- `npm test` — 1117 passed | 7 skipped\n- `npm run verify:readme` — 13/13 passed\n- `npm run test:coverage:incremental` — 15/15 strict layers, 98.36% avg branch\n\n## Changed Files\n- M README.md\n- M README.zh-CN.md\n- M package.json\n- M packages/ai-team-agent/src/interview-agent.ts\n- M packages/ai-team-agent/src/training-agent.ts\n- M packages/ai-team-ai/src/prompts/index.ts\n- M packages/ai-team-core/src/store/pipeline-store.ts\n- M packages/ai-team-core/src/team-orchestration.ts\n- M packages/ai-team-core/test/team-orchestration.test.ts\n- M packages/ai-team-server/src/routes/team-orchestration.ts\n- M packages/ai-team-server/test/team-orchestration-routes.test.ts\n- M packages/ai-team-web/public/data/team.json\n- M packages/ai-team-web/src/App.tsx\n- M packages/ai-team-web/test/pipeline-heatmap-pages.test.tsx\n- M scripts/coverage-report.mjs\n- M scripts/verify-readme-commands.mjs\n- docs/delivery/\n- packages/ai-team-agent/test/org-memory-wiring.test.ts\n- packages/ai-team-ai/test/org-memory-injection.test.ts\n- packages/ai-team-core/src/delivery-summary.ts\n- packages/ai-team-core/src/team-orchestration-base.ts\n- packages/ai-team-core/src/team-orchestration-org-memory.ts\n- packages/ai-team-core/src/team-orchestration-release-hardening.ts\n- packages/ai-team-core/src/team-orchestration-scenario-batch.ts\n- packages/ai-team-core/test/delivery-summary-v51.test.ts\n- packages/ai-team-core/test/pre-commit-hook.test.ts\n- packages/ai-team-core/test/team-orchestration-v42.test.ts\n- packages/ai-team-core/test/team-orchestration-v45.test.ts\n- packages/ai-team-web/src/pages/TeamOrchestrationConsole.tsx\n- packages/ai-team-web/test/team-orchestration-console.test.tsx\n- scripts/__tests__/\n- scripts/delivery-index.mjs\n- scripts/delivery-report.mjs\n- scripts/delivery-summary.mjs\n- scripts/install-hooks.sh\n- scripts/pre-commit\n- scripts/release-check.mjs\n\n## Blockers\n- none\n\n## Next Directions\n1. V66 evidence history filters\n2. V67 one-click proposal delivery wizard\n3. V68 release evidence import viewer\n",
+  "indexMarkdown": "# Delivery Reports Index\n\nTotal: 3\nReady: 3\nLatest: V65\n\n| Version | Status | Tests | Coverage | README | Path |\n|---|---|---:|---:|---:|---|\n| V65 | ready | 100% | 98.36% | 13/13 | `docs/delivery/v65-delivery-report.md` |\n| V60 | ready | 100% | 98.54% | 12/12 | `docs/delivery/v60-delivery-report.md` |\n| V55 | ready | 100% | 98.54% | 11/11 | `docs/delivery/v55-delivery-report.md` |"
+}

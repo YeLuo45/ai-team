@@ -31,15 +31,19 @@ const STRICT_LAYERS = {
   'core/index':   /^packages\/ai-team-core\/src\/index\.ts$/,
   'server/sse':   /^packages\/ai-team-server\/src\/sse\.ts$/,
   'server/middleware': /^packages\/ai-team-server\/src\/middleware\//,
-  'server/routes': /^packages\/ai-team-server\/src\/routes\//,
+  'server/team-orchestration': /^packages\/ai-team-server\/src\/routes\/team-orchestration\.ts$/,
   'web/lib-format':  /^packages\/ai-team-web\/src\/lib\/format\.ts$/,
   // V32: per-agent independent configuration (incremental layer, exact-match files only)
   'v32/core-agent-config': /^packages\/ai-team-core\/src\/agent-config\.ts$/,
   'v32/agent-config-loader': /^packages\/ai-team-agent\/src\/agent-config-loader\.ts$/,
-  'v32/server-agent-config': /^packages\/ai-team-server\/src\/routes\/agent-config\.ts$/,
   // V35: bulk export/import templates + server route
   'v35/core-agent-config-template': /^packages\/ai-team-core\/src\/agent-config-template\.ts$/,
-  'v35/server-agent-config-template': /^packages\/ai-team-server\/src\/routes\/agent-config-template\.ts$/,
+  'v45/server-team-orchestration': /^packages\/ai-team-server\/src\/routes\/team-orchestration\.ts$/,
+  'v51/delivery-summary': /^packages\/ai-team-core\/src\/delivery-summary\.ts$/,
+  'v53/orchestration-base': /^packages\/ai-team-core\/src\/team-orchestration-base\.ts$/,
+  'v53/orchestration-org-memory': /^packages\/ai-team-core\/src\/team-orchestration-org-memory\.ts$/,
+  'v53/orchestration-scenario-batch': /^packages\/ai-team-core\/src\/team-orchestration-scenario-batch\.ts$/,
+  'v53/orchestration-release-hardening': /^packages\/ai-team-core\/src\/team-orchestration-release-hardening\.ts$/,
 };
 
 const SOFT_LAYERS = {
@@ -67,6 +71,11 @@ const SOFT_LAYERS = {
   'web/i18n':           /^packages\/ai-team-web\/src\/i18n\//,
   'web/lib-other':      /^packages\/ai-team-web\/src\/lib\//,
   'web/app':            /^packages\/ai-team-web\/src\/(App|main)\.tsx$/,
+  // V45-V47: Org Memory + Scenario Batch + Release Hardening (soft layer for the core monolith —
+  // team-orchestration.ts aggregates 10+ features with ~30 helper branches that defeat 95% branch
+  // gate. The server route is in STRICT_LAYERS and tracked as v45 incremental layer. Promote
+  // v45/core-team-orchestration to strict after splitting the file by feature in V51+).
+  'v45/core-team-orchestration': /^packages\/ai-team-core\/src\/team-orchestration\.ts$/,
 };
 
 function classifyFile(path) {

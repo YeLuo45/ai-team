@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   buildHumanApprovalGate,
   buildLlmOpsSummary,
   buildOrgMemoryContext,
   buildReadmeCommandChecklist,
+  buildScenarioBatch,
   buildScenarioSimulation,
   orchestrateCandidateWorkflow,
+  OrchestrationOrgMemoryStore,
   type CandidateWorkflowInput,
   type ReadmeCommandSpec,
 } from '../src/team-orchestration.js';
@@ -135,5 +139,94 @@ describe('team orchestration V36-V41', () => {
     expect(checklist.deliverable).toBe(false);
     expect(checklist.failed[0].command).toBe('npm run dev');
     expect(checklist.failed[0].reason).toBe('missing evidence');
+  });
+
+  it('covers V53 split-module base edge cases without changing public exports', () => {
+    const hold = orchestrateCandidateWorkflow(baseInput({
+      resumeScore: -10,
+      interviewScore: 40,
+      scoreAgentScore: 300,
+      requiredSkills: [],
+      candidateSkills: [],
+      orgMemoryNotes: [],
+    }));
+    expect(hold.recommendation.decision).toBe('hire');
+    expect(hold.recommendation.confidence).toBe(96);
+    expect(hold.recommendation.rationale.some((line) => line.includes('org memory'))).toBe(false);
+
+    const training = buildScenarioSimulation({
+      teamName: 'Platform',
+      currentHeadcount: 6,
+      targetHeadcount: 6,
+      requiredSkills: ['React'],
+      currentSkills: ['React'],
+      candidateSkills: ['React'],
+      trainingHours: 12,
+    });
+    expect(training.recommendation).toBe('train_existing_team');
+
+    const revisit = buildScenarioSimulation({
+      teamName: 'Platform',
+      currentHeadcount: 6,
+      targetHeadcount: 6,
+      requiredSkills: ['React'],
+      currentSkills: ['React'],
+      candidateSkills: ['React'],
+      trainingHours: 40,
+    });
+    expect(revisit.recommendation).toBe('revisit_scope');
+
+    expect(buildLlmOpsSummary([])).toMatchObject({
+      totalTokens: 0,
+      totalCostUsd: 0,
+      averageLatencyMs: 0,
+      fallbackRate: 0,
+      byAgent: {},
+    });
+
+    const failedExit = buildReadmeCommandChecklist([
+      { command: 'npm test', required: true, exitCode: 1, evidence: 'failed' },
+      { command: 'npm run optional', required: false, exitCode: 1, evidence: '' },
+    ]);
+    expect(failedExit.failed).toEqual([{ command: 'npm test', reason: 'exit 1' }]);
+  });
+
+  it('normalizes partial org memory files after V53 module split', async () => {
+    const baseDir = `/tmp/ai-team-org-memory-partial-${Math.random().toString(36).slice(2)}`;
+    const store = new OrchestrationOrgMemoryStore({ baseDir });
+    await store.upsert({ team: 'Legacy', roleProfile: 'Builder', feedback: ['x'], preferences: ['y'], updatedBy: 'u-1' });
+    const fileStore = new OrchestrationOrgMemoryStore({ baseDir });
+    const entry = await fileStore.read('Legacy');
+    expect(entry?.citations).toEqual(['org:Legacy:feedback:1', 'org:Legacy:preference:1']);
+  });
+
+  it('normalizes malformed org memory arrays and rejects files without team', async () => {
+    const baseDir = `/tmp/ai-team-org-memory-malformed-${Math.random().toString(36).slice(2)}`;
+    const dir = join(baseDir, 'org-memory');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'Broken.json'), JSON.stringify({ roleProfile: 'No team' }), 'utf-8');
+    writeFileSync(join(dir, 'Legacy.json'), JSON.stringify({ team: 'Legacy', feedback: 'bad', preferences: [null, 'async'] }), 'utf-8');
+
+    const store = new OrchestrationOrgMemoryStore({ baseDir });
+    expect(await store.read('Broken')).toBeNull();
+    const normalized = await store.read('Legacy');
+    expect(normalized?.feedback).toEqual([]);
+    expect(normalized?.preferences).toEqual(['', 'async']);
+    expect(normalized?.updatedBy).toBe('system');
+  });
+
+  it('covers scenario batch empty required skills after V53 module split', () => {
+    const result = buildScenarioBatch({
+      teamName: 'Platform',
+      currentHeadcount: 1,
+      targetHeadcount: 2,
+      requiredSkills: [],
+      currentSkills: [],
+      candidates: [{ id: 'c1', name: 'Ada', candidateSkills: [], trainingHours: 6 }],
+    });
+
+    expect(result.results[0].skillCoverageDelta).toBe(0);
+    expect(result.results[0].recommendation).toBe('train_existing_team');
+    expect(result.winners).toEqual([]);
   });
 });

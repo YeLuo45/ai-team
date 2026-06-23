@@ -15,6 +15,7 @@ import Heatmap from './pages/Heatmap';
 import AuditConsole from './pages/AuditConsole';
 import AgentReviewConsole from './pages/AgentReviewConsole';
 import AgentConfig from './pages/AgentConfig';
+import TeamOrchestrationConsole from './pages/TeamOrchestrationConsole';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 
@@ -76,6 +77,9 @@ export default function App() {
             <NavLink to="/agent-config" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               Agent 配置
             </NavLink>
+            <NavLink to="/orchestration" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
+              编排台
+            </NavLink>
             <NavLink to="/notifications" className={({ isActive }) => `btn ${isActive ? 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' : 'btn-ghost'}`}>
               通知
             </NavLink>
@@ -102,6 +106,7 @@ export default function App() {
           <Route path="/audit" element={<AuditConsole />} />
           <Route path="/agents" element={<AgentReviewConsole />} />
           <Route path="/agent-config" element={<AgentConfig />} />
+          <Route path="/orchestration" element={<TeamOrchestrationConsole />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/data" element={<Data />} />
         </Routes>

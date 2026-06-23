@@ -16,7 +16,14 @@ export interface TrainingPlanSuggestion {
 }
 
 export class TrainingAgent {
-  constructor(private llm: LLMClient, private opts: { model?: string } = {}) {}
+  private orgMemory: string | undefined;
+  constructor(private llm: LLMClient, private opts: { model?: string; orgMemory?: string } = {}) {
+    this.orgMemory = opts.orgMemory;
+  }
+
+  setOrgMemory(orgMemory: string | undefined): void {
+    this.orgMemory = orgMemory;
+  }
 
   /**
    * Generate a training plan for a member. Returns parsed plan (not yet persisted).
@@ -32,7 +39,8 @@ export class TrainingAgent {
       input.member.role,
       input.targetRole,
       input.skills,
-      input.weaknessAreas
+      input.weaknessAreas,
+      this.orgMemory
     );
 
     const resp = await this.llm.chat({

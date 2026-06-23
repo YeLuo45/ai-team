@@ -48,11 +48,25 @@ export function buildInterviewerSystemPrompt(position: string): string {
   return INTERVIEWER_SYSTEM.replace('{position}', position);
 }
 
+export function injectOrgMemory(messages: ChatMessage[], orgMemory?: string): ChatMessage[] {
+  if (!orgMemory || orgMemory.trim().length === 0) return messages;
+  const block = `[ORG MEMORY]\n${orgMemory.trim()}`;
+  const out = messages.map((message) => ({ ...message }));
+  const sysIndex = out.findIndex((message) => message.role === 'system');
+  if (sysIndex >= 0) {
+    out[sysIndex] = { ...out[sysIndex], content: `${out[sysIndex].content}\n\n${block}` };
+  } else {
+    out.unshift({ role: 'system', content: block });
+  }
+  return out;
+}
+
 export function buildInterviewMessages(
   position: string,
   candidateName: string,
   resume?: string,
-  history: Array<{ role: 'interviewer' | 'candidate'; content: string }> = []
+  history: Array<{ role: 'interviewer' | 'candidate'; content: string }> = [],
+  orgMemory?: string
 ): ChatMessage[] {
   const messages: ChatMessage[] = [
     { role: 'system', content: buildInterviewerSystemPrompt(position) },
@@ -80,27 +94,31 @@ export function buildInterviewMessages(
       content: turn.content,
     });
   }
-  return messages;
+  return injectOrgMemory(messages, orgMemory);
 }
 
 export function buildEvaluationMessages(
   position: string,
-  history: Array<{ role: 'interviewer' | 'candidate'; content: string }>
+  history: Array<{ role: 'interviewer' | 'candidate'; content: string }>,
+  orgMemory?: string
 ): ChatMessage[] {
   const transcript = history
     .map((t, i) => `${t.role === 'interviewer' ? '面试官' : '候选人'} [轮 ${Math.floor(i / 2) + 1}]: ${t.content}`)
     .join('\n\n');
 
-  return [
-    {
-      role: 'system',
-      content: buildInterviewerSystemPrompt(position) + '\n\n' + INTERVIEWER_EVAL_INSTRUCTION,
-    },
-    {
-      role: 'user',
-      content: `以下是完整的面试对话：\n\n${transcript}\n\n请给出 JSON 评估。`,
-    },
-  ];
+  return injectOrgMemory(
+    [
+      {
+        role: 'system',
+        content: buildInterviewerSystemPrompt(position) + '\n\n' + INTERVIEWER_EVAL_INSTRUCTION,
+      },
+      {
+        role: 'user',
+        content: `以下是完整的面试对话：\n\n${transcript}\n\n请给出 JSON 评估。`,
+      },
+    ],
+    orgMemory,
+  );
 }
 
 export function buildTrainingPlanMessages(
@@ -108,46 +126,54 @@ export function buildTrainingPlanMessages(
   currentRole: string,
   targetRole: string,
   currentSkills: Array<{ name: string; score: number }>,
-  weaknessAreas: string[]
+  weaknessAreas: string[],
+  orgMemory?: string
 ): ChatMessage[] {
   const skillsStr = currentSkills.map((s) => `${s.name}: ${s.score}/100`).join(', ');
   const weaknessStr = weaknessAreas.length > 0 ? weaknessAreas.join(', ') : '（暂无）';
 
-  return [
-    {
-      role: 'system',
-      content: TRAINING_PLAN_INSTRUCTION,
-    },
-    {
-      role: 'user',
-      content: `成员姓名: ${memberName}
+  return injectOrgMemory(
+    [
+      {
+        role: 'system',
+        content: TRAINING_PLAN_INSTRUCTION,
+      },
+      {
+        role: 'user',
+        content: `成员姓名: ${memberName}
 当前岗位: ${currentRole}
 目标岗位: ${targetRole}
 当前技能评分: ${skillsStr || '（暂无数据）'}
 待提升领域: ${weaknessStr}
 
 请生成培训计划 JSON。`,
-    },
-  ];
+      },
+    ],
+    orgMemory,
+  );
 }
 
-export function buildInsightsMessages(input: {
-  members: Array<{ name: string; role: string; team: string; level?: string; skills: Array<{ name: string; score: number }> }>;
-  candidates: number;
-  interviewsCompleted: number;
-  interviewsFailed: number;
-  averageScore: number;
-  requiredSkills: string[];
-}): ChatMessage[] {
+export function buildInsightsMessages(
+  input: {
+    members: Array<{ name: string; role: string; team: string; level?: string; skills: Array<{ name: string; score: number }> }>;
+    candidates: number;
+    interviewsCompleted: number;
+    interviewsFailed: number;
+    averageScore: number;
+    requiredSkills: string[];
+  },
+  orgMemory?: string
+): ChatMessage[] {
   const memberSummary = input.members
     .slice(0, 30)
     .map((m) => `- ${m.name} (${m.role}, ${m.team}${m.level ? `, ${m.level}` : ''}): ${m.skills.length} 项技能`)
     .join('\n');
 
-  return [
-    {
-      role: 'system',
-      content: `你是一位资深 HR 分析师。基于团队数据,给出 3-5 条可执行的 AI 建议,识别潜在问题。
+  return injectOrgMemory(
+    [
+      {
+        role: 'system',
+        content: `你是一位资深 HR 分析师。基于团队数据,给出 3-5 条可执行的 AI 建议,识别潜在问题。
 
 返回 JSON 格式:
 {
@@ -173,5 +199,5 @@ ${memberSummary}
 
 请给出 3-5 条 actionable 建议。`,
     },
-  ];
+  ], orgMemory);
 }

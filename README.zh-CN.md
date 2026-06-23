@@ -65,6 +65,21 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🧑‍⚖️ **Human Approval Gate** | 高/关键风险自动进入人工复核队列 | V37 |
 | 🧪 **What-if Lab + Org Memory + LLMOps** | 团队影响模拟、组织记忆上下文、Token/成本/延迟摘要 | V38-V40 |
 | ✅ **README Command Verification** | `npm run verify:readme` 真实验收 README 核心命令 | V41 |
+| 🖥️ **Workflow Web Console** | `/orchestration` 可视化执行 workflow、审批队列、LLMOps 告警 | V42 |
+| 💾 **Approval Persistence API** | `/api/team-orchestration/approvals` 创建/列表/决策复核记录 | V43 |
+| 🚨 **LLMOps Alerting API** | `/api/team-orchestration/llmops/alerts` 成本/延迟/fallback/error 策略告警 | V44 |
+| 🧠 **Org Memory Store** | JSON 持久化 `OrchestrationOrgMemoryStore` 与带引用上下文构建 | V45 |
+| 🧮 **Scenario Batch Runner** | `buildScenarioBatch` 多候选人排序，返回 winners/dropped | V46 |
+| 🚦 **Release Hardening Report** | `npm run release:check` 汇总命令/覆盖率/文档成单一就绪信号 | V47 |
+| 🧠 **Org Memory into Agent Prompt** | `injectOrgMemory` 把组织记忆嵌入面试/培训/评估 prompt | V48 |
+| 🪝 **Pre-commit Hook** | `npm run hooks:install` 把 `verify:readme` + `release:check` 接到 `.git/hooks/pre-commit` | V50 |
+| 📊 **Delivery Evidence Summary** | `npm run delivery:summary` 汇总测试/覆盖率/README/构建交付证据 | V51-V52 |
+| 🧱 **编排模块拆分** | 拆分 500+ 行 orchestration 巨型模块，保留 barrel import 兼容 | V53 |
+| 🖥️ **Web 编排台补齐** | `/orchestration` 支持批量场景、组织记忆编辑、交付摘要、候选人参数输入 | V54/V56/V59 |
+| 📝 **交付报告自动化** | `npm run delivery:report` 写入 `docs/delivery/<version>-delivery-report.md`，`release:check` 串联构建/测试/README/覆盖率/报告 | V55/V58/V60 |
+| 🗂️ **交付报告索引** | `npm run delivery:index` 生成 `docs/delivery/index.md` 与浏览器安全 release evidence JSON | V61/V63 |
+| 🎛️ **编排台预设 + 证据下载** | `/orchestration` 新增 Security preset 与一键下载 release evidence JSON | V62/V65 |
+| 🔁 **提案同步规划器** | 纯函数生成 MCP 安全正向状态路径，避免跳级/回退状态 | V64 |
 
 ## 7 个包
 
@@ -174,6 +189,9 @@ npm run test:coverage
 
 # 验证 README 核心命令可交付
 npm run verify:readme
+
+# 输出交付验收证据摘要
+npm run delivery:summary
 ```
 
 覆盖率门槛：确定性库/运行时模块 95%+；UI 页面、CLI 命令胶水、LLM 编排和环境 fallback 不计入全局阈值。
@@ -206,7 +224,24 @@ npm run verify:readme
 - `/api/team-orchestration/simulate` - What-if 团队技能/人头影响模拟
 - `/api/team-orchestration/org-memory` - 组织记忆上下文与引用生成
 - `/api/team-orchestration/llmops` - LLM Token/成本/延迟/fallback 摘要
+- `/api/team-orchestration/llmops/alerts` - LLMOps 成本/延迟/fallback/error 策略告警
+- `/api/team-orchestration/approvals` - 人工复核记录创建与列表
+- `/api/team-orchestration/approvals/:id/decision` - 人工复核 approve/reject/edit 决策
 - `/api/team-orchestration/readme-checklist` - README 命令交付检查清单
+
+**V45 Org Memory:**
+- `/api/team-orchestration/org-memory/:team` - 上报团队组织记忆
+- `/api/team-orchestration/org-memory/:team/context` - 用引用生成上下文
+
+**V46 Batch Scenario:**
+- `/api/team-orchestration/simulate/batch` - 多候选人批量排序
+
+**V47 Release Report:**
+- `/api/team-orchestration/release-report` - 命令/覆盖率/文档汇总就绪信号
+- `npm run release:check` - 终端就绪自检（build + test + verify:readme + coverage）
+
+**V51 Delivery Evidence:**
+- `npm run delivery:summary` - 从 `coverage/coverage-final.json` 与可选 `AI_TEAM_TEST_LOG` / `AI_TEAM_README_LOG` / `AI_TEAM_BUILD_LOG` 输出测试、增量覆盖率、README 命令和构建状态的交付摘要
 
 **实用工具:**
 - `/api/search?q=&type=&limit=` - 全文搜索

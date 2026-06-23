@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# V50: pre-commit hook — runs verify:readme + release-check before allowing a commit.
+# This file is the actual hook installed at .git/hooks/pre-commit by install-hooks.sh.
+set -euo pipefail
+PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+cd "$PROJECT_ROOT"
+
+echo "[pre-commit] running verify:readme"
+npm run --silent verify:readme
+echo "[pre-commit] verify:readme OK"
+
+if [ -f scripts/release-check.mjs ]; then
+  echo "[pre-commit] running release:check"
+  npm run --silent release:check
+  echo "[pre-commit] release:check OK"
+fi
+
+# Skip full coverage gate in pre-commit (too slow); CI runs it instead.
+exit 0

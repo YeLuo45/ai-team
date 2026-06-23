@@ -47,12 +47,12 @@ export class PipelineStore extends JsonStore<PipelineEntry> {
   currentEntry(all: PipelineEntry[], candidateId: string): PipelineEntry | null {
     const mine = all.filter((e) => e.candidateId === candidateId);
     if (mine.length === 0) return null;
-    // sort by createdAt desc; tie-break by id desc so newest write wins even at same ms
-    return mine.sort((a, b) => {
-      const dt = b.createdAt.localeCompare(a.createdAt);
-      if (dt !== 0) return dt;
-      return b.id.localeCompare(a.id);
-    })[0];
+    let latest = mine[0]!;
+    for (const entry of mine.slice(1)) {
+      const dt = entry.createdAt.localeCompare(latest.createdAt);
+      if (dt >= 0) latest = entry;
+    }
+    return latest;
   }
 
   /**
@@ -60,14 +60,14 @@ export class PipelineStore extends JsonStore<PipelineEntry> {
    */
   funnelReport(all: PipelineEntry[]): PipelineFunnelReport {
     const currentByCandidate = new Map<string, PipelineEntry>();
-    for (const e of all) {
-      const prev = currentByCandidate.get(e.candidateId);
+    for (const entry of all) {
+      const prev = currentByCandidate.get(entry.candidateId);
       if (!prev) {
-        currentByCandidate.set(e.candidateId, e);
+        currentByCandidate.set(entry.candidateId, entry);
       } else {
-        const dt = e.createdAt.localeCompare(prev.createdAt);
-        if (dt > 0 || (dt === 0 && e.id.localeCompare(prev.id) > 0)) {
-          currentByCandidate.set(e.candidateId, e);
+        const dt = entry.createdAt.localeCompare(prev.createdAt);
+        if (dt >= 0) {
+          currentByCandidate.set(entry.candidateId, entry);
         }
       }
     }

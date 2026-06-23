@@ -32,8 +32,13 @@ export class InterviewAgent {
       maxTurns?: number;
       evalAfter?: number;
       model?: string;
+      orgMemory?: string;
     } = {}
   ) {}
+
+  setOrgMemory(orgMemory: string | undefined): void {
+    this.opts = { ...this.opts, orgMemory };
+  }
 
   /**
    * Start a new interview session for a candidate.
@@ -64,7 +69,8 @@ export class InterviewAgent {
           candidate.position,
           candidate.name,
           candidate.resume,
-          turns.map((t) => ({ role: t.role, content: t.content }))
+          turns.map((t) => ({ role: t.role, content: t.content })),
+          this.opts.orgMemory,
         );
         const resp = await this.llm.chat({
           messages,
@@ -100,7 +106,8 @@ export class InterviewAgent {
       finalize: async () => {
         const messages = buildEvaluationMessages(
           candidate.position,
-          turns.map((t) => ({ role: t.role, content: t.content }))
+          turns.map((t) => ({ role: t.role, content: t.content })),
+          this.opts.orgMemory,
         );
         const resp = await this.llm.chat({
           messages,

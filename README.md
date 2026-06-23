@@ -63,6 +63,21 @@ Press `Ctrl+C` to clean shutdown.
 - 🧑‍⚖️ **Human Approval Gate** (V37) — high/critical risks enter a review queue before automatic decisions
 - 🧪 **What-if Lab + Org Memory + LLMOps** (V38-V40) — team impact simulation, memory context, token/cost/latency summaries
 - ✅ **README Command Verification** (V41) — `npm run verify:readme` validates core README commands with real evidence
+- 🖥️ **Workflow Web Console** (V42) — `/orchestration` runs workflow, approval queue, and LLMOps alert checks
+- 💾 **Approval Persistence API** (V43) — `/api/team-orchestration/approvals` create/list/decide review records
+- 🚨 **LLMOps Alerting API** (V44) — `/api/team-orchestration/llmops/alerts` evaluates cost/latency/fallback/error policies
+- 🧠 **Org Memory Store** (V45) — JSON-backed `OrchestrationOrgMemoryStore` with citation context builder
+- 🧮 **Scenario Batch Runner** (V46) — `buildScenarioBatch` ranks many candidates, returns winner/dropped ids
+- 🚦 **Release Hardening Report** (V47) — `npm run release:check` aggregates command/coverage/docs into a single readiness signal
+- 🧠 **Org Memory into Agent Prompt** (V48) — `injectOrgMemory` threads team memory into interview / training / evaluation prompts
+- 🪝 **Pre-commit Hook** (V50) — `npm run hooks:install` wires `verify:readme` + `release:check` into `.git/hooks/pre-commit`
+- 📊 **Delivery Evidence Summary** (V51-V52) — `npm run delivery:summary` prints the handoff-ready test/coverage/README gate summary from real logs and `coverage-final.json`
+- 🧱 **Orchestration Module Split** (V53) — split the 500+ line orchestration monolith into feature modules while preserving the public barrel import
+- 🖥️ **Web Orchestration Parity** (V54/V56/V59) — `/orchestration` now exposes scenario batch, org memory context/editing, delivery summary, and editable workflow parameters
+- 📝 **Delivery Report Automation** (V55/V58/V60) — `npm run delivery:report` writes `docs/delivery/<version>-delivery-report.md`; `release:check` gates it with build/test/README/coverage
+- 🗂️ **Delivery Report Index** (V61/V63) — `npm run delivery:index` builds `docs/delivery/index.md` and browser-safe release evidence JSON
+- 🎛️ **Orchestration Presets + Evidence Download** (V62/V65) — `/orchestration` adds security preset and one-click release evidence JSON download
+- 🔁 **Proposal Sync Planner** (V64) — pure safe-forward MCP status plan helper avoids backward/skip transitions
 
 ## Packages (7)
 
@@ -173,7 +188,12 @@ npm run test:coverage
 
 # Verify core README commands are deliverable
 npm run verify:readme
+
+# Print delivery handoff evidence summary
+npm run delivery:summary
 ```
+
+`delivery:summary` reads `coverage/coverage-final.json` and optional `AI_TEAM_TEST_LOG`, `AI_TEAM_README_LOG`, and `AI_TEAM_BUILD_LOG` files when present.
 
 #### Mode 6: Authentication (V20)
 

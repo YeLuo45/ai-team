@@ -155,7 +155,7 @@ describe('CapabilityHeatmap page', () => {
     };
     globalThis.fetch = vi.fn(async () => jsonResponse(report)) as any;
     render(<CapabilityHeatmap />);
-    await waitFor(() => screen.getByTestId('capability-heatmap'));
+    await waitFor(() => screen.getByTestId('cell-button-A-B-sk1'));
     // criticalGaps 1 and overallAverage 20 are both numeric — use getAllByText for the 1
     const ones = screen.getAllByText('1');
     expect(ones.length).toBeGreaterThanOrEqual(1);
@@ -203,7 +203,7 @@ describe('CapabilityHeatmap page', () => {
     render(<CapabilityHeatmap />);
     await waitFor(() => screen.getByTestId('cell-button-Web-FE-sk_ts'));
     fireEvent.click(screen.getByTestId('cell-button-Web-FE-sk_ts'));
-    await waitFor(() => screen.getByTestId('cell-modal'));
+    await waitFor(() => screen.getByTestId('cell-modal-member-m1'));
     expect(screen.getByText('Web · FE')).toBeTruthy();
     expect(screen.getByTestId('cell-modal-member-m1')).toBeTruthy();
     expect(screen.getByText('Alice')).toBeTruthy();

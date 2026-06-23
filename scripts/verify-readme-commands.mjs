@@ -32,8 +32,17 @@ function record(name, result, evidencePattern) {
 }
 
 record('build', run('npm', ['run', 'build'], { timeout: 180_000 }), /built|tsc|vite/i);
-record('test targeted core', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration.test.ts']), /8 passed/);
-record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-server/test/team-orchestration-routes.test.ts']), /23 passed/);
+record('test targeted core', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration.test.ts']), /12 passed/);
+record('test targeted core v42', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration-v42.test.ts']), /5 passed/);
+record('test targeted core v45', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration-v45.test.ts']), /22 passed/);
+record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-server/test/team-orchestration-routes.test.ts']), /69 passed/);
+record('test targeted web console', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-console.test.tsx']), /4 passed/);
+record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
+record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
+record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /14 passed/);
+record('delivery summary', run('npm', ['run', 'delivery:summary']), /V\d+ ready/);
+record('delivery report', run('npm', ['run', 'delivery:report']), /Delivery Report — ai-team/);
+record('delivery index', run('npm', ['run', 'delivery:index']), /Delivery index ready:/);
 
 if (!existsSync('packages/ai-team-server/dist/index.js')) {
   checks.push({ name: 'dev readiness', command: 'npm run dev', ok: false, exitCode: 1, evidence: 'server dist missing' });
