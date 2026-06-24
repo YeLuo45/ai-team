@@ -3,9 +3,12 @@ import {
   auditReleaseEvidenceBatch,
   buildCiArtifactImportCommandPlan,
   buildCiArtifactIngestionExecution,
+  buildCiArtifactProvenance,
   buildCiArtifactUploadBridge,
   buildProposalDeliveryWizard,
   buildProposalExecutionPlan,
+  buildProposalReplayVisualDiff,
+  buildReleaseOperationsHistorySnapshot,
   executeProposalDryRun,
   migrateReleaseEvidencePayload,
   type ProposalSyncStatus,
@@ -109,6 +112,56 @@ export function registerDeliveryCommands(program: Command): void {
       console.log(result.ready ? c.ok(`ci artifact upload bridge ready target=${result.uploadTarget}`) : c.err(`ci artifact upload bridge blocked issues=${result.issues.length}`));
       for (const issue of result.issues) console.log(c.warn(issue));
       for (const command of result.commands) console.log(command);
+    });
+
+  cmd
+    .command('release-operations-history')
+    .description('Build a release operations history snapshot from evidence JSON files')
+    .requiredOption('--dir <path>', 'directory containing release evidence JSON files')
+    .action(async (opts) => {
+      const fs = await import('node:fs/promises');
+      const path = await import('node:path');
+      const names = (await fs.readdir(opts.dir)).filter((name) => name.endsWith('-release-evidence.json')).sort();
+      const entries = await Promise.all(names.map(async (name) => {
+        const fullPath = path.join(opts.dir, name);
+        const raw = JSON.parse(await fs.readFile(fullPath, 'utf-8')) as { version?: string; summary?: { ready?: boolean; headline?: string }; generatedAt?: string; reportMarkdown?: string };
+        const proposalId = raw.reportMarkdown?.match(/\*\*Proposal\*\*:\s+(P-\d{8}-\d{3})/)?.[1] ?? 'UNKNOWN';
+        return { version: raw.version ?? name, proposalId, updatedAt: raw.generatedAt ?? '1970-01-01T00:00:00Z', ready: raw.summary?.ready === true, summary: raw.summary?.headline ?? name, evidencePath: fullPath };
+      }));
+      const history = buildReleaseOperationsHistorySnapshot(entries);
+      console.log(c.ok(`release operations history latest=${history.latestVersion} ready=${history.readyCount} blocked=${history.blockedCount}`));
+      console.log(history.serialized);
+    });
+
+  cmd
+    .command('ci-artifact-provenance')
+    .description('Build a signed provenance model for a CI artifact')
+    .requiredOption('--version <version>', 'delivery version such as V102')
+    .requiredOption('--artifact-name <name>', 'artifact file name')
+    .requiredOption('--sha256 <digest>', 'artifact sha256 digest')
+    .requiredOption('--commit <sha>', 'git commit sha')
+    .requiredOption('--workflow-run-id <id>', 'GitHub Actions workflow run id')
+    .requiredOption('--signer <name>', 'signer identity')
+    .option('--generated-at <iso>', 'generated timestamp', new Date().toISOString())
+    .action((opts) => {
+      const provenance = buildCiArtifactProvenance({ version: opts.version, artifactName: opts.artifactName, artifactSha256: opts.sha256, commit: opts.commit, workflowRunId: opts.workflowRunId, signer: opts.signer, generatedAt: opts.generatedAt });
+      console.log(provenance.ready ? c.ok(`provenance ready subject=${provenance.subject}`) : c.err(`provenance blocked issues=${provenance.issues.length}`));
+      for (const issue of provenance.issues) console.log(c.warn(issue));
+      console.log(provenance.markdown);
+    });
+
+  cmd
+    .command('proposal-replay-diff')
+    .description('Render a visual diff between proposal replay status paths')
+    .requiredOption('--proposal-id <id>', 'proposal id')
+    .requiredOption('--before <statuses>', 'comma-separated status path before replay')
+    .requiredOption('--after <statuses>', 'comma-separated status path after replay')
+    .action((opts) => {
+      const before = String(opts.before).split(',').filter(Boolean) as ProposalSyncStatus[];
+      const after = String(opts.after).split(',').filter(Boolean) as ProposalSyncStatus[];
+      const diff = buildProposalReplayVisualDiff({ proposalId: opts.proposalId, before, after });
+      console.log(c.ok(`proposal replay diff changed=${diff.changed} added=${diff.added.length} removed=${diff.removed.length}`));
+      console.log(diff.markdown);
     });
 
   cmd

@@ -974,6 +974,72 @@ export interface ProposalAuditReplaySmokeGate {
   markdown: string;
 }
 
+export interface ReleaseOperationsHistoryEntry {
+  version: string;
+  proposalId: string;
+  updatedAt: string;
+  ready: boolean;
+  summary: string;
+  evidencePath: string;
+}
+
+export interface ReleaseOperationsHistorySnapshot {
+  storageKey: 'ai-team:release-operations-history:v1';
+  latestVersion: string;
+  readyCount: number;
+  blockedCount: number;
+  entries: ReleaseOperationsHistoryEntry[];
+  serialized: string;
+}
+
+export interface CiArtifactProvenanceInput {
+  version: string;
+  artifactName: string;
+  artifactSha256: string;
+  commit: string;
+  workflowRunId: string;
+  signer: string;
+  generatedAt: string;
+}
+
+export interface CiArtifactProvenance {
+  ready: boolean;
+  subject: string;
+  attestation: {
+    version: string;
+    artifactName: string;
+    artifactSha256: string;
+    commit: string;
+    workflowRunId: string;
+    signer: string;
+    generatedAt: string;
+  };
+  issues: string[];
+  markdown: string;
+}
+
+export interface ProposalReplayVisualDiffInput {
+  proposalId: string;
+  before: ProposalSyncStatus[];
+  after: ProposalSyncStatus[];
+}
+
+export interface ProposalReplayVisualDiffStep {
+  status: ProposalSyncStatus;
+  before: boolean;
+  after: boolean;
+  state: 'unchanged' | 'added' | 'removed';
+}
+
+export interface ProposalReplayVisualDiff {
+  proposalId: string;
+  changed: boolean;
+  added: ProposalSyncStatus[];
+  removed: ProposalSyncStatus[];
+  steps: ProposalReplayVisualDiffStep[];
+  markdown: string;
+}
+
 export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
   const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
   const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
@@ -1441,4 +1507,79 @@ export function generateNextDeliveryDirections(input: NextDeliveryDirectionInput
     `${second}: Web delivery operations — expose ${sourceCount} source change group(s) and restore persisted cockpit from the main console`,
     `${third}: Evidence batch migration — ${migrationText}; keep ${scriptCount} script gate(s) documented`,
   ];
+}
+
+export function buildReleaseOperationsHistorySnapshot(entries: ReleaseOperationsHistoryEntry[]): ReleaseOperationsHistorySnapshot {
+  const sorted = [...entries].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const payload = {
+    latestVersion: sorted[0]?.version ?? 'none',
+    entries: sorted.slice(0, 20),
+  };
+  return {
+    storageKey: 'ai-team:release-operations-history:v1',
+    latestVersion: payload.latestVersion,
+    readyCount: sorted.filter((entry) => entry.ready).length,
+    blockedCount: sorted.filter((entry) => !entry.ready).length,
+    entries: payload.entries,
+    serialized: JSON.stringify(payload),
+  };
+}
+
+export function buildCiArtifactProvenance(input: CiArtifactProvenanceInput): CiArtifactProvenance {
+  const issues = [
+    ...(input.version.trim() ? [] : ['version is required']),
+    ...(input.artifactName.trim() ? [] : ['artifactName is required']),
+    ...(/^[a-f0-9]{64}$/i.test(input.artifactSha256) ? [] : ['artifactSha256 must be a 64-character hex digest']),
+    ...(/^[a-f0-9]{7,40}$/i.test(input.commit) ? [] : ['commit must be a 7-40 character hex SHA']),
+    ...(input.workflowRunId.trim() ? [] : ['workflowRunId is required']),
+    ...(input.signer.trim() ? [] : ['signer is required']),
+    ...(input.generatedAt.trim() ? [] : ['generatedAt is required']),
+  ];
+  const subject = `${input.artifactName}@${input.artifactSha256.slice(0, 12) || 'unknown'}`;
+  const ready = issues.length === 0;
+  const markdown = [
+    `# CI Artifact Provenance — ${input.version || 'VNext'}`,
+    '',
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    `Subject: ${subject}`,
+    `Commit: ${input.commit || 'missing'}`,
+    `Workflow: ${input.workflowRunId || 'missing'}`,
+    `Signer: ${input.signer || 'missing'}`,
+    '',
+    ...(issues.length === 0 ? ['Issues: none'] : ['Issues:', ...issues.map((issue) => `- ${issue}`)]),
+  ].join('\n');
+  return {
+    ready,
+    subject,
+    attestation: { ...input },
+    issues,
+    markdown,
+  };
+}
+
+export function buildProposalReplayVisualDiff(input: ProposalReplayVisualDiffInput): ProposalReplayVisualDiff {
+  const statuses: ProposalSyncStatus[] = ['intake', 'clarifying', 'prd_pending_confirmation', 'approved_for_dev', 'in_dev', 'in_test_acceptance', 'accepted', 'deployed', 'delivered'];
+  const before = new Set(input.before);
+  const after = new Set(input.after);
+  const steps = statuses
+    .filter((status) => before.has(status) || after.has(status))
+    .map((status): ProposalReplayVisualDiffStep => {
+      const beforeHas = before.has(status);
+      const afterHas = after.has(status);
+      const state: ProposalReplayVisualDiffStep['state'] = beforeHas && afterHas ? 'unchanged' : afterHas ? 'added' : 'removed';
+      return { status, before: beforeHas, after: afterHas, state };
+    });
+  const added = steps.filter((step) => step.state === 'added').map((step) => step.status);
+  const removed = steps.filter((step) => step.state === 'removed').map((step) => step.status);
+  const changed = added.length > 0 || removed.length > 0;
+  const markdown = [
+    `# Proposal Replay Visual Diff — ${input.proposalId}`,
+    '',
+    `Changed: ${changed ? 'yes' : 'no'}`,
+    '',
+    '| Status | Before | After | State |',
+    '|---|---:|---:|---|',
+    ...steps.map((step) => `| ${step.status} | ${step.before ? 'yes' : 'no'} | ${step.after ? 'yes' : 'no'} | ${step.state} |`),
+  ].join('\n');
+  return { proposalId: input.proposalId, changed, added, removed, steps, markdown };
 }

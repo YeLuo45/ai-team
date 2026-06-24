@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Command } from 'commander';
@@ -144,6 +144,41 @@ describe('V81 delivery CLI commands', () => {
     const output = logSpy.mock.calls.join('\n');
     expect(output).toContain('ci artifact upload bridge ready target=release-asset');
     expect(output).toContain('gh release upload v100');
+  });
+
+  it('prints release operations history, provenance, and replay diff commands', async () => {
+    const evidenceDir = join(dir, 'delivery');
+    mkdirSync(evidenceDir);
+    writeFileSync(join(evidenceDir, 'ai-team-v101-release-evidence.json'), JSON.stringify({
+      version: 'V101',
+      generatedAt: '2026-06-25T00:00:00Z',
+      summary: { ready: true, headline: 'V101 ready' },
+      reportMarkdown: '**Proposal**: P-20260625-001',
+    }), 'utf-8');
+
+    const program = await loadProgram();
+    await program.parseAsync(['node', 'ai-team', 'delivery', 'release-operations-history', '--dir', evidenceDir]);
+    await program.parseAsync([
+      'node', 'ai-team', 'delivery', 'ci-artifact-provenance',
+      '--version', 'V102',
+      '--artifact-name', 'release-check.json',
+      '--sha256', 'a'.repeat(64),
+      '--commit', '7d7cf06',
+      '--workflow-run-id', '123456789',
+      '--signer', 'github-actions',
+      '--generated-at', '2026-06-25T00:00:00Z',
+    ]);
+    await program.parseAsync([
+      'node', 'ai-team', 'delivery', 'proposal-replay-diff',
+      '--proposal-id', 'P-20260625-001',
+      '--before', 'accepted',
+      '--after', 'accepted,deployed,delivered',
+    ]);
+
+    const output = logSpy.mock.calls.join('\n');
+    expect(output).toContain('release operations history latest=V101 ready=1 blocked=0');
+    expect(output).toContain('provenance ready subject=release-check.json@aaaaaaaaaaaa');
+    expect(output).toContain('proposal replay diff changed=true added=2 removed=0');
   });
 
   it('prints guarded proposal execution commands without running them', async () => {

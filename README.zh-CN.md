@@ -81,7 +81,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🎛️ **编排台预设 + 证据下载** | `/orchestration` 新增 Security preset 与一键下载 release evidence JSON | V62/V65 |
 | 🔁 **提案同步规划器** | 纯函数生成 MCP 安全正向状态路径，避免跳级/回退状态 | V64 |
 | 🧰 **交付驾驶舱强化** | 证据筛选/导入查看器、提案交付向导、发布就绪看板、MCP 状态回退防护、可提交 diff 分类 | V66-V72 |
-| 🚚 **交付闭环自动化** | 浏览器安全证据、MCP 执行确认计划、驾驶舱服务端/Web 恢复持久化、证据 schema 批量审计、质量门禁、后续方向生成、CI 证据摄取、审计时间线、Release Ops API、上传桥接、审计回放门禁 | V73-V100 |
+| 🚚 **交付闭环自动化** | 浏览器安全证据、MCP 执行确认计划、驾驶舱服务端/Web 恢复持久化、证据 schema 批量审计、质量门禁、后续方向生成、CI 证据摄取、审计时间线、Release Ops API、上传桥接、审计回放门禁、历史快照、签名来源、回放 diff | V73-V103 |
 
 ## 7 个包
 
@@ -245,6 +245,12 @@ npm run delivery:summary
 **V51 Delivery Evidence:**
 - `npm run delivery:summary` - 从 `coverage/coverage-final.json` 与可选 `AI_TEAM_TEST_LOG` / `AI_TEAM_README_LOG` / `AI_TEAM_BUILD_LOG` 输出测试、增量覆盖率、README 命令和构建状态的交付摘要
 
+**V101-V103 Release Operations:**
+- `/api/team-orchestration/release-operations/history` - 生成 Release Ops 历史快照
+- `/api/team-orchestration/ci-artifact-provenance` - 校验 CI artifact 签名来源/commit/workflow 元数据
+- `/api/team-orchestration/audit-replay-diff` - 渲染提案 replay 前后状态路径 diff
+- `ai-team delivery release-operations-history` / `ci-artifact-provenance` / `proposal-replay-diff` - 终端侧同等只读模型输出
+
 **实用工具:**
 - `/api/search?q=&type=&limit=` - 全文搜索
 - `/api/export?format=json|csv|md` - 数据导出
@@ -307,9 +313,9 @@ export AI_TEAM_LLM_MODEL=gpt-4o-mini  # 可选
 
 ## 🧪 测试
 
-- **859 个测试** (852 passed, 7 skipped)
+- **1201 个测试** (1194 passed, 7 skipped)
 - **vitest** + **@vitest/coverage-v8** + **supertest** + **happy-dom**
-- 覆盖率重点: core (100%), ai (98%), agent (80-95%), server (87%), tui API (90%), web lib (53%), CLI (50-90%)
+- 覆盖率重点: core (100%), ai (98%), agent (80-95%), server (87%+), tui API (90%), web lib (53%+), CLI (50-90%)
 
 ```bash
 npm test              # 运行全部

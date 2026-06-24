@@ -8,10 +8,13 @@ import {
   buildOrgMemoryContext,
   buildReadmeCommandChecklist,
   buildReleaseHardeningReport,
+  buildReleaseOperationsHistorySnapshot,
   buildCockpitServerRecord,
+  buildCiArtifactProvenance,
   buildCiArtifactUploadBridge,
   buildDeliveryEvidenceSummary,
   buildProposalAuditReplaySmokeGate,
+  buildProposalReplayVisualDiff,
   buildReleaseOperationsServerRecord,
   buildScenarioBatch,
   buildScenarioSimulation,
@@ -69,6 +72,16 @@ function parseAuditEvents(value: unknown): ProposalExecutionAuditEvent[] | null 
     events.push({ at: event.at, status: event.status, command: event.command, ok: event.ok, note: typeof event.note === 'string' ? event.note : undefined });
   }
   return events;
+}
+
+function parseStatusArray(value: unknown): ProposalExecutionAuditEvent['status'][] | null {
+  if (!Array.isArray(value)) return null;
+  const statuses: ProposalExecutionAuditEvent['status'][] = [];
+  for (const item of value) {
+    if (!isProposalStatus(item)) return null;
+    statuses.push(item);
+  }
+  return statuses;
 }
 
 function parseWorkflow(body: Record<string, unknown>): CandidateWorkflowInput | null {
@@ -341,6 +354,37 @@ export function createTeamOrchestrationRouter(options: { memoryStore?: Orchestra
     const expectedFinalStatus = body.expectedFinalStatus;
     if (!isProposalStatus(expectedFinalStatus)) return res.status(400).json({ error: 'validation_error' });
     return res.json({ gate: buildProposalAuditReplaySmokeGate({ proposalId: body.proposalId, actor: body.actor, events, expectedFinalStatus }) });
+  });
+
+  router.post('/release-operations/history', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    if (!Array.isArray(body.entries)) return res.status(400).json({ error: 'validation_error' });
+    const entries = [];
+    for (const raw of body.entries) {
+      const entry = raw as Record<string, unknown>;
+      if (!isString(entry.version) || !isString(entry.proposalId) || !isString(entry.updatedAt) || typeof entry.ready !== 'boolean' || !isString(entry.summary) || !isString(entry.evidencePath)) {
+        return res.status(400).json({ error: 'validation_error' });
+      }
+      entries.push({ version: entry.version, proposalId: entry.proposalId, updatedAt: entry.updatedAt, ready: entry.ready, summary: entry.summary, evidencePath: entry.evidencePath });
+    }
+    return res.json({ history: buildReleaseOperationsHistorySnapshot(entries) });
+  });
+
+  router.post('/ci-artifact-provenance', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    if (!isString(body.version) || !isString(body.artifactName) || !isString(body.artifactSha256) || !isString(body.commit) || !isString(body.workflowRunId) || !isString(body.signer) || !isString(body.generatedAt)) {
+      return res.status(400).json({ error: 'validation_error' });
+    }
+    return res.json({ provenance: buildCiArtifactProvenance({ version: body.version, artifactName: body.artifactName, artifactSha256: body.artifactSha256, commit: body.commit, workflowRunId: body.workflowRunId, signer: body.signer, generatedAt: body.generatedAt }) });
+  });
+
+  router.post('/audit-replay-diff', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    if (!isString(body.proposalId)) return res.status(400).json({ error: 'validation_error' });
+    const before = parseStatusArray(body.before);
+    const after = parseStatusArray(body.after);
+    if (!before || !after) return res.status(400).json({ error: 'validation_error' });
+    return res.json({ diff: buildProposalReplayVisualDiff({ proposalId: body.proposalId, before, after }) });
   });
 
   return router;

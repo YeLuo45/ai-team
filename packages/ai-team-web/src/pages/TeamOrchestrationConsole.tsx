@@ -16,6 +16,9 @@ import {
   buildCiArtifactEvidenceInput,
   buildProposalExecutionAuditLedger,
   buildReleaseOperationsPersistenceSnapshot,
+  buildReleaseOperationsHistorySnapshot,
+  buildCiArtifactProvenance,
+  buildProposalReplayVisualDiff,
   filterProposalExecutionAuditTimeline,
   classifyChangedFiles,
   executeProposalDryRun,
@@ -55,6 +58,9 @@ type AuditTimeline = ReturnType<typeof filterProposalExecutionAuditTimeline>;
 type ReleaseOperationsApiRecord = { id: string; userId: string; updatedAt: string; ready: boolean; snapshot: OperationsSnapshot };
 type UploadBridge = { ready: boolean; uploadTarget: string; commands: string[]; issues: string[]; evidencePath: string };
 type ReplaySmokeGate = { ready: boolean; replayedStatuses: string[]; issues: string[]; markdown: string };
+type OperationsHistory = ReturnType<typeof buildReleaseOperationsHistorySnapshot>;
+type ArtifactProvenance = ReturnType<typeof buildCiArtifactProvenance>;
+type ReplayVisualDiff = ReturnType<typeof buildProposalReplayVisualDiff>;
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -88,6 +94,9 @@ export default function TeamOrchestrationConsole() {
   const [releaseOperationsRecord, setReleaseOperationsRecord] = useState<ReleaseOperationsApiRecord | null>(null);
   const [uploadBridge, setUploadBridge] = useState<UploadBridge | null>(null);
   const [replaySmokeGate, setReplaySmokeGate] = useState<ReplaySmokeGate | null>(null);
+  const [operationsHistory, setOperationsHistory] = useState<OperationsHistory | null>(null);
+  const [artifactProvenance, setArtifactProvenance] = useState<ArtifactProvenance | null>(null);
+  const [replayVisualDiff, setReplayVisualDiff] = useState<ReplayVisualDiff | null>(null);
   const [candidateName, setCandidateName] = useState('Ada Chen');
   const [memoryFeedback, setMemoryFeedback] = useState('ownership matters');
   const [status, setStatus] = useState('');
@@ -422,6 +431,53 @@ export default function TeamOrchestrationConsole() {
     }
   }
 
+  async function loadOperationsHistory() {
+    try {
+      setError('');
+      const result = await postJson<{ history: OperationsHistory }>('/api/team-orchestration/release-operations/history', {
+        entries: [
+          { version: 'V100', proposalId: 'P-20260624-024', updatedAt: '2026-06-24T11:00:00Z', ready: true, summary: 'V100 release ops ready', evidencePath: 'docs/delivery/ai-team-v100-release-evidence.json' },
+          { version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-25T00:00:00Z', ready: true, summary: 'V101 history ready', evidencePath: 'docs/delivery/ai-team-v101-release-evidence.json' },
+        ],
+      });
+      setOperationsHistory(result.history);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function loadArtifactProvenance() {
+    try {
+      setError('');
+      const result = await postJson<{ provenance: ArtifactProvenance }>('/api/team-orchestration/ci-artifact-provenance', {
+        version: 'V102',
+        artifactName: 'release-check.json',
+        artifactSha256: 'a'.repeat(64),
+        commit: '7d7cf06',
+        workflowRunId: '123456789',
+        signer: 'github-actions',
+        generatedAt: '2026-06-25T00:00:00Z',
+      });
+      setArtifactProvenance(result.provenance);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function loadReplayVisualDiff() {
+    try {
+      setError('');
+      const result = await postJson<{ diff: ReplayVisualDiff }>('/api/team-orchestration/audit-replay-diff', {
+        proposalId: 'P-20260625-001',
+        before: ['in_test_acceptance', 'accepted'],
+        after: ['in_test_acceptance', 'accepted', 'deployed', 'delivered'],
+      });
+      setReplayVisualDiff(result.diff);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -467,6 +523,9 @@ export default function TeamOrchestrationConsole() {
         <button data-testid="team-orchestration-sync-release-ops" className="btn btn-ghost" onClick={syncReleaseOperations}>Sync release ops API</button>
         <button data-testid="team-orchestration-upload-bridge" className="btn btn-ghost" onClick={buildUploadBridge}>Upload bridge</button>
         <button data-testid="team-orchestration-replay-smoke" className="btn btn-ghost" onClick={runAuditReplaySmoke}>Replay smoke</button>
+        <button data-testid="team-orchestration-ops-history" className="btn btn-ghost" onClick={loadOperationsHistory}>Ops history</button>
+        <button data-testid="team-orchestration-provenance" className="btn btn-ghost" onClick={loadArtifactProvenance}>Artifact provenance</button>
+        <button data-testid="team-orchestration-replay-diff" className="btn btn-ghost" onClick={loadReplayVisualDiff}>Replay diff</button>
       </div>
 
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-2">
@@ -618,6 +677,27 @@ export default function TeamOrchestrationConsole() {
         <article className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/40">
           <h3 className="font-semibold text-green-900 dark:text-green-100">Replay smoke: {replaySmokeGate.ready ? 'ready' : 'blocked'}</h3>
           <p className="mt-1 text-sm text-green-800 dark:text-green-200">{replaySmokeGate.replayedStatuses.join(' → ')}</p>
+        </article>
+      )}
+
+      {operationsHistory && (
+        <article className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Ops history: {operationsHistory.latestVersion}</h3>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">Ready {operationsHistory.readyCount} · Blocked {operationsHistory.blockedCount}</p>
+        </article>
+      )}
+
+      {artifactProvenance && (
+        <article className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900 dark:bg-yellow-950/40">
+          <h3 className="font-semibold text-yellow-900 dark:text-yellow-100">Artifact provenance: {artifactProvenance.ready ? 'signed' : 'blocked'}</h3>
+          <p className="mt-1 text-sm text-yellow-800 dark:text-yellow-200">{artifactProvenance.subject}</p>
+        </article>
+      )}
+
+      {replayVisualDiff && (
+        <article className="rounded-xl border border-pink-200 bg-pink-50 p-4 dark:border-pink-900 dark:bg-pink-950/40">
+          <h3 className="font-semibold text-pink-900 dark:text-pink-100">Replay diff: {replayVisualDiff.changed ? 'changed' : 'unchanged'}</h3>
+          <p className="mt-1 text-sm text-pink-800 dark:text-pink-200">Added: {replayVisualDiff.added.join(', ') || 'none'} · Removed: {replayVisualDiff.removed.join(', ') || 'none'}</p>
         </article>
       )}
     </section>

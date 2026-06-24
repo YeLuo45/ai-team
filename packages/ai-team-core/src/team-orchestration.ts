@@ -74,6 +74,13 @@ export type {
   CiArtifactUploadBridge,
   ProposalAuditReplaySmokeGateInput,
   ProposalAuditReplaySmokeGate,
+  ReleaseOperationsHistoryEntry,
+  ReleaseOperationsHistorySnapshot,
+  CiArtifactProvenanceInput,
+  CiArtifactProvenance,
+  ProposalReplayVisualDiffInput,
+  ProposalReplayVisualDiffStep,
+  ProposalReplayVisualDiff,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -115,5 +122,8 @@ export {
   buildReleaseOperationsServerRecord,
   buildCiArtifactUploadBridge,
   buildProposalAuditReplaySmokeGate,
+  buildReleaseOperationsHistorySnapshot,
+  buildCiArtifactProvenance,
+  buildProposalReplayVisualDiff,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';

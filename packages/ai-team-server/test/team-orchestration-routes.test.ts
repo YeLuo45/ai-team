@@ -697,6 +697,26 @@ describe('V36-V41 team orchestration routes', () => {
         { at: '2026-06-24T11:01:00Z', status: 'delivered', command: 'deliver', ok: true },
       ],
     });
+    const history = await request(app).post('/api/team-orchestration/release-operations/history').send({
+      entries: [
+        { version: 'V100', proposalId: 'P-20260624-024', updatedAt: '2026-06-24T11:00:00Z', ready: true, summary: 'V100 ready', evidencePath: 'docs/delivery/ai-team-v100-release-evidence.json' },
+        { version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-25T00:00:00Z', ready: false, summary: 'V101 blocked', evidencePath: 'docs/delivery/ai-team-v101-release-evidence.json' },
+      ],
+    });
+    const provenance = await request(app).post('/api/team-orchestration/ci-artifact-provenance').send({
+      version: 'V102',
+      artifactName: 'release-check.json',
+      artifactSha256: 'a'.repeat(64),
+      commit: '7d7cf06',
+      workflowRunId: '123456789',
+      signer: 'github-actions',
+      generatedAt: '2026-06-25T00:00:00Z',
+    });
+    const replayDiff = await request(app).post('/api/team-orchestration/audit-replay-diff').send({
+      proposalId: 'P-20260625-001',
+      before: ['accepted'],
+      after: ['accepted', 'deployed', 'delivered'],
+    });
 
     expect(saved.status).toBe(201);
     expect(saved.body.record.ready).toBe(true);
@@ -707,15 +727,54 @@ describe('V36-V41 team orchestration routes', () => {
     expect(replay.status).toBe(200);
     expect(replay.body.gate.ready).toBe(true);
     expect(replay.body.gate.replayedStatuses).toEqual(['accepted', 'delivered']);
+    expect(history.status).toBe(200);
+    expect(history.body.history.latestVersion).toBe('V101');
+    expect(history.body.history.blockedCount).toBe(1);
+    expect(provenance.status).toBe(200);
+    expect(provenance.body.provenance.ready).toBe(true);
+    expect(provenance.body.provenance.subject).toContain('release-check.json@');
+    expect(replayDiff.status).toBe(200);
+    expect(replayDiff.body.diff.added).toEqual(['deployed', 'delivered']);
+
+    const missingReleaseOps = await request(app).get('/api/team-orchestration/release-operations/missing-user');
+    expect(missingReleaseOps.status).toBe(404);
+
+    const defaultNow = await request(app).post('/api/team-orchestration/release-operations').send({ userId: 'operator-3', snapshot: releaseSnapshot });
+    expect(defaultNow.status).toBe(201);
+    expect(defaultNow.body.record.updatedAt).toMatch(/T/);
+
+    const localBridge = await request(app).post('/api/team-orchestration/ci-artifact-upload-bridge').send({
+      artifactPath: 'artifacts/release-check.json',
+      artifactText: JSON.stringify({ tests: { passed: 1, total: 1, skipped: 0 }, coverage: { strictPassed: 1, strictTotal: 1, averageBranchPct: 100, thresholdPct: 95 }, readme: { passed: 1, total: 1 }, build: { passed: true } }),
+      version: 'V101',
+      outputPath: 'docs/delivery/ai-team-v101-release-evidence.json',
+      uploadTarget: 'local-evidence',
+      dryRun: false,
+    });
+    expect(localBridge.body.bridge.commands.at(-1)).toContain('cp docs/delivery/ai-team-v101-release-evidence.json');
   });
 
   it.each([
     ['/release-operations', { userId: '', snapshot: { storageKey: 'bad' } }],
+    ['/release-operations', { userId: 'operator', snapshot: { storageKey: 'ai-team:release-operations:v1', payload: 'bad', serialized: '{}' } }],
+    ['/release-operations', { userId: 'operator', snapshot: { storageKey: 'ai-team:release-operations:v1', payload: {}, serialized: 1 } }],
     ['/ci-artifact-upload-bridge', { artifactPath: '', artifactText: '{}', version: 'V100', outputPath: 'x', uploadTarget: 'local-evidence' }],
+    ['/ci-artifact-upload-bridge', { artifactPath: 'a', artifactText: 1, version: 'V100', outputPath: 'x', uploadTarget: 'local-evidence' }],
     ['/ci-artifact-upload-bridge', { artifactPath: 'a', artifactText: '{}', version: 'V100', outputPath: 'x', uploadTarget: 'bad' }],
+    ['/audit-replay-smoke', { proposalId: 1, actor: '小墨', expectedFinalStatus: 'delivered', events: [] }],
+    ['/audit-replay-smoke', { proposalId: 'P', actor: '', expectedFinalStatus: 'delivered', events: [] }],
     ['/audit-replay-smoke', { proposalId: 'P', actor: '小墨', expectedFinalStatus: 'delivered', events: [{ at: 'x', status: 'bad', command: 'c', ok: true }] }],
     ['/audit-replay-smoke', { proposalId: 'P', actor: '小墨', expectedFinalStatus: 'bad', events: [] }],
-  ])('rejects invalid V98-V100 payload for %s', async (path, body) => {
+    ['/release-operations/history', { entries: 'bad' }],
+    ['/release-operations/history', { entries: [{ version: 'V101' }] }],
+    ['/release-operations/history', { entries: [{ version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-25T00:00:00Z', ready: 'yes', summary: 'x', evidencePath: 'x' }] }],
+    ['/release-operations/history', { entries: [{ version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-25T00:00:00Z', ready: true, summary: 1, evidencePath: 'x' }] }],
+    ['/ci-artifact-provenance', { version: 'V102', artifactName: 'release-check.json' }],
+    ['/ci-artifact-provenance', { version: 'V102', artifactName: 'release-check.json', artifactSha256: 'a'.repeat(64), commit: '7d7cf06', workflowRunId: '123', signer: 'github-actions', generatedAt: 1 }],
+    ['/audit-replay-diff', { proposalId: 123, before: ['accepted'], after: ['delivered'] }],
+    ['/audit-replay-diff', { proposalId: 'P', before: 'accepted', after: ['delivered'] }],
+    ['/audit-replay-diff', { proposalId: 'P', before: ['accepted'], after: ['bad'] }],
+  ])('rejects invalid V98-V103 payload for %s', async (path, body) => {
     const app = makeApp();
     const response = await request(app).post(`/api/team-orchestration${path}`).send(body);
     expect(response.status).toBe(400);

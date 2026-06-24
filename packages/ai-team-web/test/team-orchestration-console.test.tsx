@@ -53,6 +53,15 @@ describe('V42 TeamOrchestrationConsole page', () => {
       if (method === 'POST' && url.endsWith('/api/team-orchestration/audit-replay-smoke')) {
         return jsonResponse({ gate: { ready: true, replayedStatuses: ['accepted', 'deployed', 'delivered'], issues: [], markdown: '# Proposal Audit Replay Smoke Gate' } });
       }
+      if (method === 'POST' && url.endsWith('/api/team-orchestration/release-operations/history')) {
+        return jsonResponse({ history: { storageKey: 'ai-team:release-operations-history:v1', latestVersion: 'V101', readyCount: 2, blockedCount: 0, entries: body?.entries ?? [], serialized: '{}' } });
+      }
+      if (method === 'POST' && url.endsWith('/api/team-orchestration/ci-artifact-provenance')) {
+        return jsonResponse({ provenance: { ready: true, subject: 'release-check.json@aaaaaaaaaaaa', attestation: body, issues: [], markdown: '# CI Artifact Provenance' } });
+      }
+      if (method === 'POST' && url.endsWith('/api/team-orchestration/audit-replay-diff')) {
+        return jsonResponse({ diff: { proposalId: body?.proposalId, changed: true, added: ['deployed', 'delivered'], removed: [], steps: [], markdown: '# Proposal Replay Visual Diff' } });
+      }
       return jsonResponse({}, false, 404);
     }) as any;
   });
@@ -177,7 +186,7 @@ describe('V42 TeamOrchestrationConsole page', () => {
     expect(window.localStorage.getItem('ai-team:release-operations:v1')).toContain('operator-1');
   });
 
-  it('syncs release operations API, upload bridge, and replay smoke actions', async () => {
+  it('syncs release operations API, upload bridge, replay smoke, and V101-V103 actions', async () => {
     render(<TeamOrchestrationConsole />);
 
     await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-sync-release-ops')); });
@@ -186,9 +195,18 @@ describe('V42 TeamOrchestrationConsole page', () => {
     await waitFor(() => screen.getByText(/Upload bridge: release-asset/));
     await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-replay-smoke')); });
     await waitFor(() => screen.getByText(/Replay smoke: ready/));
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-ops-history')); });
+    await waitFor(() => screen.getByText(/Ops history: V101/));
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-provenance')); });
+    await waitFor(() => screen.getByText(/Artifact provenance: signed/));
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-replay-diff')); });
+    await waitFor(() => screen.getByText(/Replay diff: changed/));
 
     expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/release-operations'))).toBe(true);
     expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/ci-artifact-upload-bridge'))).toBe(true);
     expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/audit-replay-smoke'))).toBe(true);
+    expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/release-operations/history'))).toBe(true);
+    expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/ci-artifact-provenance'))).toBe(true);
+    expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/audit-replay-diff'))).toBe(true);
   });
 });

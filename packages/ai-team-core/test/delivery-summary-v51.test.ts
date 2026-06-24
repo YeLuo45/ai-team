@@ -46,6 +46,9 @@ import {
   buildReleaseOperationsServerRecord,
   buildCiArtifactUploadBridge,
   buildProposalAuditReplaySmokeGate,
+  buildReleaseOperationsHistorySnapshot,
+  buildCiArtifactProvenance,
+  buildProposalReplayVisualDiff,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -1290,5 +1293,96 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     const emptyGate = buildProposalAuditReplaySmokeGate({ proposalId: 'P-empty', actor: '小墨', expectedFinalStatus: 'delivered', events: [] });
     expect(emptyGate.issues).toContain('no audit events to replay');
     expect(emptyGate.timeline.total).toBe(0);
+  });
+
+  it('builds V101 release operations history snapshots sorted by newest delivery', () => {
+    const history = buildReleaseOperationsHistorySnapshot([
+      { version: 'V100', proposalId: 'P-20260624-024', updatedAt: '2026-06-24T10:00:00Z', ready: true, summary: 'V100 ready', evidencePath: 'docs/delivery/ai-team-v100-release-evidence.json' },
+      { version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-25T00:00:00Z', ready: false, summary: 'V101 blocked', evidencePath: 'docs/delivery/ai-team-v101-release-evidence.json' },
+    ]);
+
+    expect(history.storageKey).toBe('ai-team:release-operations-history:v1');
+    expect(history.latestVersion).toBe('V101');
+    expect(history.readyCount).toBe(1);
+    expect(history.blockedCount).toBe(1);
+    expect(history.entries.map((entry) => entry.version)).toEqual(['V101', 'V100']);
+    expect(JSON.parse(history.serialized).latestVersion).toBe('V101');
+  });
+
+  it('covers V101 empty release operations history branch', () => {
+    const history = buildReleaseOperationsHistorySnapshot([]);
+    expect(history.latestVersion).toBe('none');
+    expect(history.readyCount).toBe(0);
+    expect(history.entries).toEqual([]);
+  });
+
+  it('builds V102 signed CI artifact provenance when all fields are valid', () => {
+    const provenance = buildCiArtifactProvenance({
+      version: 'V102',
+      artifactName: 'release-check.json',
+      artifactSha256: 'a'.repeat(64),
+      commit: '7d7cf06',
+      workflowRunId: '123456789',
+      signer: 'github-actions',
+      generatedAt: '2026-06-25T00:00:00Z',
+    });
+
+    expect(provenance.ready).toBe(true);
+    expect(provenance.subject).toBe('release-check.json@aaaaaaaaaaaa');
+    expect(provenance.issues).toEqual([]);
+    expect(provenance.markdown).toContain('Issues: none');
+  });
+
+  it('covers V102 blocked provenance validation branches', () => {
+    const provenance = buildCiArtifactProvenance({
+      version: '',
+      artifactName: '',
+      artifactSha256: 'bad',
+      commit: 'not-a-sha',
+      workflowRunId: '',
+      signer: '',
+      generatedAt: '',
+    });
+
+    expect(provenance.ready).toBe(false);
+    expect(provenance.subject).toBe('@bad');
+    expect(provenance.issues).toEqual([
+      'version is required',
+      'artifactName is required',
+      'artifactSha256 must be a 64-character hex digest',
+      'commit must be a 7-40 character hex SHA',
+      'workflowRunId is required',
+      'signer is required',
+      'generatedAt is required',
+    ]);
+  });
+
+  it('builds V103 proposal replay visual diffs for added and removed statuses', () => {
+    const diff = buildProposalReplayVisualDiff({
+      proposalId: 'P-20260625-001',
+      before: ['in_test_acceptance', 'accepted'],
+      after: ['in_test_acceptance', 'accepted', 'deployed', 'delivered'],
+    });
+
+    expect(diff.changed).toBe(true);
+    expect(diff.added).toEqual(['deployed', 'delivered']);
+    expect(diff.removed).toEqual([]);
+    expect(diff.steps.at(-1)?.state).toBe('added');
+    expect(diff.markdown).toContain('| delivered | no | yes | added |');
+
+    const removed = buildProposalReplayVisualDiff({ proposalId: 'P-20260625-001', before: ['accepted', 'deployed'], after: ['accepted'] });
+    expect(removed.removed).toEqual(['deployed']);
+    expect(removed.markdown).toContain('| deployed | yes | no | removed |');
+  });
+
+  it('covers V103 unchanged and empty replay visual diff branches', () => {
+    const unchanged = buildProposalReplayVisualDiff({ proposalId: 'P-20260625-001', before: ['accepted'], after: ['accepted'] });
+    expect(unchanged.changed).toBe(false);
+    expect(unchanged.steps).toEqual([{ status: 'accepted', before: true, after: true, state: 'unchanged' }]);
+
+    const empty = buildProposalReplayVisualDiff({ proposalId: 'P-empty', before: [], after: [] });
+    expect(empty.changed).toBe(false);
+    expect(empty.steps).toEqual([]);
+    expect(empty.markdown).toContain('Changed: no');
   });
 });
