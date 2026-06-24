@@ -99,7 +99,7 @@ describe('V42 TeamOrchestrationConsole page', () => {
     expect(memoryCall?.body?.feedback).toEqual(['retention matters', 'async updates']);
 
     await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-save-report')); });
-    await waitFor(() => screen.getByText(/Report saved locally/));
+    await waitFor(() => screen.getByText(/Report and cockpit saved locally/));
   });
 
   it('applies orchestration presets and downloads release evidence for the web console', async () => {
@@ -118,5 +118,39 @@ describe('V42 TeamOrchestrationConsole page', () => {
     await waitFor(() => screen.getByText(/Release evidence downloaded/));
     expect(createObjectURL).toHaveBeenCalled();
     Object.defineProperty(globalThis, 'URL', { value: originalUrl, configurable: true });
+  });
+
+  it('shows release readiness, imports evidence JSON, and classifies commit-ready diff lines', async () => {
+    render(<TeamOrchestrationConsole />);
+
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-release-dashboard')); });
+    expect(screen.getByText(/Release readiness/)).toBeTruthy();
+    expect(screen.getByText(/Build: ready/)).toBeTruthy();
+
+    fireEvent.change(screen.getByTestId('release-evidence-json'), {
+      target: { value: '{"version":"V72","summary":{"ready":true,"headline":"V72 ready","testPassRatePct":100,"coverageStatus":"pass","readmeStatus":"pass","buildStatus":"pass","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}' },
+    });
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-import-evidence')); });
+    expect(screen.getByText(/Imported V72 schema v1 migrated/)).toBeTruthy();
+
+    fireEvent.change(screen.getByTestId('diff-lines-input'), {
+      target: { value: 'M packages/ai-team-core/src/delivery-summary.ts\n?? packages/ai-team-core/test/delivery-summary-v72.test.ts\nM docs/delivery/index.md' },
+    });
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-classify-diff')); });
+    expect(screen.getByText(/source 1 · tests 1 · docs 1/)).toBeTruthy();
+    expect(screen.getByText(/Safe add:/)).toBeTruthy();
+
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-delivery-checklist')); });
+    expect(screen.getByText(/Delivery checklist: ready/)).toBeTruthy();
+    expect(screen.getByText(/delivered: done/)).toBeTruthy();
+  });
+
+  it('restores a persisted delivery cockpit snapshot from the main console', async () => {
+    render(<TeamOrchestrationConsole />);
+
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-restore-cockpit')); });
+
+    expect(screen.getByText(/Restore V96 cockpit/)).toBeTruthy();
+    expect(screen.getByText(/coverage · ready · V96/)).toBeTruthy();
   });
 });

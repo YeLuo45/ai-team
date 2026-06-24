@@ -78,6 +78,8 @@ Press `Ctrl+C` to clean shutdown.
 - 🗂️ **Delivery Report Index** (V61/V63) — `npm run delivery:index` builds `docs/delivery/index.md` and browser-safe release evidence JSON
 - 🎛️ **Orchestration Presets + Evidence Download** (V62/V65) — `/orchestration` adds security preset and one-click release evidence JSON download
 - 🔁 **Proposal Sync Planner** (V64) — pure safe-forward MCP status plan helper avoids backward/skip transitions
+- 🧰 **Delivery Cockpit Hardening** (V66-V72) — evidence filters/import viewer, guarded proposal delivery wizard, release readiness dashboard, MCP status-reset guard, and commit-ready diff classifier
+- 🚚 **Delivery Closed Loop** (V73-V96) — browser-safe evidence helpers, guarded MCP executor plan, cockpit server/Web restore persistence, evidence schema batch audit, quality gate checks, and next-direction generation
 
 ## Packages (7)
 

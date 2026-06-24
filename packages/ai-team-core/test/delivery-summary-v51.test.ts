@@ -7,7 +7,33 @@ import {
   buildDeliveryReportIndex,
   buildReleaseEvidenceDownload,
   buildProposalSyncPlan,
+  filterDeliveryReportEntries,
+  parseReleaseEvidenceJson,
+  buildProposalDeliveryWizard,
+  buildReleaseReadinessDashboard,
+  buildGateFailureHints,
+  classifyChangedFiles,
+  buildBrowserEvidenceDownloadIntent,
+  executeProposalDryRun,
+  buildCockpitPersistenceSnapshot,
+  buildDiffOwnershipAudit,
+  parseVersionedReleaseEvidenceJson,
+  buildProposalDeliveryChecklist,
+  planProposalExecuteWithConfirm,
+  buildCockpitServerRecord,
+  migrateReleaseEvidencePayload,
 } from '../src/team-orchestration.js';
+import {
+  buildProposalExecutionPlan,
+  buildCockpitWebRestoreModel,
+  auditReleaseEvidenceBatch,
+  buildReleaseEvidenceQualityGate,
+  generateNextDeliveryDirections,
+  buildUnattendedDeliveryBatchPlan,
+  buildUnattendedBatchRunner,
+  planProposalStatusRecovery,
+  buildEvidenceTrendDashboard,
+} from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
   it('marks delivery as ready when all gates pass', () => {
@@ -340,5 +366,562 @@ describe('V61-V65 delivery automation helpers', () => {
       evidenceNote: 'already delivered',
     });
     expect(noOp.statusPath).toEqual([]);
+  });
+});
+
+describe('V66-V72 delivery cockpit helpers', () => {
+  const ready = buildDeliveryEvidenceSummary({
+    version: 'V70',
+    tests: { passed: 1200, total: 1207, skipped: 7 },
+    coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.8, thresholdPct: 95 },
+    readme: { passed: 14, total: 14 },
+    build: { passed: true },
+    blockers: [],
+  });
+  const blocked = buildDeliveryEvidenceSummary({
+    version: 'V68',
+    tests: { passed: 10, total: 12, skipped: 0 },
+    coverage: { strictPassed: 14, strictTotal: 16, averageBranchPct: 91.1, thresholdPct: 95 },
+    readme: { passed: 12, total: 14 },
+    build: { passed: false, reason: 'vite failed' },
+    blockers: ['MCP unavailable'],
+  });
+  const entries = [
+    { version: 'V70', path: 'docs/delivery/v70-delivery-report.md', summary: ready, updatedAt: '2026-06-23T10:00:00Z' },
+    { version: 'V68', path: 'docs/delivery/v68-delivery-report.md', summary: blocked, updatedAt: '2026-06-23T09:00:00Z' },
+  ];
+
+  it('filters delivery history by version, status, date, and gate kind', () => {
+    const filtered = filterDeliveryReportEntries(entries, {
+      versionText: '70',
+      status: 'ready',
+      from: '2026-06-23T00:00:00Z',
+      gate: 'coverage',
+    });
+
+    expect(filtered.map((entry) => entry.version)).toEqual(['V70']);
+    expect(filterDeliveryReportEntries(entries, { status: 'blocked', gate: 'readme' })).toHaveLength(1);
+  });
+
+  it('imports release evidence JSON and flags schema issues without throwing', () => {
+    const imported = parseReleaseEvidenceJson('{"version":"V68","summary":{"ready":false,"headline":"V68 blocked","blockers":["coverage"]},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'evidence.json');
+    expect(imported.evidence?.version).toBe('V68');
+    expect(imported.issues).toEqual([]);
+
+    const bad = parseReleaseEvidenceJson('{"version":42}', 'bad.json');
+    expect(bad.evidence).toBeUndefined();
+    expect(bad.issues[0]).toContain('bad.json');
+  });
+
+  it('builds guarded proposal delivery wizard steps with field update before final status walk', () => {
+    const wizard = buildProposalDeliveryWizard({
+      proposalId: 'P-20260623-021',
+      projectPath: '/home/hermes/projects/ai-team',
+      deploymentUrl: 'https://yeluo45.github.io/ai-team/',
+      reportPath: 'docs/delivery/v72-delivery-report.md',
+      evidenceNote: 'strict 16/16 pass',
+      currentStatus: 'in_dev',
+      targetStatus: 'delivered',
+    });
+
+    expect(wizard.warning).toContain('update-proposal-fields can reset status');
+    expect(wizard.commands[0]).toContain('update-proposal-fields');
+    expect(wizard.commands.at(-1)).toContain('--status delivered');
+  });
+
+  it('builds release dashboard cards and failure hints from evidence', () => {
+    const dashboard = buildReleaseReadinessDashboard(entries);
+    expect(dashboard.readyCount).toBe(1);
+    expect(dashboard.cards.map((card) => card.label)).toEqual(['Build', 'Tests', 'Coverage', 'README', 'Release']);
+    expect(dashboard.cards.find((card) => card.label === 'Release')?.status).toBe('ready');
+    expect(buildGateFailureHints(blocked)).toContain('Run npm run test:coverage:incremental and inspect strict layer failures.');
+  });
+
+  it('classifies commit-ready diffs into source, tests, docs, generated, and scripts', () => {
+    const classified = classifyChangedFiles([
+      'M packages/ai-team-core/src/delivery-summary.ts',
+      '?? packages/ai-team-core/test/delivery-summary-v72.test.ts',
+      'M docs/delivery/index.md',
+      'M packages/ai-team-web/public/data/team.json',
+      'M scripts/release-check.mjs',
+    ]);
+
+    expect(classified.source).toEqual(['packages/ai-team-core/src/delivery-summary.ts']);
+    expect(classified.tests).toEqual(['packages/ai-team-core/test/delivery-summary-v72.test.ts']);
+    expect(classified.docs).toEqual(['docs/delivery/index.md']);
+    expect(classified.generated).toEqual(['packages/ai-team-web/public/data/team.json']);
+    expect(classified.scripts).toEqual(['scripts/release-check.mjs']);
+  });
+
+  it('covers remaining delivery cockpit edge branches for filters, imports, dashboard, and diff classification', () => {
+    expect(filterDeliveryReportEntries(entries, { gate: 'build' })).toHaveLength(1);
+    expect(filterDeliveryReportEntries(entries, { gate: 'tests' })).toHaveLength(1);
+    expect(filterDeliveryReportEntries(entries, { gate: 'release' })).toHaveLength(1);
+    expect(filterDeliveryReportEntries(entries, { versionText: 'missing' })).toEqual([]);
+    expect(filterDeliveryReportEntries(entries, { from: '2026-06-23T09:30:00Z', to: '2026-06-23T10:30:00Z' }).map((entry) => entry.version)).toEqual(['V70']);
+    expect(filterDeliveryReportEntries(entries, { status: 'ready', gate: 'readme' })).toHaveLength(1);
+
+    expect(parseReleaseEvidenceJson('not-json', 'broken.json').issues[0]).toContain('invalid JSON');
+    expect(parseReleaseEvidenceJson('{"version":"V1","summary":{},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'summary.json').issues[0]).toContain('summary');
+    expect(parseReleaseEvidenceJson('{"version":"V1","summary":{"ready":true,"headline":"ok","blockers":[]},"reportMarkdown":1,"indexMarkdown":"# I"}', 'report.json').issues[0]).toContain('reportMarkdown');
+    expect(parseReleaseEvidenceJson('{"version":"V1","summary":{"ready":true,"headline":"ok","blockers":[]},"reportMarkdown":"# R","indexMarkdown":1}', 'index.json').issues[0]).toContain('indexMarkdown');
+
+    const emptyDashboard = buildReleaseReadinessDashboard([]);
+    expect(emptyDashboard.cards.every((card) => card.status === 'blocked')).toBe(true);
+    expect(buildGateFailureHints(ready)).toEqual([]);
+
+    const allKinds = classifyChangedFiles(['', 'A package.json', 'M docs/delivery/ai-team-v72-release-evidence.json', 'M README.md']);
+    expect(allKinds.generated).toEqual(['docs/delivery/ai-team-v72-release-evidence.json']);
+    expect(allKinds.docs).toEqual(['README.md']);
+    expect(allKinds.other).toEqual(['package.json']);
+  });
+});
+
+describe('V73-V78 delivery safety helpers', () => {
+  const summary = buildDeliveryEvidenceSummary({
+    version: 'V78',
+    tests: { passed: 1125, total: 1132, skipped: 7 },
+    coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.31, thresholdPct: 95 },
+    readme: { passed: 13, total: 13 },
+    build: { passed: true },
+    blockers: [],
+  });
+
+  it('builds a browser-safe download intent without touching Blob, URL, or localStorage', () => {
+    const download = buildReleaseEvidenceDownload({
+      version: 'V78',
+      reportMarkdown: '# V78',
+      indexMarkdown: '# Index',
+      summary,
+    });
+
+    const intent = buildBrowserEvidenceDownloadIntent(download, { objectUrl: 'blob:v78' });
+
+    expect(intent.filename).toBe('ai-team-v78-release-evidence.json');
+    expect(intent.mimeType).toBe('application/json');
+    expect(intent.objectUrl).toBe('blob:v78');
+    expect(intent.revokeAfterClick).toBe(true);
+    expect(intent.serialized).toContain('"schemaVersion"');
+  });
+
+  it('executes proposal MCP dry-runs as command plans without side effects', () => {
+    const wizard = buildProposalDeliveryWizard({
+      proposalId: 'P-20260624-003',
+      projectPath: '/home/hermes/projects/ai-team',
+      deploymentUrl: 'https://yeluo45.github.io/ai-team/',
+      reportPath: 'docs/delivery/v78-delivery-report.md',
+      evidenceNote: 'strict 15/15 pass',
+      currentStatus: 'in_dev',
+      targetStatus: 'delivered',
+    });
+
+    const dryRun = executeProposalDryRun(wizard);
+
+    expect(dryRun.mutates).toBe(false);
+    expect(dryRun.steps).toHaveLength(5);
+    expect(dryRun.riskWarnings).toContain('DRY RUN ONLY: commands are not executed.');
+    expect(dryRun.steps[0]?.kind).toBe('fields');
+    expect(dryRun.steps.at(-1)?.status).toBe('delivered');
+  });
+
+  it('builds a delivery cockpit persistence snapshot with bounded recent evidence', () => {
+    const snapshot = buildCockpitPersistenceSnapshot({
+      selectedVersion: 'V78',
+      filters: { status: 'ready', gate: 'coverage', versionText: '78' },
+      importedEvidence: ['V76', 'V77', 'V78', 'V79'],
+      diffText: 'M packages/ai-team-core/src/delivery-summary.ts',
+    });
+
+    expect(snapshot.storageKey).toBe('ai-team:delivery-cockpit:v1');
+    expect(snapshot.payload.selectedVersion).toBe('V78');
+    expect(snapshot.payload.importedEvidence).toEqual(['V77', 'V78', 'V79']);
+    expect(snapshot.serialized).toContain('"gate":"coverage"');
+  });
+
+  it('builds a dirty diff ownership audit with safe git add groups', () => {
+    const audit = buildDiffOwnershipAudit([
+      'M packages/ai-team-core/src/delivery-summary.ts',
+      'M packages/ai-team-core/test/delivery-summary-v51.test.ts',
+      'M docs/delivery/index.md',
+      '?? docs/delivery/ai-team-v78-release-evidence.json',
+      'M scripts/verify-readme-commands.mjs',
+      'M package.json',
+    ]);
+
+    expect(audit.total).toBe(6);
+    expect(audit.safeAddCommands).toContain('git add packages/ai-team-core/src/delivery-summary.ts packages/ai-team-core/test/delivery-summary-v51.test.ts');
+    expect(audit.safeAddCommands).toContain('git add docs/delivery/index.md docs/delivery/ai-team-v78-release-evidence.json');
+    expect(audit.warnings).toContain('Review 1 other file(s) before staging.');
+  });
+
+  it('parses versioned release evidence and migrates legacy payloads', () => {
+    const current = parseVersionedReleaseEvidenceJson('{"schemaVersion":2,"version":"V78","summary":{"ready":true,"headline":"V78 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'current.json');
+    expect(current.evidence?.schemaVersion).toBe(2);
+    expect(current.migrated).toBe(false);
+
+    const legacy = parseVersionedReleaseEvidenceJson('{"version":"V72","summary":{"ready":true,"headline":"V72 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'legacy.json');
+    expect(legacy.evidence?.schemaVersion).toBe(1);
+    expect(legacy.migrated).toBe(true);
+  });
+
+  it('builds a proposal delivery checklist from dry-run evidence', () => {
+    const checklist = buildProposalDeliveryChecklist({
+      proposalId: 'P-20260624-003',
+      reportPath: 'docs/delivery/v78-delivery-report.md',
+      gates: { tests: true, coverage: true, readme: true, build: true },
+      dryRun: executeProposalDryRun(buildProposalDeliveryWizard({
+        proposalId: 'P-20260624-003',
+        projectPath: '/home/hermes/projects/ai-team',
+        deploymentUrl: 'https://yeluo45.github.io/ai-team/',
+        reportPath: 'docs/delivery/v78-delivery-report.md',
+        evidenceNote: 'strict 15/15 pass',
+        currentStatus: 'in_test_acceptance',
+        targetStatus: 'delivered',
+      })),
+    });
+
+    expect(checklist.ready).toBe(true);
+    expect(checklist.items.map((item) => item.label)).toEqual(['tests', 'coverage', 'readme', 'build', 'accepted', 'deployed', 'delivered']);
+    expect(checklist.items.every((item) => item.done)).toBe(true);
+  });
+
+  it('covers blocked checklist, empty diff audit, current schema parse errors, and explicit schema v1', () => {
+    const emptyAudit = buildDiffOwnershipAudit(['', '   ']);
+    expect(emptyAudit.total).toBe(0);
+    expect(emptyAudit.safeAddCommands).toEqual([]);
+    expect(emptyAudit.warnings).toEqual([]);
+
+    const invalid = parseVersionedReleaseEvidenceJson('not-json', 'bad-versioned.json');
+    expect(invalid.issues[0]).toContain('bad-versioned.json');
+
+    const schemaIssue = parseVersionedReleaseEvidenceJson('{"schemaVersion":2,"version":"V78","summary":{},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'bad-summary.json');
+    expect(schemaIssue.evidence).toBeUndefined();
+    expect(schemaIssue.migrated).toBe(false);
+
+    const explicitLegacy = parseVersionedReleaseEvidenceJson('{"schemaVersion":1,"version":"V72","summary":{"ready":true,"headline":"V72 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}', 'explicit-v1.json');
+    expect(explicitLegacy.evidence?.schemaVersion).toBe(1);
+    expect(explicitLegacy.migrated).toBe(false);
+
+    const blocked = buildProposalDeliveryChecklist({
+      proposalId: 'P-20260624-003',
+      reportPath: 'docs/delivery/v78-delivery-report.md',
+      gates: { tests: true, coverage: false, readme: true, build: true },
+      dryRun: { mutates: false, steps: [{ kind: 'status', command: 'cmd', status: 'accepted' }], riskWarnings: [] },
+    });
+    expect(blocked.ready).toBe(false);
+    expect(blocked.items.filter((item) => !item.done).map((item) => item.label)).toEqual(['coverage', 'deployed', 'delivered']);
+  });
+});
+
+describe('V79-V81 delivery execution and migration helpers', () => {
+  it('plans proposal execution only when confirmation phrase matches exactly', () => {
+    const dryRun = executeProposalDryRun(buildProposalDeliveryWizard({
+      proposalId: 'P-20260624-007',
+      projectPath: '/home/hermes/projects/ai-team',
+      deploymentUrl: 'https://yeluo45.github.io/ai-team/',
+      reportPath: 'docs/delivery/v81-delivery-report.md',
+      evidenceNote: 'strict 15/15 pass',
+      currentStatus: 'in_dev',
+      targetStatus: 'delivered',
+    }));
+
+    const blocked = planProposalExecuteWithConfirm({ dryRun, confirmText: 'yes' });
+    expect(blocked.readyToExecute).toBe(false);
+    expect(blocked.commands).toEqual([]);
+    expect(blocked.requiredPhrase).toBe('EXECUTE P-20260624-007');
+
+    const ready = planProposalExecuteWithConfirm({ dryRun, confirmText: 'EXECUTE P-20260624-007' });
+    expect(ready.readyToExecute).toBe(true);
+    expect(ready.commands.length).toBe(dryRun.steps.length);
+    expect(ready.commands[0]).toContain('update-proposal-fields');
+  });
+
+  it('builds a server persistence record for delivery cockpit snapshots', () => {
+    const record = buildCockpitServerRecord({
+      userId: 'operator-1',
+      snapshot: buildCockpitPersistenceSnapshot({
+        selectedVersion: 'V81',
+        filters: { status: 'ready', gate: 'release' },
+        importedEvidence: ['V79', 'V80', 'V81'],
+        diffText: 'M packages/ai-team-core/src/delivery-summary.ts',
+      }),
+      now: '2026-06-24T10:00:00.000Z',
+    });
+
+    expect(record.id).toBe('cockpit_operator-1_2026-06-24T10:00:00.000Z');
+    expect(record.userId).toBe('operator-1');
+    expect(record.snapshot.payload.selectedVersion).toBe('V81');
+    expect(record.updatedAt).toBe('2026-06-24T10:00:00.000Z');
+  });
+
+  it('migrates release evidence payloads to schema v2 and preserves current payloads', () => {
+    const legacy = migrateReleaseEvidencePayload('{"version":"V72","summary":{"ready":true,"headline":"V72 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}');
+    expect(legacy.evidence?.schemaVersion).toBe(2);
+    expect(legacy.fromSchemaVersion).toBe(1);
+    expect(legacy.changed).toBe(true);
+    expect(legacy.serialized).toContain('"schemaVersion": 2');
+
+    const current = migrateReleaseEvidencePayload('{"schemaVersion":2,"version":"V81","summary":{"ready":true,"headline":"V81 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}');
+    expect(current.evidence?.schemaVersion).toBe(2);
+    expect(current.changed).toBe(false);
+  });
+});
+
+describe('V82-V96 delivery automation closed loop helpers', () => {
+  it('converts a confirmed proposal plan into executable command specs with mutation guard', () => {
+    const dryRun = executeProposalDryRun(buildProposalDeliveryWizard({
+      proposalId: 'P-20260624-010',
+      projectPath: '/home/hermes/projects/ai-team',
+      deploymentUrl: 'https://yeluo45.github.io/ai-team/',
+      reportPath: 'docs/delivery/v96-delivery-report.md',
+      evidenceNote: 'strict 16/16 pass',
+      currentStatus: 'in_dev',
+      targetStatus: 'delivered',
+    }));
+
+    const plan = buildProposalExecutionPlan({ dryRun, confirmText: 'EXECUTE P-20260624-010' });
+    expect(plan.ready).toBe(true);
+    expect(plan.commands[0]?.mutates).toBe(true);
+    expect(plan.commands[0]?.kind).toBe('fields');
+    expect(plan.commands.at(-1)?.status).toBe('delivered');
+
+    const blocked = buildProposalExecutionPlan({ dryRun, confirmText: 'EXECUTE P-20260624-999' });
+    expect(blocked.ready).toBe(false);
+    expect(blocked.commands).toHaveLength(0);
+  });
+
+  it('builds a web restoration model from persisted cockpit records', () => {
+    const snapshot = buildCockpitPersistenceSnapshot({
+      selectedVersion: 'V96',
+      filters: { status: 'ready', gate: 'coverage', versionText: '96' },
+      importedEvidence: ['V94', 'V95', 'V96'],
+      diffText: 'M packages/ai-team-core/src/delivery-summary.ts',
+    });
+    const restored = buildCockpitWebRestoreModel({
+      records: [
+        buildCockpitServerRecord({ userId: 'operator-1', snapshot, now: '2026-06-24T12:00:00.000Z' }),
+      ],
+      userId: 'operator-1',
+    });
+
+    expect(restored.canRestore).toBe(true);
+    expect(restored.selectedVersion).toBe('V96');
+    expect(restored.restoreButtonLabel).toBe('Restore V96 cockpit');
+    expect(restored.filters.gate).toBe('coverage');
+  });
+
+  it('audits and migrates a batch of release evidence payloads deterministically', () => {
+    const batch = auditReleaseEvidenceBatch([
+      { path: 'docs/delivery/legacy.json', text: '{"version":"V72","summary":{"ready":true,"headline":"V72 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}' },
+      { path: 'docs/delivery/current.json', text: '{"schemaVersion":2,"version":"V81","summary":{"ready":true,"headline":"V81 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}' },
+      { path: 'docs/delivery/bad.json', text: '{bad' },
+    ]);
+
+    expect(batch.total).toBe(3);
+    expect(batch.migrated).toBe(1);
+    expect(batch.current).toBe(1);
+    expect(batch.invalid).toBe(1);
+    expect(batch.items.map((item) => item.path)).toEqual(['docs/delivery/bad.json', 'docs/delivery/current.json', 'docs/delivery/legacy.json']);
+    expect(batch.items[2]?.writeBack).toContain('"schemaVersion": 2');
+  });
+
+  it('detects release evidence quality gate issues before delivery', () => {
+    const gate = buildReleaseEvidenceQualityGate({
+      expectedProposalId: 'P-20260624-010',
+      expectedReadme: '14/14',
+      expectedCoverage: '98.17',
+      requireUncommittedLabel: true,
+      evidence: {
+        version: 'V96',
+        schemaVersion: 2,
+        summary: buildDeliveryEvidenceSummary({
+          version: 'V96',
+          tests: { passed: 1139, total: 1146, skipped: 7 },
+          coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.17, thresholdPct: 95 },
+          readme: { passed: 14, total: 14 },
+          build: { passed: true },
+          blockers: [],
+        }),
+        reportMarkdown: '# Delivery Report\n**Proposal**: P-20260624-010\n**Commit**: uncommitted (local working tree)\n- `npm run verify:readme` — 14/14 passed\n- `npm run test:coverage:incremental` — 16/16 strict layers, 98.17% avg branch',
+        indexMarkdown: '| V96 | ready | 100% | 98.17% | 14/14 |',
+      },
+    });
+
+    expect(gate.ready).toBe(true);
+    expect(gate.issues).toEqual([]);
+
+    const badGate = buildReleaseEvidenceQualityGate({
+      expectedProposalId: 'P-20260624-010',
+      expectedReadme: '14/14',
+      expectedCoverage: '98.17',
+      requireUncommittedLabel: true,
+      evidence: { version: 'V96', schemaVersion: 1, summary: gate.evidence.summary, reportMarkdown: '# no proposal', indexMarkdown: '' },
+    });
+    expect(badGate.ready).toBe(false);
+    expect(badGate.issues).toContain('schemaVersion must be 2');
+    expect(badGate.issues).toContain('report missing proposal P-20260624-010');
+  });
+
+  it('generates next directions from current delivery evidence and diff ownership', () => {
+    const directions = generateNextDeliveryDirections({
+      latestVersion: 'V96',
+      qualityGateReady: true,
+      audit: buildDiffOwnershipAudit([
+        ' M packages/ai-team-core/src/delivery-summary.ts',
+        ' M packages/ai-team-web/src/pages/TeamOrchestrationConsole.tsx',
+        ' M scripts/release-check.mjs',
+      ]),
+      batchAudit: { total: 6, migrated: 2, current: 4, invalid: 0, items: [] },
+    });
+
+    expect(directions[0]).toContain('V97-V99');
+    expect(directions[0]).toContain('CI evidence gate');
+    expect(directions[1]).toContain('Web delivery operations');
+    expect(directions[2]).toContain('batch migration');
+  });
+
+  it('plans unattended delivery batches from next directions and gate evidence', () => {
+    const batch = buildUnattendedDeliveryBatchPlan({
+      currentVersion: 'V81',
+      proposalId: 'P-20260624-011',
+      directions: [
+        'V82 release evidence history filters',
+        'V83 one-click proposal delivery wizard',
+        'V84 release evidence import viewer',
+      ],
+      gates: { build: true, tests: true, coverage: true, readme: true },
+      dirtyFiles: [
+        ' M packages/ai-team-core/src/delivery-summary.ts',
+        ' M scripts/verify-readme-commands.mjs',
+        '?? docs/delivery/v84-delivery-report.md',
+      ],
+    });
+
+    expect(batch.ready).toBe(true);
+    expect(batch.versionRange).toBe('V82-V84');
+    expect(batch.nextProposalTitle).toContain('V85-V87');
+    expect(batch.requiredGates).toEqual(['build', 'tests', 'coverage', 'readme']);
+    expect(batch.safeAddCommands).toContain('git add packages/ai-team-core/src/delivery-summary.ts');
+    expect(batch.safeAddCommands).toContain('git add docs/delivery/v84-delivery-report.md');
+  });
+
+  it('builds unattended batch runner steps with delivery gates and proposal handoff', () => {
+    const runner = buildUnattendedBatchRunner({
+      proposalId: 'P-20260624-012',
+      versionRange: 'V85-V87',
+      gates: { build: true, tests: true, coverage: true, readme: true },
+      reportPath: 'docs/delivery/v87-delivery-report.md',
+    });
+
+    expect(runner.ready).toBe(true);
+    expect(runner.steps.map((step) => step.kind)).toEqual(['build', 'tests', 'coverage', 'readme', 'report', 'proposal']);
+    expect(runner.steps.at(-1)?.command).toContain('P-20260624-012');
+  });
+
+  it('plans status auto-recovery from stuck proposal states without backward transitions', () => {
+    const recovery = planProposalStatusRecovery({
+      proposalId: 'P-20260624-012',
+      currentStatus: 'prd_pending_confirmation',
+      targetStatus: 'delivered',
+    });
+
+    expect(recovery.recoverable).toBe(true);
+    expect(recovery.statusPath).toEqual(['approved_for_dev', 'in_dev', 'in_test_acceptance', 'accepted', 'deployed', 'delivered']);
+    expect(recovery.commands[0]).toContain('--status approved_for_dev');
+
+    const delivered = planProposalStatusRecovery({ proposalId: 'P-20260624-012', currentStatus: 'delivered', targetStatus: 'delivered' });
+    expect(delivered.recoverable).toBe(false);
+    expect(delivered.commands).toEqual([]);
+  });
+
+  it('builds an evidence trend dashboard from delivery report entries', () => {
+    const trend = buildEvidenceTrendDashboard([
+      { version: 'V81', path: 'docs/delivery/v81.md', updatedAt: '2026-06-24T01:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V81', tests: { passed: 1148, total: 1155, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.28, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true }, blockers: [] }) },
+      { version: 'V84', path: 'docs/delivery/v84.md', updatedAt: '2026-06-24T02:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V84', tests: { passed: 1149, total: 1156, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.2, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true }, blockers: [] }) },
+    ]);
+
+    expect(trend.latestVersion).toBe('V84');
+    expect(trend.coverageDelta).toBeCloseTo(-0.08, 5);
+    expect(trend.readmeStable).toBe(true);
+    expect(trend.recommendation).toContain('coverage watch');
+  });
+
+  it('covers blocked unattended batch and trend fallback branches', () => {
+    const noVersionBatch = buildUnattendedDeliveryBatchPlan({
+      currentVersion: 'V87',
+      proposalId: 'P-20260624-013',
+      directions: ['release hardening only'],
+      gates: { build: true, tests: false, coverage: true, readme: false },
+      dirtyFiles: [],
+    });
+    expect(noVersionBatch.ready).toBe(false);
+    expect(noVersionBatch.versionRange).toBe('V88');
+    expect(noVersionBatch.blockers).toEqual(['tests gate is not green', 'readme gate is not green']);
+
+    const runner = buildUnattendedBatchRunner({
+      proposalId: 'P-20260624-013',
+      versionRange: 'V88',
+      gates: { build: true, tests: true, coverage: false, readme: true },
+      reportPath: 'docs/delivery/v88-delivery-report.md',
+    });
+    expect(runner.ready).toBe(false);
+    expect(runner.blockers).toEqual(['coverage gate is not green']);
+    expect(runner.steps.find((step) => step.kind === 'report')?.command).toContain('V88');
+
+    const emptyTrend = buildEvidenceTrendDashboard([]);
+    expect(emptyTrend.latestVersion).toBe('none');
+    expect(emptyTrend.coverageDelta).toBe(0);
+    expect(emptyTrend.readmeStable).toBe(false);
+
+    const positiveTrend = buildEvidenceTrendDashboard([
+      { version: 'V87', path: 'docs/delivery/v87.md', updatedAt: '2026-06-24T03:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V87', tests: { passed: 1152, total: 1159, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.5, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true }, blockers: [] }) },
+    ]);
+    expect(positiveTrend.recommendation).toContain('trend stable');
+  });
+
+  it('covers blocked restore, quality gate, and next-direction fallback branches', () => {
+    const emptyRestore = buildCockpitWebRestoreModel({ records: [], userId: 'operator-1' });
+    expect(emptyRestore.canRestore).toBe(false);
+    expect(emptyRestore.restoreButtonLabel).toBe('No saved cockpit');
+
+    const unnamedRestore = buildCockpitWebRestoreModel({
+      userId: 'operator-1',
+      records: [buildCockpitServerRecord({
+        userId: 'operator-1',
+        now: '2026-06-24T12:00:00.000Z',
+        snapshot: buildCockpitPersistenceSnapshot({ filters: {}, importedEvidence: [], diffText: '' }),
+      })],
+    });
+    expect(unnamedRestore.restoreButtonLabel).toBe('Restore saved cockpit');
+
+    const blockedSummary = buildDeliveryEvidenceSummary({
+      version: 'V96',
+      tests: { passed: 1, total: 2, skipped: 0 },
+      coverage: { strictPassed: 0, strictTotal: 1, averageBranchPct: 50, thresholdPct: 95 },
+      readme: { passed: 0, total: 1 },
+      build: { passed: false },
+      blockers: ['manual blocker'],
+    });
+    const gate = buildReleaseEvidenceQualityGate({
+      expectedProposalId: 'P-20260624-010',
+      expectedReadme: '14/14',
+      expectedCoverage: '98.17',
+      requireUncommittedLabel: true,
+      evidence: { version: 'V96', schemaVersion: 2, summary: blockedSummary, reportMarkdown: '**Proposal**: P-20260624-010', indexMarkdown: '| missing |' },
+    });
+    expect(gate.issues).toContain('README evidence must include 14/14');
+    expect(gate.issues).toContain('coverage evidence must include 98.17');
+    expect(gate.issues).toContain('uncommitted delivery report must label local working tree');
+    expect(gate.issues).toContain('summary is not ready');
+
+    const directions = generateNextDeliveryDirections({
+      latestVersion: 'draft',
+      qualityGateReady: false,
+      audit: buildDiffOwnershipAudit([]),
+      batchAudit: { total: 0, migrated: 0, current: 0, invalid: 0, items: [] },
+    });
+    expect(directions[0]).toContain('VNext');
+    expect(directions[0]).toContain('gate currently blocked');
+    expect(directions[2]).toContain('monitor 0 evidence files');
   });
 });

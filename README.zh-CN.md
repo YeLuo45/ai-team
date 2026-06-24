@@ -80,6 +80,8 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🗂️ **交付报告索引** | `npm run delivery:index` 生成 `docs/delivery/index.md` 与浏览器安全 release evidence JSON | V61/V63 |
 | 🎛️ **编排台预设 + 证据下载** | `/orchestration` 新增 Security preset 与一键下载 release evidence JSON | V62/V65 |
 | 🔁 **提案同步规划器** | 纯函数生成 MCP 安全正向状态路径，避免跳级/回退状态 | V64 |
+| 🧰 **交付驾驶舱强化** | 证据筛选/导入查看器、提案交付向导、发布就绪看板、MCP 状态回退防护、可提交 diff 分类 | V66-V72 |
+| 🚚 **交付闭环自动化** | 浏览器安全证据、MCP 执行确认计划、驾驶舱服务端/Web 恢复持久化、证据 schema 批量审计、质量门禁、后续方向生成 | V73-V96 |
 
 ## 7 个包
 

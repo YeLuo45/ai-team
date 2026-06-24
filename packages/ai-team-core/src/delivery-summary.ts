@@ -214,6 +214,58 @@ export interface ProposalSyncPlan {
   notes: string;
 }
 
+export type DeliveryGateKind = 'build' | 'tests' | 'coverage' | 'readme' | 'release';
+
+export interface DeliveryReportFilter {
+  versionText?: string;
+  status?: 'ready' | 'blocked' | 'all';
+  from?: string;
+  to?: string;
+  gate?: DeliveryGateKind;
+}
+
+export interface ParsedReleaseEvidence {
+  version: string;
+  summary: DeliveryEvidenceSummary;
+  reportMarkdown: string;
+  indexMarkdown: string;
+}
+
+export interface ReleaseEvidenceParseResult {
+  evidence?: ParsedReleaseEvidence;
+  issues: string[];
+}
+
+export interface ProposalDeliveryWizardInput extends ProposalSyncPlanInput {}
+
+export interface ProposalDeliveryWizard {
+  warning: string;
+  commands: string[];
+}
+
+export interface ReleaseDashboardCard {
+  label: 'Build' | 'Tests' | 'Coverage' | 'README' | 'Release';
+  status: 'ready' | 'blocked';
+  detail: string;
+}
+
+export interface ReleaseReadinessDashboard {
+  total: number;
+  readyCount: number;
+  blockedCount: number;
+  cards: ReleaseDashboardCard[];
+  latest?: DeliveryReportIndexEntry;
+}
+
+export interface ChangedFileClassification {
+  source: string[];
+  tests: string[];
+  docs: string[];
+  generated: string[];
+  scripts: string[];
+  other: string[];
+}
+
 export function buildDeliveryReportMarkdown(input: DeliveryReportInput): string {
   const proposalLine = input.proposalId ? `**Proposal**: ${input.proposalId}` : '';
   const commitLine = input.commit ? `**Commit**: ${input.commit}` : '';
@@ -319,4 +371,623 @@ export function buildProposalSyncPlan(input: ProposalSyncPlanInput): ProposalSyn
     ],
     notes,
   };
+}
+
+function gatePasses(summary: DeliveryEvidenceSummary, gate?: DeliveryGateKind): boolean {
+  if (!gate) return true;
+  if (gate === 'build') return summary.buildStatus === 'pass';
+  if (gate === 'tests') return summary.testPassRatePct === 100;
+  if (gate === 'coverage') return summary.coverageStatus === 'pass';
+  if (gate === 'readme') return summary.readmeStatus === 'pass';
+  return summary.ready;
+}
+
+export function filterDeliveryReportEntries(entries: DeliveryReportIndexEntry[], filter: DeliveryReportFilter): DeliveryReportIndexEntry[] {
+  return entries.filter((entry) => {
+    if (filter.versionText && !entry.version.toLowerCase().includes(filter.versionText.toLowerCase())) return false;
+    if (filter.status === 'ready' && !entry.summary.ready) return false;
+    if (filter.status === 'blocked' && entry.summary.ready) return false;
+    if (filter.from && entry.updatedAt < filter.from) return false;
+    if (filter.to && entry.updatedAt > filter.to) return false;
+    if (!filter.gate) return true;
+    const passed = gatePasses(entry.summary, filter.gate);
+    return filter.status === 'blocked' ? !passed : passed;
+  });
+}
+
+function isSummary(value: unknown): value is DeliveryEvidenceSummary {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<DeliveryEvidenceSummary>;
+  return typeof candidate.ready === 'boolean'
+    && typeof candidate.headline === 'string'
+    && Array.isArray(candidate.blockers);
+}
+
+export function parseReleaseEvidenceJson(text: string, source = 'release-evidence.json'): ReleaseEvidenceParseResult {
+  try {
+    const data = JSON.parse(text) as Partial<ParsedReleaseEvidence>;
+    if (typeof data.version !== 'string') return { issues: [`${source}: version must be a string`] };
+    if (!isSummary(data.summary)) return { issues: [`${source}: summary is missing ready/headline/blockers`] };
+    if (typeof data.reportMarkdown !== 'string') return { issues: [`${source}: reportMarkdown must be a string`] };
+    if (typeof data.indexMarkdown !== 'string') return { issues: [`${source}: indexMarkdown must be a string`] };
+    return { evidence: { version: data.version, summary: data.summary, reportMarkdown: data.reportMarkdown, indexMarkdown: data.indexMarkdown }, issues: [] };
+  } catch (error) {
+    return { issues: [`${source}: invalid JSON (${error instanceof Error ? error.message : String(error)})`] };
+  }
+}
+
+export function buildProposalDeliveryWizard(input: ProposalDeliveryWizardInput): ProposalDeliveryWizard {
+  const plan = buildProposalSyncPlan(input);
+  const base = 'python3 /home/hermes/superpower-clockless/src/superpower_clockless/templates/skills/prj-proposals-manager/scripts/mcp_aisp.py';
+  const fieldCommand = `${base} update-proposal-fields ${plan.fieldArgs.join(' ')}`;
+  const statusCommands = plan.statusPath.map((status) => `${base} update-proposal-status --proposal-id ${input.proposalId} --status ${status}`);
+  return {
+    warning: 'update-proposal-fields can reset status; run field update before final status walk, then verify persisted status.',
+    commands: [fieldCommand, `${base} list-proposals --search ${input.proposalId}`, ...statusCommands],
+  };
+}
+
+export function buildGateFailureHints(summary: DeliveryEvidenceSummary): string[] {
+  const hints: string[] = [];
+  if (summary.buildStatus === 'fail') hints.push('Run npm run build and inspect TypeScript/Vite output.');
+  if (summary.testPassRatePct < 100) hints.push('Run npm test and fix failing tests before release.');
+  if (summary.coverageStatus === 'fail') hints.push('Run npm run test:coverage:incremental and inspect strict layer failures.');
+  if (summary.readmeStatus === 'fail') hints.push('Run npm run verify:readme and sync expected command evidence.');
+  if (!summary.ready) hints.push('Resolve blockers before updating proposal status to delivered.');
+  return hints;
+}
+
+export function buildReleaseReadinessDashboard(entries: DeliveryReportIndexEntry[]): ReleaseReadinessDashboard {
+  const index = buildDeliveryReportIndex(entries);
+  const latest = index.latest;
+  const summary = latest?.summary;
+  const cards: ReleaseDashboardCard[] = [
+    { label: 'Build', status: summary?.buildStatus === 'pass' ? 'ready' : 'blocked', detail: summary?.buildStatus ?? 'missing' },
+    { label: 'Tests', status: summary && summary.testPassRatePct === 100 ? 'ready' : 'blocked', detail: `${summary?.testPassRatePct ?? 0}%` },
+    { label: 'Coverage', status: summary?.coverageStatus === 'pass' ? 'ready' : 'blocked', detail: summary?.coverageStatus ?? 'missing' },
+    { label: 'README', status: summary?.readmeStatus === 'pass' ? 'ready' : 'blocked', detail: summary?.readmeStatus ?? 'missing' },
+    { label: 'Release', status: summary?.ready ? 'ready' : 'blocked', detail: summary?.headline ?? 'no evidence' },
+  ];
+  return { total: index.total, readyCount: index.ready, blockedCount: index.total - index.ready, cards, latest };
+}
+
+function cleanStatusPrefix(line: string): string {
+  return line.replace(/^\s*(?:M|A|D|R|C|\?\?)\s+/, '').trim();
+}
+
+export function classifyChangedFiles(lines: string[]): ChangedFileClassification {
+  const out: ChangedFileClassification = { source: [], tests: [], docs: [], generated: [], scripts: [], other: [] };
+  for (const line of lines) {
+    const file = cleanStatusPrefix(line);
+    if (file.length === 0) continue;
+    if (file.includes('/test/') || file.includes('.test.')) out.tests.push(file);
+    else if (file.includes('/public/data/') || file.endsWith('-release-evidence.json')) out.generated.push(file);
+    else if (file.startsWith('docs/') || file.startsWith('README')) out.docs.push(file);
+    else if (file.startsWith('scripts/')) out.scripts.push(file);
+    else if (file.includes('/src/')) out.source.push(file);
+    else out.other.push(file);
+  }
+  return out;
+}
+
+export interface BrowserEvidenceDownloadIntent {
+  filename: string;
+  mimeType: 'application/json';
+  serialized: string;
+  objectUrl: string;
+  revokeAfterClick: boolean;
+}
+
+export interface ProposalDryRunStep {
+  kind: 'fields' | 'status' | 'verify';
+  command: string;
+  status?: ProposalSyncStatus;
+}
+
+export interface ProposalDryRunResult {
+  mutates: false;
+  steps: ProposalDryRunStep[];
+  riskWarnings: string[];
+}
+
+export interface CockpitPersistenceInput {
+  selectedVersion?: string;
+  filters: DeliveryReportFilter;
+  importedEvidence: string[];
+  diffText: string;
+}
+
+export interface CockpitPersistenceSnapshot {
+  storageKey: 'ai-team:delivery-cockpit:v1';
+  payload: CockpitPersistenceInput;
+  serialized: string;
+}
+
+export interface DiffOwnershipAudit {
+  total: number;
+  classification: ChangedFileClassification;
+  safeAddCommands: string[];
+  warnings: string[];
+}
+
+export interface VersionedReleaseEvidence extends ParsedReleaseEvidence {
+  schemaVersion: number;
+}
+
+export interface VersionedReleaseEvidenceParseResult {
+  evidence?: VersionedReleaseEvidence;
+  migrated: boolean;
+  issues: string[];
+}
+
+export interface ProposalDeliveryChecklistInput {
+  proposalId: string;
+  reportPath: string;
+  gates: Record<'tests' | 'coverage' | 'readme' | 'build', boolean>;
+  dryRun: ProposalDryRunResult;
+}
+
+export interface ProposalDeliveryChecklistItem {
+  label: 'tests' | 'coverage' | 'readme' | 'build' | 'accepted' | 'deployed' | 'delivered';
+  done: boolean;
+  detail: string;
+}
+
+export interface ProposalDeliveryChecklist {
+  proposalId: string;
+  reportPath: string;
+  ready: boolean;
+  items: ProposalDeliveryChecklistItem[];
+}
+
+export interface ProposalExecuteWithConfirmInput {
+  dryRun: ProposalDryRunResult;
+  confirmText: string;
+}
+
+export interface ProposalExecuteWithConfirmPlan {
+  requiredPhrase: string;
+  readyToExecute: boolean;
+  commands: string[];
+  warnings: string[];
+}
+
+export interface CockpitServerRecordInput {
+  userId: string;
+  snapshot: CockpitPersistenceSnapshot;
+  now: string;
+}
+
+export interface CockpitServerRecord {
+  id: string;
+  userId: string;
+  snapshot: CockpitPersistenceSnapshot;
+  updatedAt: string;
+}
+
+export interface ReleaseEvidenceMigrationResult {
+  evidence?: VersionedReleaseEvidence;
+  fromSchemaVersion?: number;
+  changed: boolean;
+  serialized: string;
+  issues: string[];
+}
+
+export interface ProposalExecutableCommand {
+  kind: ProposalDryRunStep['kind'];
+  command: string;
+  status?: ProposalSyncStatus;
+  mutates: boolean;
+}
+
+export interface ProposalExecutionPlan {
+  ready: boolean;
+  requiredPhrase: string;
+  commands: ProposalExecutableCommand[];
+  warnings: string[];
+}
+
+export interface CockpitWebRestoreModel {
+  canRestore: boolean;
+  restoreButtonLabel: string;
+  selectedVersion?: string;
+  filters: DeliveryReportFilter;
+  importedEvidence: string[];
+  diffText: string;
+}
+
+export interface ReleaseEvidenceBatchItem {
+  path: string;
+  status: 'migrated' | 'current' | 'invalid';
+  version?: string;
+  schemaVersion?: number;
+  issues: string[];
+  writeBack?: string;
+}
+
+export interface ReleaseEvidenceBatchAudit {
+  total: number;
+  migrated: number;
+  current: number;
+  invalid: number;
+  items: ReleaseEvidenceBatchItem[];
+}
+
+export interface ReleaseEvidenceQualityGateInput {
+  expectedProposalId: string;
+  expectedReadme: string;
+  expectedCoverage: string;
+  requireUncommittedLabel?: boolean;
+  evidence: VersionedReleaseEvidence;
+}
+
+export interface ReleaseEvidenceQualityGate {
+  ready: boolean;
+  evidence: VersionedReleaseEvidence;
+  issues: string[];
+}
+
+export interface NextDeliveryDirectionInput {
+  latestVersion: string;
+  qualityGateReady: boolean;
+  audit: DiffOwnershipAudit;
+  batchAudit: ReleaseEvidenceBatchAudit;
+}
+
+export interface UnattendedDeliveryBatchPlanInput {
+  currentVersion: string;
+  proposalId: string;
+  directions: string[];
+  gates: Record<'build' | 'tests' | 'coverage' | 'readme', boolean>;
+  dirtyFiles: string[];
+}
+
+export interface UnattendedDeliveryBatchPlan {
+  proposalId: string;
+  ready: boolean;
+  versionRange: string;
+  nextProposalTitle: string;
+  requiredGates: Array<'build' | 'tests' | 'coverage' | 'readme'>;
+  safeAddCommands: string[];
+  blockers: string[];
+}
+
+export interface UnattendedBatchRunnerInput {
+  proposalId: string;
+  versionRange: string;
+  gates: Record<'build' | 'tests' | 'coverage' | 'readme', boolean>;
+  reportPath: string;
+}
+
+export interface UnattendedBatchRunnerStep {
+  kind: 'build' | 'tests' | 'coverage' | 'readme' | 'report' | 'proposal';
+  command: string;
+  ready: boolean;
+}
+
+export interface UnattendedBatchRunner {
+  ready: boolean;
+  steps: UnattendedBatchRunnerStep[];
+  blockers: string[];
+}
+
+export interface ProposalStatusRecoveryInput {
+  proposalId: string;
+  currentStatus: ProposalSyncStatus;
+  targetStatus: ProposalSyncStatus;
+}
+
+export interface ProposalStatusRecoveryPlan {
+  recoverable: boolean;
+  statusPath: ProposalSyncStatus[];
+  commands: string[];
+}
+
+export interface EvidenceTrendDashboard {
+  latestVersion: string;
+  previousVersion?: string;
+  coverageDelta: number;
+  readmeStable: boolean;
+  recommendation: string;
+}
+
+export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
+  const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
+  const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
+  return {
+    filename: download.filename,
+    mimeType: download.mimeType,
+    serialized,
+    objectUrl: options.objectUrl,
+    revokeAfterClick: true,
+  };
+}
+
+export function executeProposalDryRun(wizard: ProposalDeliveryWizard): ProposalDryRunResult {
+  const steps = wizard.commands
+    .map((command): ProposalDryRunStep | undefined => {
+      const status = command.match(/--status\s+(\w+)/)?.[1] as ProposalSyncStatus | undefined;
+      if (command.includes('update-proposal-fields')) return { kind: 'fields', command };
+      if (status) return { kind: 'status', command, status };
+      return undefined;
+    })
+    .filter((step): step is ProposalDryRunStep => Boolean(step));
+  return {
+    mutates: false,
+    steps,
+    riskWarnings: ['DRY RUN ONLY: commands are not executed.', wizard.warning],
+  };
+}
+
+export function buildCockpitPersistenceSnapshot(input: CockpitPersistenceInput): CockpitPersistenceSnapshot {
+  const payload: CockpitPersistenceInput = {
+    ...input,
+    importedEvidence: input.importedEvidence.slice(-3),
+  };
+  return {
+    storageKey: 'ai-team:delivery-cockpit:v1',
+    payload,
+    serialized: JSON.stringify(payload),
+  };
+}
+
+function buildGitAddCommand(files: string[]): string | undefined {
+  return files.length > 0 ? `git add ${files.join(' ')}` : undefined;
+}
+
+export function buildDiffOwnershipAudit(lines: string[]): DiffOwnershipAudit {
+  const classification = classifyChangedFiles(lines);
+  const sourceAndTests = [...classification.source, ...classification.tests];
+  const docsAndGenerated = [...classification.docs, ...classification.generated];
+  const safeAddCommands = [buildGitAddCommand(sourceAndTests), buildGitAddCommand(docsAndGenerated), buildGitAddCommand(classification.scripts)]
+    .filter((command): command is string => Boolean(command));
+  const warnings = classification.other.length > 0 ? [`Review ${classification.other.length} other file(s) before staging.`] : [];
+  return { total: lines.filter((line) => cleanStatusPrefix(line).length > 0).length, classification, safeAddCommands, warnings };
+}
+
+export function parseVersionedReleaseEvidenceJson(text: string, source = 'release-evidence.json'): VersionedReleaseEvidenceParseResult {
+  try {
+    const raw = JSON.parse(text) as Partial<VersionedReleaseEvidence>;
+    const schemaVersion = typeof raw.schemaVersion === 'number' ? raw.schemaVersion : 1;
+    const parsed = parseReleaseEvidenceJson(JSON.stringify(raw), source);
+    if (!parsed.evidence) return { migrated: false, issues: parsed.issues };
+    return {
+      evidence: { schemaVersion, ...parsed.evidence },
+      migrated: schemaVersion === 1 && raw.schemaVersion === undefined,
+      issues: [],
+    };
+  } catch (error) {
+    return { migrated: false, issues: [`${source}: invalid JSON (${error instanceof Error ? error.message : String(error)})`] };
+  }
+}
+
+export function buildProposalDeliveryChecklist(input: ProposalDeliveryChecklistInput): ProposalDeliveryChecklist {
+  const statusSet = new Set(input.dryRun.steps.map((step) => step.status).filter((status): status is ProposalSyncStatus => Boolean(status)));
+  const items: ProposalDeliveryChecklistItem[] = [
+    { label: 'tests', done: input.gates.tests, detail: 'npm test must pass 100%' },
+    { label: 'coverage', done: input.gates.coverage, detail: 'incremental coverage strict layers must pass' },
+    { label: 'readme', done: input.gates.readme, detail: 'README verifier must pass' },
+    { label: 'build', done: input.gates.build, detail: 'build must pass' },
+    { label: 'accepted', done: statusSet.has('accepted'), detail: 'proposal status walk includes accepted' },
+    { label: 'deployed', done: statusSet.has('deployed'), detail: 'proposal status walk includes deployed' },
+    { label: 'delivered', done: statusSet.has('delivered'), detail: 'proposal status walk includes delivered' },
+  ];
+  return { proposalId: input.proposalId, reportPath: input.reportPath, ready: items.every((item) => item.done), items };
+}
+
+function proposalIdFromDryRun(dryRun: ProposalDryRunResult): string {
+  const command = dryRun.steps[0]?.command ?? '';
+  return command.match(/--proposal-id\s+(P-\d{8}-\d{3})/)?.[1] ?? 'UNKNOWN';
+}
+
+export function planProposalExecuteWithConfirm(input: ProposalExecuteWithConfirmInput): ProposalExecuteWithConfirmPlan {
+  const proposalId = proposalIdFromDryRun(input.dryRun);
+  const requiredPhrase = `EXECUTE ${proposalId}`;
+  const readyToExecute = input.confirmText === requiredPhrase;
+  return {
+    requiredPhrase,
+    readyToExecute,
+    commands: readyToExecute ? input.dryRun.steps.map((step) => step.command) : [],
+    warnings: readyToExecute ? input.dryRun.riskWarnings : [`Confirmation phrase must be exactly: ${requiredPhrase}`],
+  };
+}
+
+export function buildCockpitServerRecord(input: CockpitServerRecordInput): CockpitServerRecord {
+  return {
+    id: `cockpit_${input.userId}_${input.now}`,
+    userId: input.userId,
+    snapshot: input.snapshot,
+    updatedAt: input.now,
+  };
+}
+
+export function migrateReleaseEvidencePayload(text: string): ReleaseEvidenceMigrationResult {
+  const parsed = parseVersionedReleaseEvidenceJson(text, 'release-evidence-migration');
+  if (!parsed.evidence) return { changed: false, serialized: '', issues: parsed.issues };
+  const fromSchemaVersion = parsed.evidence.schemaVersion;
+  const evidence: VersionedReleaseEvidence = { ...parsed.evidence, schemaVersion: 2 };
+  return {
+    evidence,
+    fromSchemaVersion,
+    changed: fromSchemaVersion !== 2,
+    serialized: JSON.stringify(evidence, null, 2),
+    issues: [],
+  };
+}
+
+export function buildProposalExecutionPlan(input: ProposalExecuteWithConfirmInput): ProposalExecutionPlan {
+  const gated = planProposalExecuteWithConfirm(input);
+  return {
+    ready: gated.readyToExecute,
+    requiredPhrase: gated.requiredPhrase,
+    warnings: gated.warnings,
+    commands: gated.readyToExecute
+      ? input.dryRun.steps.map((step) => ({ ...step, mutates: step.kind === 'fields' || step.kind === 'status' }))
+      : [],
+  };
+}
+
+export function buildCockpitWebRestoreModel(input: { records: CockpitServerRecord[]; userId: string }): CockpitWebRestoreModel {
+  const record = [...input.records]
+    .filter((item) => item.userId === input.userId)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+  if (!record) {
+    return { canRestore: false, restoreButtonLabel: 'No saved cockpit', filters: {}, importedEvidence: [], diffText: '' };
+  }
+  const payload = record.snapshot.payload;
+  return {
+    canRestore: true,
+    restoreButtonLabel: `Restore ${payload.selectedVersion ?? 'saved'} cockpit`,
+    selectedVersion: payload.selectedVersion,
+    filters: payload.filters,
+    importedEvidence: payload.importedEvidence,
+    diffText: payload.diffText,
+  };
+}
+
+export function auditReleaseEvidenceBatch(entries: Array<{ path: string; text: string }>): ReleaseEvidenceBatchAudit {
+  const items = entries.map((entry): ReleaseEvidenceBatchItem => {
+    const result = migrateReleaseEvidencePayload(entry.text);
+    if (!result.evidence) return { path: entry.path, status: 'invalid', issues: result.issues };
+    const status: ReleaseEvidenceBatchItem['status'] = result.changed ? 'migrated' : 'current';
+    return {
+      path: entry.path,
+      status,
+      version: result.evidence.version,
+      schemaVersion: result.evidence.schemaVersion,
+      issues: [],
+      ...(result.changed ? { writeBack: result.serialized } : {}),
+    };
+  }).sort((left, right) => left.path.localeCompare(right.path));
+  return {
+    total: items.length,
+    migrated: items.filter((item) => item.status === 'migrated').length,
+    current: items.filter((item) => item.status === 'current').length,
+    invalid: items.filter((item) => item.status === 'invalid').length,
+    items,
+  };
+}
+
+export function buildReleaseEvidenceQualityGate(input: ReleaseEvidenceQualityGateInput): ReleaseEvidenceQualityGate {
+  const issues: string[] = [];
+  if (input.evidence.schemaVersion !== 2) issues.push('schemaVersion must be 2');
+  if (!input.evidence.reportMarkdown.includes(input.expectedProposalId)) issues.push(`report missing proposal ${input.expectedProposalId}`);
+  if (!input.evidence.reportMarkdown.includes(input.expectedReadme) || !input.evidence.indexMarkdown.includes(input.expectedReadme)) {
+    issues.push(`README evidence must include ${input.expectedReadme}`);
+  }
+  if (!input.evidence.reportMarkdown.includes(input.expectedCoverage) || !input.evidence.indexMarkdown.includes(input.expectedCoverage)) {
+    issues.push(`coverage evidence must include ${input.expectedCoverage}`);
+  }
+  if (input.requireUncommittedLabel && !input.evidence.reportMarkdown.includes('uncommitted (local working tree)')) {
+    issues.push('uncommitted delivery report must label local working tree');
+  }
+  if (!input.evidence.summary.ready) issues.push('summary is not ready');
+  return { ready: issues.length === 0, evidence: input.evidence, issues };
+}
+
+function nextVersionRange(latestVersion: string, span = 3): string {
+  const latest = deliveryVersionNumber(latestVersion);
+  if (latest < 0) return 'VNext';
+  return `V${latest + 1}-V${latest + span}`;
+}
+
+export function buildUnattendedDeliveryBatchPlan(input: UnattendedDeliveryBatchPlanInput): UnattendedDeliveryBatchPlan {
+  const requiredGates: UnattendedDeliveryBatchPlan['requiredGates'] = ['build', 'tests', 'coverage', 'readme'];
+  const blockers = requiredGates
+    .filter((gate) => !input.gates[gate])
+    .map((gate) => `${gate} gate is not green`);
+  const versions = input.directions
+    .map((direction) => direction.match(/\bV(\d+)\b/i)?.[1])
+    .filter((version): version is string => Boolean(version))
+    .map(Number);
+  const first = versions.length > 0 ? Math.min(...versions) : deliveryVersionNumber(input.currentVersion) + 1;
+  const last = versions.length > 0 ? Math.max(...versions) : first + input.directions.length - 1;
+  const nextStart = last + 1;
+  const nextEnd = last + Math.max(1, input.directions.length);
+  const audit = buildDiffOwnershipAudit(input.dirtyFiles);
+  return {
+    proposalId: input.proposalId,
+    ready: blockers.length === 0,
+    versionRange: first === last ? `V${first}` : `V${first}-V${last}`,
+    nextProposalTitle: `ai-team V${nextStart}-V${nextEnd}: unattended next delivery batch`,
+    requiredGates,
+    safeAddCommands: audit.safeAddCommands,
+    blockers,
+  };
+}
+
+export function buildUnattendedBatchRunner(input: UnattendedBatchRunnerInput): UnattendedBatchRunner {
+  const gateSteps: UnattendedBatchRunnerStep[] = [
+    { kind: 'build', command: 'npm run build', ready: input.gates.build },
+    { kind: 'tests', command: 'npm test', ready: input.gates.tests },
+    { kind: 'coverage', command: 'npm run test:coverage:incremental', ready: input.gates.coverage },
+    { kind: 'readme', command: 'npm run verify:readme', ready: input.gates.readme },
+  ];
+  const ready = gateSteps.every((step) => step.ready);
+  const blockers = gateSteps.filter((step) => !step.ready).map((step) => `${step.kind} gate is not green`);
+  return {
+    ready,
+    blockers,
+    steps: [
+      ...gateSteps,
+      { kind: 'report', command: `AI_TEAM_DELIVERY_VERSION=${input.versionRange.split('-').at(-1) ?? input.versionRange} npm run delivery:report`, ready },
+      { kind: 'proposal', command: `mcp_aisp.py update-proposal-status --proposal-id ${input.proposalId} --status delivered # after ${input.reportPath}`, ready },
+    ],
+  };
+}
+
+export function planProposalStatusRecovery(input: ProposalStatusRecoveryInput): ProposalStatusRecoveryPlan {
+  const plan = buildProposalSyncPlan({
+    proposalId: input.proposalId,
+    projectPath: '',
+    deploymentUrl: '',
+    reportPath: '',
+    evidenceNote: 'status recovery',
+    currentStatus: input.currentStatus,
+    targetStatus: input.targetStatus,
+  });
+  const commands = plan.statusPath.map((status) => `mcp_aisp.py update-proposal-status --proposal-id ${input.proposalId} --status ${status}`);
+  return { recoverable: commands.length > 0, statusPath: plan.statusPath, commands };
+}
+
+function coverageFromHeadline(summary: DeliveryEvidenceSummary): number {
+  return Number(summary.headline.match(/coverage ([\d.]+)%/)?.[1] ?? 0);
+}
+
+function readmeFromHeadline(summary: DeliveryEvidenceSummary): string {
+  return summary.headline.match(/README (\d+\/\d+)/)?.[1] ?? '0/0';
+}
+
+export function buildEvidenceTrendDashboard(entries: DeliveryReportIndexEntry[]): EvidenceTrendDashboard {
+  const sorted = buildDeliveryReportIndex(entries).entries;
+  const latest = sorted[0];
+  const previous = sorted[1];
+  const latestCoverage = latest ? coverageFromHeadline(latest.summary) : 0;
+  const previousCoverage = previous ? coverageFromHeadline(previous.summary) : latestCoverage;
+  const coverageDelta = Math.round((latestCoverage - previousCoverage) * 100) / 100;
+  const readmeStable = Boolean(latest && previous && readmeFromHeadline(latest.summary) === readmeFromHeadline(previous.summary));
+  const recommendation = coverageDelta < 0 ? 'coverage watch: add branch tests before next batch' : 'trend stable: continue unattended batch';
+  return {
+    latestVersion: latest?.version ?? 'none',
+    previousVersion: previous?.version,
+    coverageDelta,
+    readmeStable,
+    recommendation,
+  };
+}
+
+export function generateNextDeliveryDirections(input: NextDeliveryDirectionInput): string[] {
+  const first = nextVersionRange(input.latestVersion);
+  const second = nextVersionRange(input.latestVersion, 6).replace(/^V\d+-/, `V${deliveryVersionNumber(input.latestVersion) + 4}-`);
+  const third = nextVersionRange(input.latestVersion, 9).replace(/^V\d+-/, `V${deliveryVersionNumber(input.latestVersion) + 7}-`);
+  const sourceCount = input.audit.classification.source.length;
+  const scriptCount = input.audit.classification.scripts.length;
+  const migrationText = input.batchAudit.migrated > 0
+    ? `finish batch migration for ${input.batchAudit.migrated}/${input.batchAudit.total} evidence files`
+    : `monitor ${input.batchAudit.total} evidence files for schema drift`;
+  return [
+    `${first}: CI evidence gate — enforce release evidence quality checks in release:check (${input.qualityGateReady ? 'gate baseline ready' : 'gate currently blocked'})`,
+    `${second}: Web delivery operations — expose ${sourceCount} source change group(s) and restore persisted cockpit from the main console`,
+    `${third}: Evidence batch migration — ${migrationText}; keep ${scriptCount} script gate(s) documented`,
+  ];
 }

@@ -20,6 +20,10 @@
     "./i18n": {
       "types": "./dist/i18n.d.ts",
       "import": "./dist/i18n.js"
+    },
+    "./delivery-summary": {
+      "types": "./dist/delivery-summary.d.ts",
+      "import": "./dist/delivery-summary.js"
     }
   },
   "scripts": {

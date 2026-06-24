@@ -53,8 +53,9 @@ const input = {
   blockers: process.env.AI_TEAM_BLOCKERS ? process.env.AI_TEAM_BLOCKERS.split(';').filter(Boolean) : [],
 };
 const summary = buildDeliveryEvidenceSummary(input);
-const changedFiles = gitLines(['status', '--short']).map((line) => line.replace(/^..\s+/, ''));
-const commit = gitLines(['rev-parse', '--short', 'HEAD'])[0];
+const statusLines = gitLines(['status', '--short']);
+const changedFiles = statusLines.map((line) => line.replace(/^..\s+/, ''));
+const commit = statusLines.length > 0 ? 'uncommitted (local working tree)' : gitLines(['rev-parse', '--short', 'HEAD'])[0];
 const report = buildDeliveryReportMarkdown({
   project: 'ai-team',
   proposalId: process.env.AI_TEAM_PROPOSAL_ID,

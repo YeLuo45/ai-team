@@ -1,0 +1,15 @@
+{
+  "version": "V78",
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "summary": {
+    "ready": true,
+    "headline": "V78 ready — tests 100%, coverage 98.3%, README 13/13",
+    "testPassRatePct": 100,
+    "coverageStatus": "pass",
+    "readmeStatus": "pass",
+    "buildStatus": "pass",
+    "blockers": []
+  },
+  "reportMarkdown": "# Delivery Report — ai-team\n\n**Ready**: yes\n**Headline**: V78 ready — tests 100%, coverage 98.3%, README 13/13\n**Proposal**: P-20260624-003\n**Commit**: ac5d8ee\n\n## Validation\n- `npm test` — 1132 passed | 7 skipped\n- `npm run verify:readme` — 13/13 passed\n- `npm run test:coverage:incremental` — 15/15 strict layers, 98.3% avg branch\n\n## Changed Files\n- M README.md\n- M README.zh-CN.md\n- M docs/delivery/index.md\n- M docs/delivery/v55-delivery-report.md\n- M packages/ai-team-core/package.json\n- M packages/ai-team-core/src/delivery-summary.ts\n- M packages/ai-team-core/src/team-orchestration.ts\n- M packages/ai-team-core/test/delivery-summary-v51.test.ts\n- M packages/ai-team-web/public/data/team.json\n- M packages/ai-team-web/src/pages/TeamOrchestrationConsole.tsx\n- M packages/ai-team-web/test/team-orchestration-console.test.tsx\n- M scripts/verify-readme-commands.mjs\n- docs/delivery/ai-team-v72-release-evidence.json\n- docs/delivery/ai-team-v78-release-evidence.json\n- docs/delivery/v72-delivery-report.md\n- docs/delivery/v78-delivery-report.md\n\n## Blockers\n- none\n\n## Next Directions\n1. V79 proposal MCP execute-with-confirm\n2. V80 delivery cockpit server persistence\n3. V81 release evidence migration CLI\n",
+  "indexMarkdown": "# Delivery Reports Index\n\nTotal: 5\nReady: 5\nLatest: V78\n\n| Version | Status | Tests | Coverage | README | Path |\n|---|---|---:|---:|---:|---|\n| V78 | ready | 100% | 98.3% | 13/13 | `docs/delivery/v78-delivery-report.md` |\n| V72 | ready | 100% | 98.31% | 13/13 | `docs/delivery/v72-delivery-report.md` |\n| V65 | ready | 100% | 98.36% | 13/13 | `docs/delivery/v65-delivery-report.md` |\n| V60 | ready | 100% | 98.54% | 12/12 | `docs/delivery/v60-delivery-report.md` |\n| V55 | ready | 100% | 98.54% | 11/11 | `docs/delivery/v55-delivery-report.md` |"
+}

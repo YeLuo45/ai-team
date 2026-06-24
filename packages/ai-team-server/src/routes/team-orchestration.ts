@@ -8,6 +8,7 @@ import {
   buildOrgMemoryContext,
   buildReadmeCommandChecklist,
   buildReleaseHardeningReport,
+  buildCockpitServerRecord,
   buildDeliveryEvidenceSummary,
   buildScenarioBatch,
   buildScenarioSimulation,
@@ -117,6 +118,7 @@ function parseAlertPolicy(body: Record<string, unknown>): LlmOpsAlertPolicy | nu
 export function createTeamOrchestrationRouter(options: { memoryStore?: OrchestrationOrgMemoryStore } = {}): Router {
   const router = Router();
   const approvals: ApprovalRecord[] = [];
+  const cockpitRecords = new Map<string, ReturnType<typeof buildCockpitServerRecord>>();
   const memoryStore = options.memoryStore ?? new OrchestrationOrgMemoryStore({
     baseDir: process.env.AI_TEAM_ORG_MEMORY_DIR ?? mkdtempSync(path.join(tmpdir(), 'ai-team-org-memory-')),
   });
@@ -259,6 +261,27 @@ export function createTeamOrchestrationRouter(options: { memoryStore?: Orchestra
         blockers: body.blockers,
       }),
     });
+  });
+
+  router.post('/delivery-cockpit', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const snapshot = body.snapshot as { storageKey?: unknown; payload?: unknown; serialized?: unknown } | undefined;
+    if (!isString(body.userId) || !snapshot || snapshot.storageKey !== 'ai-team:delivery-cockpit:v1' || typeof snapshot.payload !== 'object' || typeof snapshot.serialized !== 'string') {
+      return res.status(400).json({ error: 'validation_error' });
+    }
+    const record = buildCockpitServerRecord({
+      userId: body.userId,
+      snapshot: snapshot as Parameters<typeof buildCockpitServerRecord>[0]['snapshot'],
+      now: typeof body.now === 'string' ? body.now : new Date().toISOString(),
+    });
+    cockpitRecords.set(record.userId, record);
+    return res.status(201).json({ record });
+  });
+
+  router.get('/delivery-cockpit/:userId', (req, res) => {
+    const record = cockpitRecords.get(req.params.userId);
+    if (!record) return res.status(404).json({ error: 'cockpit_record_not_found' });
+    return res.json({ record });
   });
 
   return router;

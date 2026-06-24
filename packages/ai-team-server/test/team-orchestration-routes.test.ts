@@ -630,4 +630,38 @@ describe('V36-V41 team orchestration routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('validation_error');
   });
+
+  it('persists and loads delivery cockpit snapshots via REST', async () => {
+    const app = makeApp();
+    const payload = {
+      userId: 'operator-1',
+      snapshot: {
+        storageKey: 'ai-team:delivery-cockpit:v1',
+        payload: {
+          selectedVersion: 'V81',
+          filters: { status: 'ready', gate: 'release' },
+          importedEvidence: ['V79', 'V80', 'V81'],
+          diffText: 'M packages/ai-team-core/src/delivery-summary.ts',
+        },
+        serialized: '{"selectedVersion":"V81"}',
+      },
+      now: '2026-06-24T10:00:00.000Z',
+    };
+
+    const saved = await request(app).post('/api/team-orchestration/delivery-cockpit').send(payload);
+    const loaded = await request(app).get('/api/team-orchestration/delivery-cockpit/operator-1');
+
+    expect(saved.status).toBe(201);
+    expect(saved.body.record.id).toBe('cockpit_operator-1_2026-06-24T10:00:00.000Z');
+    expect(loaded.status).toBe(200);
+    expect(loaded.body.record.snapshot.payload.selectedVersion).toBe('V81');
+  });
+
+  it('rejects invalid delivery cockpit snapshot payloads', async () => {
+    const app = makeApp();
+    const response = await request(app).post('/api/team-orchestration/delivery-cockpit').send({ userId: '', snapshot: {} });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('validation_error');
+  });
 });
