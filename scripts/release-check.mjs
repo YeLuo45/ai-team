@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
-import { buildReleaseHardeningReport, buildReleaseEvidenceQualityGate, migrateReleaseEvidencePayload } from '../packages/ai-team-core/dist/team-orchestration.js';
+import { buildReleaseHardeningReport, buildReleaseEvidenceQualityGate, buildReleaseSideEffectGuard, migrateReleaseEvidencePayload } from '../packages/ai-team-core/dist/team-orchestration.js';
 
 const REQUIRED_COMMANDS = ['build', 'test', 'verify:readme', 'delivery:report', 'delivery:index'];
 
@@ -90,13 +90,31 @@ function evidenceStatus() {
   }
 }
 
+function gitStatusLines() {
+  const result = spawnSync('git', ['status', '--short'], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    shell: false,
+    timeout: 30_000,
+  });
+  return `${result.stdout ?? ''}`.split('\n').map((line) => line.trimEnd()).filter(Boolean);
+}
+
+function sideEffectStatus(command, before, after) {
+  const guard = buildReleaseSideEffectGuard({ command, before, after, allowedGlobs: ['docs/delivery/**'] });
+  return guard.ready ? { name: 'side-effect-guard', status: 'pass' } : { name: 'side-effect-guard', status: 'fail', reason: guard.summary };
+}
+
 function main() {
   // Run the incremental coverage gate so coverage-summary.json exists and the 95% gate is verified.
+  const beforeReport = gitStatusLines();
+  const deliveryReport = run('delivery:report', 'npm', ['run', 'delivery:report'], { timeout: 120_000, env: { AI_TEAM_DELIVERY_WRITE: '0' } });
+  const afterReport = gitStatusLines();
   const results = [
     run('build', 'npm', ['run', 'build'], { timeout: 240_000 }),
     run('test:coverage:incremental', 'npm', ['run', 'test:coverage:incremental'], { timeout: 300_000 }),
     run('verify:readme', 'npm', ['run', 'verify:readme'], { timeout: 240_000 }),
-    run('delivery:report', 'npm', ['run', 'delivery:report'], { timeout: 120_000, env: { AI_TEAM_DELIVERY_WRITE: '0' } }),
+    deliveryReport,
     run('delivery:index', 'npm', ['run', 'delivery:index'], { timeout: 120_000 }),
   ];
   const commandStatuses = [
@@ -106,6 +124,7 @@ function main() {
     statusFor(results[3], /Delivery Report — ai-team/),
     statusFor(results[4], /Delivery index ready:/),
     evidenceStatus(),
+    sideEffectStatus('npm run delivery:report', beforeReport, afterReport),
   ];
   const incrementalBranchPct = extractCoveragePct(results[1].output);
   const documented = REQUIRED_COMMANDS;

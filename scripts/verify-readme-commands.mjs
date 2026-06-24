@@ -39,7 +39,7 @@ record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-serve
 record('test targeted web console', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-console.test.tsx']), /6 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
-record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /41 passed/);
+record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /42 passed/);
 record('test targeted delivery cli', run('npm', ['test', '--', 'packages/ai-team-cli/test/delivery-command.test.ts']), /4 passed/);
 record('delivery summary', run('npm', ['run', 'delivery:summary']), /V\d+ ready/);
 record('delivery report', run('npm', ['run', 'delivery:report'], { env: { AI_TEAM_DELIVERY_WRITE: '0' } }), /Delivery Report — ai-team/);

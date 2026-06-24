@@ -46,6 +46,8 @@ export type {
   ReleaseEvidenceBatchAudit,
   ReleaseEvidenceQualityGateInput,
   ReleaseEvidenceQualityGate,
+  ReleaseSideEffectGuardInput,
+  ReleaseSideEffectGuard,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -74,5 +76,6 @@ export {
   buildCockpitWebRestoreModel,
   auditReleaseEvidenceBatch,
   buildReleaseEvidenceQualityGate,
+  buildReleaseSideEffectGuard,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';

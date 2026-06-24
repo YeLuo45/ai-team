@@ -266,6 +266,21 @@ export interface ChangedFileClassification {
   other: string[];
 }
 
+export interface ReleaseSideEffectGuardInput {
+  command: string;
+  before: string[];
+  after: string[];
+  allowedGlobs: string[];
+}
+
+export interface ReleaseSideEffectGuard {
+  ready: boolean;
+  command: string;
+  allowed: string[];
+  unexpected: string[];
+  summary: string;
+}
+
 export function buildDeliveryReportMarkdown(input: DeliveryReportInput): string {
   const proposalLine = input.proposalId ? `**Proposal**: ${input.proposalId}` : '';
   const commitLine = input.commit ? `**Commit**: ${input.commit}` : '';
@@ -352,6 +367,31 @@ export function buildReleaseEvidenceDownload(input: ReleaseEvidenceDownloadInput
     payload,
     serialized: JSON.stringify(payload, null, 2),
   };
+}
+
+function cleanStatusPath(line: string): string {
+  return line.replace(/^..\s+/, '').trim();
+}
+
+function globAllows(path: string, glob: string): boolean {
+  if (glob.endsWith('/**')) return path.startsWith(glob.slice(0, -3));
+  if (glob.endsWith('*')) return path.startsWith(glob.slice(0, -1));
+  return path === glob;
+}
+
+export function buildReleaseSideEffectGuard(input: ReleaseSideEffectGuardInput): ReleaseSideEffectGuard {
+  const before = new Set(input.before.map(cleanStatusPath).filter(Boolean));
+  const newPaths = input.after
+    .map(cleanStatusPath)
+    .filter((path) => path.length > 0 && !before.has(path));
+  const allowed = newPaths.filter((path) => input.allowedGlobs.some((glob) => globAllows(path, glob))).sort();
+  const unexpected = newPaths.filter((path) => !input.allowedGlobs.some((glob) => globAllows(path, glob))).sort();
+  const summary = unexpected.length > 0
+    ? `${input.command}: blocked ${unexpected.length} unexpected side effect(s)`
+    : newPaths.length === 0
+      ? `${input.command}: no new side effects`
+      : `${input.command}: ${allowed.length} allowed side effect(s)`;
+  return { ready: unexpected.length === 0, command: input.command, allowed, unexpected, summary };
 }
 
 export function buildProposalSyncPlan(input: ProposalSyncPlanInput): ProposalSyncPlan {

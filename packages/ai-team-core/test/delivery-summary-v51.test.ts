@@ -33,6 +33,7 @@ import {
   buildUnattendedBatchRunner,
   planProposalStatusRecovery,
   buildEvidenceTrendDashboard,
+  buildReleaseSideEffectGuard,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -923,5 +924,57 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     expect(directions[0]).toContain('VNext');
     expect(directions[0]).toContain('gate currently blocked');
     expect(directions[2]).toContain('monitor 0 evidence files');
+  });
+
+  it('guards release commands from unexpected side effects before delivery', () => {
+    const clean = buildReleaseSideEffectGuard({
+      command: 'npm run release:check',
+      before: [],
+      after: [
+        ' M docs/delivery/index.md',
+        '?? docs/delivery/ai-team-v88-release-evidence.json',
+      ],
+      allowedGlobs: ['docs/delivery/**'],
+    });
+    expect(clean.ready).toBe(true);
+    expect(clean.unexpected).toEqual([]);
+    expect(clean.allowed).toEqual(['docs/delivery/ai-team-v88-release-evidence.json', 'docs/delivery/index.md']);
+
+    const dirty = buildReleaseSideEffectGuard({
+      command: 'npm run verify:readme',
+      before: [' M README.md'],
+      after: [
+        ' M README.md',
+        ' M scripts/release-check.mjs',
+        '?? docs/delivery/v88-delivery-report.md',
+      ],
+      allowedGlobs: ['docs/delivery/**'],
+    });
+    expect(dirty.ready).toBe(false);
+    expect(dirty.unexpected).toEqual(['scripts/release-check.mjs']);
+    expect(dirty.allowed).toEqual(['docs/delivery/v88-delivery-report.md']);
+    expect(dirty.summary).toContain('blocked 1 unexpected side effect');
+
+    const prefix = buildReleaseSideEffectGuard({
+      command: 'npm run release:check',
+      before: [],
+      after: [' M scripts/release-check.mjs'],
+      allowedGlobs: ['scripts/*'],
+    });
+    expect(prefix.ready).toBe(true);
+    expect(prefix.allowed).toEqual(['scripts/release-check.mjs']);
+
+    const exact = buildReleaseSideEffectGuard({
+      command: 'npm run release:check',
+      before: [],
+      after: [' M README.md'],
+      allowedGlobs: ['README.md'],
+    });
+    expect(exact.ready).toBe(true);
+    expect(exact.allowed).toEqual(['README.md']);
+
+    const noChange = buildReleaseSideEffectGuard({ command: 'npm run build', before: [' M README.md'], after: [' M README.md'], allowedGlobs: [] });
+    expect(noChange.ready).toBe(true);
+    expect(noChange.summary).toContain('no new side effects');
   });
 });
