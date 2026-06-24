@@ -98,6 +98,30 @@ describe('V81 delivery CLI commands', () => {
     expect(output).toContain('node scripts/import-ci-artifact.mjs --version V94 --artifact artifacts/release-check.json --output docs/delivery/ai-team-v94-release-evidence.json --dry-run');
   });
 
+  it('ingests a CI artifact and writes release evidence JSON', async () => {
+    const artifact = join(dir, 'release-check.json');
+    const outputPath = join(dir, 'ai-team-v97-release-evidence.json');
+    writeFileSync(artifact, JSON.stringify({
+      tests: { passed: 1161, total: 1168, skipped: 7 },
+      coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.5, thresholdPct: 95 },
+      readme: { passed: 15, total: 15 },
+      build: { passed: true },
+    }), 'utf-8');
+
+    const program = await loadProgram();
+    await program.parseAsync([
+      'node', 'ai-team', 'delivery', 'ci-artifact-ingest',
+      '--artifact', artifact,
+      '--version', 'V97',
+      '--output', outputPath,
+    ]);
+
+    const output = logSpy.mock.calls.join('\n');
+    expect(output).toContain('ci artifact ingestion ready dryRun=false');
+    expect(output).toContain(`wrote ${outputPath}`);
+    expect(JSON.parse(readFileSync(outputPath, 'utf-8')).version).toBe('V97');
+  });
+
   it('prints guarded proposal execution commands without running them', async () => {
     const program = await loadProgram();
     await program.parseAsync([

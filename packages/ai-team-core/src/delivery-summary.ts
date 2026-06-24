@@ -894,6 +894,50 @@ export interface ProposalExecutionAuditLedger {
   markdown: string;
 }
 
+export interface ReleaseOperationsAuditFilter {
+  status?: ProposalSyncStatus;
+  ok?: boolean;
+  query?: string;
+}
+
+export interface ReleaseOperationsPersistenceInput {
+  userId: string;
+  selectedTab: 'overview' | 'artifacts' | 'audit';
+  panel: ReleaseOperationsPanelModel;
+  auditFilter: ReleaseOperationsAuditFilter;
+  now: string;
+}
+
+export interface ReleaseOperationsPersistenceSnapshot {
+  storageKey: 'ai-team:release-operations:v1';
+  payload: {
+    userId: string;
+    selectedTab: 'overview' | 'artifacts' | 'audit';
+    panel: ReleaseOperationsPanelModel;
+    auditFilter: ReleaseOperationsAuditFilter;
+    updatedAt: string;
+  };
+  serialized: string;
+}
+
+export interface CiArtifactIngestionExecutionInput extends CiArtifactImportCommandPlanInput {
+  artifactText: string;
+}
+
+export interface CiArtifactIngestionExecution {
+  ready: boolean;
+  plan: CiArtifactImportCommandPlan;
+  evidence: CiArtifactEvidenceResult;
+  write?: { path: string; content: string };
+  issues: string[];
+}
+
+export interface ProposalExecutionAuditTimeline {
+  total: number;
+  events: ProposalExecutionAuditEvent[];
+  markdown: string;
+}
+
 export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
   const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
   const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
@@ -1236,6 +1280,62 @@ export function buildProposalExecutionAuditLedger(input: ProposalExecutionAuditL
     ...input.events.map((event) => `| ${event.at} | ${event.status} | ${event.ok ? 'yes' : 'no'} | \`${event.command}\` | ${event.note ?? ''} |`),
   ].join('\n');
   return { ready, proposalId: input.proposalId, actor: input.actor, okCount, total, statusPath, summary, markdown };
+}
+
+export function buildReleaseOperationsPersistenceSnapshot(input: ReleaseOperationsPersistenceInput): ReleaseOperationsPersistenceSnapshot {
+  const payload: ReleaseOperationsPersistenceSnapshot['payload'] = {
+    userId: input.userId.trim() || 'anonymous',
+    selectedTab: input.selectedTab,
+    panel: input.panel,
+    auditFilter: input.auditFilter,
+    updatedAt: input.now,
+  };
+  return {
+    storageKey: 'ai-team:release-operations:v1',
+    payload,
+    serialized: JSON.stringify(payload),
+  };
+}
+
+export function buildCiArtifactIngestionExecution(input: CiArtifactIngestionExecutionInput): CiArtifactIngestionExecution {
+  const plan = buildCiArtifactImportCommandPlan(input);
+  const evidence = buildCiArtifactEvidenceInput({ version: input.version || 'VNext', artifactName: input.artifactPath || 'unknown', jsonText: input.artifactText });
+  const issues = [...plan.issues, ...evidence.issues];
+  const ready = plan.ready && evidence.summary.ready && issues.length === 0;
+  return {
+    ready,
+    plan,
+    evidence,
+    issues,
+    ...(ready && !input.dryRun ? { write: { path: input.outputPath, content: JSON.stringify(evidence.evidence, null, 2) } } : {}),
+  };
+}
+
+export function filterProposalExecutionAuditTimeline(ledger: ProposalExecutionAuditLedger, filter: ReleaseOperationsAuditFilter): ProposalExecutionAuditTimeline {
+  const rows = ledger.markdown
+    .split('\n')
+    .filter((line) => line.startsWith('| 20'))
+    .map((line): ProposalExecutionAuditEvent => {
+      const cells = line.split('|').map((cell) => cell.trim());
+      return {
+        at: cells[1] ?? '',
+        status: (cells[2] ?? 'intake') as ProposalSyncStatus,
+        ok: cells[3] === 'yes',
+        command: (cells[4] ?? '').replace(/^`|`$/g, ''),
+        note: cells[5] || undefined,
+      };
+    })
+    .filter((event) => !filter.status || event.status === filter.status)
+    .filter((event) => filter.ok === undefined || event.ok === filter.ok)
+    .filter((event) => {
+      if (!filter.query) return true;
+      const haystack = `${event.at} ${event.status} ${event.command} ${event.note ?? ''}`.toLowerCase();
+      return haystack.includes(filter.query.toLowerCase());
+    });
+  const markdown = rows.length === 0
+    ? `# Proposal Audit Timeline\n\nNo matching audit events for ${ledger.proposalId}`
+    : ['# Proposal Audit Timeline', '', ...rows.map((event) => `- ${event.at} ${event.status} ${event.ok ? 'ok' : 'failed'} ${event.note ?? event.command}`)].join('\n');
+  return { total: rows.length, events: rows, markdown };
 }
 
 export function generateNextDeliveryDirections(input: NextDeliveryDirectionInput): string[] {

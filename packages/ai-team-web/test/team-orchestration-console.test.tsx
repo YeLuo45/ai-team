@@ -153,4 +153,18 @@ describe('V42 TeamOrchestrationConsole page', () => {
     expect(screen.getByText(/Restore V96 cockpit/)).toBeTruthy();
     expect(screen.getByText(/coverage · ready · V96/)).toBeTruthy();
   });
+
+  it('persists release operations and filters the proposal audit timeline', async () => {
+    render(<TeamOrchestrationConsole />);
+
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-operations-panel')); });
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-audit-ledger')); });
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-persist-operations')); });
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-filter-audit')); });
+
+    expect(screen.getByText(/Persisted release ops: operator-1/)).toBeTruthy();
+    expect(screen.getByText(/audit · 2026-06-24T08:00:00Z/)).toBeTruthy();
+    expect(screen.getByText(/Audit timeline: 1/)).toBeTruthy();
+    expect(window.localStorage.getItem('ai-team:release-operations:v1')).toContain('operator-1');
+  });
 });

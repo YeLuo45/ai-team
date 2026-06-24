@@ -15,6 +15,8 @@ import {
   buildProposalAutoDeliveryExecution,
   buildCiArtifactEvidenceInput,
   buildProposalExecutionAuditLedger,
+  buildReleaseOperationsPersistenceSnapshot,
+  filterProposalExecutionAuditTimeline,
   classifyChangedFiles,
   executeProposalDryRun,
   parseVersionedReleaseEvidenceJson,
@@ -48,6 +50,8 @@ type DeliveryChecklist = ReturnType<typeof buildProposalDeliveryChecklist>;
 type CockpitRestore = ReturnType<typeof buildCockpitWebRestoreModel>;
 type OperationsPanel = ReturnType<typeof buildReleaseOperationsPanelModel>;
 type ProposalAuditLedger = ReturnType<typeof buildProposalExecutionAuditLedger>;
+type OperationsSnapshot = ReturnType<typeof buildReleaseOperationsPersistenceSnapshot>;
+type AuditTimeline = ReturnType<typeof filterProposalExecutionAuditTimeline>;
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -76,6 +80,8 @@ export default function TeamOrchestrationConsole() {
   const [cockpitRestore, setCockpitRestore] = useState<CockpitRestore | null>(null);
   const [operationsPanel, setOperationsPanel] = useState<OperationsPanel | null>(null);
   const [auditLedger, setAuditLedger] = useState<ProposalAuditLedger | null>(null);
+  const [operationsSnapshot, setOperationsSnapshot] = useState<OperationsSnapshot | null>(null);
+  const [auditTimeline, setAuditTimeline] = useState<AuditTimeline | null>(null);
   const [candidateName, setCandidateName] = useState('Ada Chen');
   const [memoryFeedback, setMemoryFeedback] = useState('ownership matters');
   const [status, setStatus] = useState('');
@@ -331,6 +337,31 @@ export default function TeamOrchestrationConsole() {
     }));
   }
 
+  function persistOperationsPanel() {
+    const panel = operationsPanel ?? buildReleaseOperationsPanelModel({
+      entries: [],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'noop', before: [], after: [], allowedGlobs: [] })),
+      autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-022', currentStatus: 'delivered', reportPath: 'docs/delivery/v97.md', gates: { build: true, tests: true, coverage: true, readme: true, release: true }, dryRun: true }),
+      ciArtifact: buildCiArtifactEvidenceInput({ version: 'V97', artifactName: 'release-check.json', jsonText: '{}' }),
+    });
+    const snapshot = buildReleaseOperationsPersistenceSnapshot({ userId: 'operator-1', selectedTab: 'audit', panel, auditFilter: { status: 'delivered', ok: true }, now: '2026-06-24T08:00:00Z' });
+    window.localStorage?.setItem(snapshot.storageKey, snapshot.serialized);
+    setOperationsSnapshot(snapshot);
+    setStatus('Release operations panel persisted');
+  }
+
+  function filterAuditTimeline() {
+    const ledger = auditLedger ?? buildProposalExecutionAuditLedger({
+      proposalId: 'P-20260624-022',
+      actor: '小墨',
+      events: [
+        { at: '2026-06-24T08:00:00Z', status: 'accepted', command: 'mcp status accepted', ok: true },
+        { at: '2026-06-24T08:01:00Z', status: 'delivered', command: 'mcp status delivered', ok: false, note: 'retry' },
+      ],
+    });
+    setAuditTimeline(filterProposalExecutionAuditTimeline(ledger, { status: 'delivered' }));
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -371,6 +402,8 @@ export default function TeamOrchestrationConsole() {
         <button data-testid="team-orchestration-restore-cockpit" className="btn btn-ghost" onClick={restoreCockpit}>Restore cockpit</button>
         <button data-testid="team-orchestration-operations-panel" className="btn btn-ghost" onClick={showOperationsPanel}>Operations panel</button>
         <button data-testid="team-orchestration-audit-ledger" className="btn btn-ghost" onClick={showAuditLedger}>Audit ledger</button>
+        <button data-testid="team-orchestration-persist-operations" className="btn btn-ghost" onClick={persistOperationsPanel}>Persist operations</button>
+        <button data-testid="team-orchestration-filter-audit" className="btn btn-ghost" onClick={filterAuditTimeline}>Filter audit</button>
       </div>
 
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-2">
@@ -487,6 +520,20 @@ export default function TeamOrchestrationConsole() {
           <h3 className="font-semibold text-orange-900 dark:text-orange-100">Proposal audit: {auditLedger.proposalId}</h3>
           <p className="mt-1 text-sm text-orange-800 dark:text-orange-200">{auditLedger.summary}</p>
           <p className="mt-1 text-xs text-orange-700 dark:text-orange-300">Path: {auditLedger.statusPath.join(' → ') || 'none'}</p>
+        </article>
+      )}
+
+      {operationsSnapshot && (
+        <article className="rounded-xl border border-fuchsia-200 bg-fuchsia-50 p-4 dark:border-fuchsia-900 dark:bg-fuchsia-950/40">
+          <h3 className="font-semibold text-fuchsia-900 dark:text-fuchsia-100">Persisted release ops: {operationsSnapshot.payload.userId}</h3>
+          <p className="mt-1 text-sm text-fuchsia-800 dark:text-fuchsia-200">{operationsSnapshot.payload.selectedTab} · {operationsSnapshot.payload.updatedAt}</p>
+        </article>
+      )}
+
+      {auditTimeline && (
+        <article className="rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/40">
+          <h3 className="font-semibold text-rose-900 dark:text-rose-100">Audit timeline: {auditTimeline.total}</h3>
+          <p className="mt-1 text-sm text-rose-800 dark:text-rose-200">{auditTimeline.markdown}</p>
         </article>
       )}
     </section>

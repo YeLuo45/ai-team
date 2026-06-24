@@ -40,6 +40,9 @@ import {
   buildReleaseOperationsPanelModel,
   buildCiArtifactImportCommandPlan,
   buildProposalExecutionAuditLedger,
+  buildReleaseOperationsPersistenceSnapshot,
+  buildCiArtifactIngestionExecution,
+  filterProposalExecutionAuditTimeline,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -1146,5 +1149,84 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     const emptyLedger = buildProposalExecutionAuditLedger({ proposalId: 'P-20260624-020', actor: '小墨', events: [] });
     expect(emptyLedger.ready).toBe(false);
     expect(emptyLedger.summary).toBe('P-20260624-020: no audit events');
+  });
+
+  it('builds V95-V97 persistence snapshots, CI ingestion execution, and audit timeline filters', () => {
+    const panel = buildReleaseOperationsPanelModel({
+      entries: [{ version: 'V97', path: 'docs/delivery/v97.md', updatedAt: '2026-06-24T08:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V97', tests: { passed: 1161, total: 1168, skipped: 7 }, coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.5, thresholdPct: 95 }, readme: { passed: 15, total: 15 }, build: { passed: true }, blockers: [] }) }],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'npm run release:check', before: [], after: [], allowedGlobs: [] })),
+      autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-022', currentStatus: 'in_test_acceptance', reportPath: 'docs/delivery/v97.md', gates: { build: true, tests: true, coverage: true, readme: true, release: true }, dryRun: false }),
+      ciArtifact: buildCiArtifactEvidenceInput({ version: 'V97', artifactName: 'release-check.json', jsonText: JSON.stringify({ tests: { passed: 1161, total: 1168, skipped: 7 }, coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.5, thresholdPct: 95 }, readme: { passed: 15, total: 15 }, build: { passed: true } }) }),
+    });
+    const snapshot = buildReleaseOperationsPersistenceSnapshot({ userId: 'operator-1', selectedTab: 'audit', panel, auditFilter: { status: 'delivered', ok: true }, now: '2026-06-24T08:00:00Z' });
+    expect(snapshot.storageKey).toBe('ai-team:release-operations:v1');
+    expect(snapshot.payload.selectedTab).toBe('audit');
+    expect(snapshot.payload.panel.latestVersion).toBe('V97');
+    expect(snapshot.serialized).toContain('operator-1');
+
+    const ingestion = buildCiArtifactIngestionExecution({
+      artifactPath: 'artifacts/release-check.json',
+      artifactText: JSON.stringify({ tests: { passed: 1161, total: 1168, skipped: 7 }, coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.5, thresholdPct: 95 }, readme: { passed: 15, total: 15 }, build: { passed: true } }),
+      version: 'V97',
+      outputPath: 'docs/delivery/ai-team-v97-release-evidence.json',
+      dryRun: false,
+    });
+    expect(ingestion.ready).toBe(true);
+    expect(ingestion.plan.commands[0]).not.toContain('--dry-run');
+    expect(ingestion.write).toEqual({ path: 'docs/delivery/ai-team-v97-release-evidence.json', content: expect.stringContaining('"version": "V97"') });
+
+    const ledger = buildProposalExecutionAuditLedger({
+      proposalId: 'P-20260624-022',
+      actor: '小墨',
+      events: [
+        { at: '2026-06-24T08:00:00Z', status: 'in_test_acceptance', command: 'npm run release:check', ok: true },
+        { at: '2026-06-24T08:01:00Z', status: 'accepted', command: 'mcp status accepted', ok: true },
+        { at: '2026-06-24T08:02:00Z', status: 'delivered', command: 'mcp status delivered', ok: false, note: 'retry' },
+      ],
+    });
+    const filtered = filterProposalExecutionAuditTimeline(ledger, { status: 'delivered', ok: false, query: 'retry' });
+    expect(filtered.total).toBe(1);
+    expect(filtered.events[0]?.status).toBe('delivered');
+    expect(filtered.markdown).toContain('retry');
+  });
+
+  it('covers blocked V95-V97 persistence, ingestion, and timeline branches', () => {
+    const blockedIngestion = buildCiArtifactIngestionExecution({ artifactPath: '', artifactText: '{bad', version: '', outputPath: '', dryRun: true });
+    expect(blockedIngestion.ready).toBe(false);
+    expect(blockedIngestion.write).toBeUndefined();
+    expect(blockedIngestion.issues).toContain('version is required');
+
+    const emptySnapshot = buildReleaseOperationsPersistenceSnapshot({ userId: '', selectedTab: 'overview', panel: buildReleaseOperationsPanelModel({ entries: [], sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'noop', before: [], after: [], allowedGlobs: [] })), autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-0', currentStatus: 'delivered', reportPath: 'none', gates: { build: false, tests: false, coverage: false, readme: false, release: false }, dryRun: true }), ciArtifact: buildCiArtifactEvidenceInput({ version: 'VNext', artifactName: 'bad.json', jsonText: '{bad' }) }), auditFilter: {}, now: '2026-06-24T08:00:00Z' });
+    expect(emptySnapshot.payload.userId).toBe('anonymous');
+    expect(emptySnapshot.payload.selectedTab).toBe('overview');
+
+    const ledger = buildProposalExecutionAuditLedger({ proposalId: 'P-20260624-023', actor: '小墨', events: [{ at: '2026-06-24T08:00:00Z', status: 'accepted', command: 'ok', ok: true }] });
+    const none = filterProposalExecutionAuditTimeline(ledger, { status: 'delivered', query: 'missing' });
+    expect(none.total).toBe(0);
+    expect(none.markdown).toContain('No matching audit events');
+  });
+
+  it('covers V95-V97 dry-run ingestion and unfiltered audit timeline branches', () => {
+    const dryRun = buildCiArtifactIngestionExecution({
+      artifactPath: 'artifacts/release-check.json',
+      artifactText: JSON.stringify({ tests: { passed: 3, total: 3, skipped: 0 }, coverage: { strictPassed: 1, strictTotal: 1, averageBranchPct: 100, thresholdPct: 95 }, readme: { passed: 1, total: 1 }, build: { passed: true } }),
+      version: 'V98',
+      outputPath: 'docs/delivery/ai-team-v98-release-evidence.json',
+      dryRun: true,
+    });
+    expect(dryRun.ready).toBe(true);
+    expect(dryRun.write).toBeUndefined();
+
+    const ledger = buildProposalExecutionAuditLedger({
+      proposalId: 'P-20260624-024',
+      actor: '小墨',
+      events: [
+        { at: '2026-06-24T09:00:00Z', status: 'accepted', command: 'mcp accepted', ok: true },
+        { at: '2026-06-24T09:01:00Z', status: 'deployed', command: 'mcp deployed', ok: true },
+      ],
+    });
+    const all = filterProposalExecutionAuditTimeline(ledger, {});
+    expect(all.total).toBe(2);
+    expect(all.markdown).toContain('mcp deployed');
   });
 });

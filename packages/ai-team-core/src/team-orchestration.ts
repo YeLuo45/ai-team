@@ -63,6 +63,12 @@ export type {
   ProposalExecutionAuditEvent,
   ProposalExecutionAuditLedgerInput,
   ProposalExecutionAuditLedger,
+  ReleaseOperationsAuditFilter,
+  ReleaseOperationsPersistenceInput,
+  ReleaseOperationsPersistenceSnapshot,
+  CiArtifactIngestionExecutionInput,
+  CiArtifactIngestionExecution,
+  ProposalExecutionAuditTimeline,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -98,5 +104,8 @@ export {
   buildReleaseOperationsPanelModel,
   buildCiArtifactImportCommandPlan,
   buildProposalExecutionAuditLedger,
+  buildReleaseOperationsPersistenceSnapshot,
+  buildCiArtifactIngestionExecution,
+  filterProposalExecutionAuditTimeline,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';
