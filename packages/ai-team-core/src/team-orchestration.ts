@@ -69,6 +69,11 @@ export type {
   CiArtifactIngestionExecutionInput,
   CiArtifactIngestionExecution,
   ProposalExecutionAuditTimeline,
+  ReleaseOperationsServerRecord,
+  CiArtifactUploadBridgeInput,
+  CiArtifactUploadBridge,
+  ProposalAuditReplaySmokeGateInput,
+  ProposalAuditReplaySmokeGate,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -107,5 +112,8 @@ export {
   buildReleaseOperationsPersistenceSnapshot,
   buildCiArtifactIngestionExecution,
   filterProposalExecutionAuditTimeline,
+  buildReleaseOperationsServerRecord,
+  buildCiArtifactUploadBridge,
+  buildProposalAuditReplaySmokeGate,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';

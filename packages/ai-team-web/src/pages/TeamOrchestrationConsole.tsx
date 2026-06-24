@@ -52,6 +52,9 @@ type OperationsPanel = ReturnType<typeof buildReleaseOperationsPanelModel>;
 type ProposalAuditLedger = ReturnType<typeof buildProposalExecutionAuditLedger>;
 type OperationsSnapshot = ReturnType<typeof buildReleaseOperationsPersistenceSnapshot>;
 type AuditTimeline = ReturnType<typeof filterProposalExecutionAuditTimeline>;
+type ReleaseOperationsApiRecord = { id: string; userId: string; updatedAt: string; ready: boolean; snapshot: OperationsSnapshot };
+type UploadBridge = { ready: boolean; uploadTarget: string; commands: string[]; issues: string[]; evidencePath: string };
+type ReplaySmokeGate = { ready: boolean; replayedStatuses: string[]; issues: string[]; markdown: string };
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -82,6 +85,9 @@ export default function TeamOrchestrationConsole() {
   const [auditLedger, setAuditLedger] = useState<ProposalAuditLedger | null>(null);
   const [operationsSnapshot, setOperationsSnapshot] = useState<OperationsSnapshot | null>(null);
   const [auditTimeline, setAuditTimeline] = useState<AuditTimeline | null>(null);
+  const [releaseOperationsRecord, setReleaseOperationsRecord] = useState<ReleaseOperationsApiRecord | null>(null);
+  const [uploadBridge, setUploadBridge] = useState<UploadBridge | null>(null);
+  const [replaySmokeGate, setReplaySmokeGate] = useState<ReplaySmokeGate | null>(null);
   const [candidateName, setCandidateName] = useState('Ada Chen');
   const [memoryFeedback, setMemoryFeedback] = useState('ownership matters');
   const [status, setStatus] = useState('');
@@ -362,6 +368,60 @@ export default function TeamOrchestrationConsole() {
     setAuditTimeline(filterProposalExecutionAuditTimeline(ledger, { status: 'delivered' }));
   }
 
+  async function syncReleaseOperations() {
+    try {
+      setError('');
+      const panel = operationsPanel ?? buildReleaseOperationsPanelModel({
+        entries: [],
+        sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'noop', before: [], after: [], allowedGlobs: [] })),
+        autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-024', currentStatus: 'delivered', reportPath: 'docs/delivery/v100.md', gates: { build: true, tests: true, coverage: true, readme: true, release: true }, dryRun: true }),
+        ciArtifact: buildCiArtifactEvidenceInput({ version: 'V100', artifactName: 'release-check.json', jsonText: JSON.stringify({ tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true } }) }),
+      });
+      const snapshot = buildReleaseOperationsPersistenceSnapshot({ userId: 'operator-1', selectedTab: 'audit', panel, auditFilter: { ok: true }, now: '2026-06-24T11:00:00Z' });
+      const result = await postJson<{ record: ReleaseOperationsApiRecord }>('/api/team-orchestration/release-operations', { userId: 'operator-1', snapshot, now: snapshot.payload.updatedAt });
+      setReleaseOperationsRecord(result.record);
+      setStatus('Release operations synced to API');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function buildUploadBridge() {
+    try {
+      setError('');
+      const result = await postJson<{ bridge: UploadBridge }>('/api/team-orchestration/ci-artifact-upload-bridge', {
+        artifactPath: 'artifacts/release-check.json',
+        artifactText: JSON.stringify({ tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true } }),
+        version: 'V100',
+        outputPath: 'docs/delivery/ai-team-v100-release-evidence.json',
+        uploadTarget: 'release-asset',
+        dryRun: true,
+      });
+      setUploadBridge(result.bridge);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function runAuditReplaySmoke() {
+    try {
+      setError('');
+      const result = await postJson<{ gate: ReplaySmokeGate }>('/api/team-orchestration/audit-replay-smoke', {
+        proposalId: 'P-20260624-024',
+        actor: '小墨',
+        expectedFinalStatus: 'delivered',
+        events: [
+          { at: '2026-06-24T11:00:00Z', status: 'accepted', command: 'accept', ok: true },
+          { at: '2026-06-24T11:01:00Z', status: 'deployed', command: 'deploy', ok: true },
+          { at: '2026-06-24T11:02:00Z', status: 'delivered', command: 'deliver', ok: true },
+        ],
+      });
+      setReplaySmokeGate(result.gate);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -404,6 +464,9 @@ export default function TeamOrchestrationConsole() {
         <button data-testid="team-orchestration-audit-ledger" className="btn btn-ghost" onClick={showAuditLedger}>Audit ledger</button>
         <button data-testid="team-orchestration-persist-operations" className="btn btn-ghost" onClick={persistOperationsPanel}>Persist operations</button>
         <button data-testid="team-orchestration-filter-audit" className="btn btn-ghost" onClick={filterAuditTimeline}>Filter audit</button>
+        <button data-testid="team-orchestration-sync-release-ops" className="btn btn-ghost" onClick={syncReleaseOperations}>Sync release ops API</button>
+        <button data-testid="team-orchestration-upload-bridge" className="btn btn-ghost" onClick={buildUploadBridge}>Upload bridge</button>
+        <button data-testid="team-orchestration-replay-smoke" className="btn btn-ghost" onClick={runAuditReplaySmoke}>Replay smoke</button>
       </div>
 
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-2">
@@ -534,6 +597,27 @@ export default function TeamOrchestrationConsole() {
         <article className="rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/40">
           <h3 className="font-semibold text-rose-900 dark:text-rose-100">Audit timeline: {auditTimeline.total}</h3>
           <p className="mt-1 text-sm text-rose-800 dark:text-rose-200">{auditTimeline.markdown}</p>
+        </article>
+      )}
+
+      {releaseOperationsRecord && (
+        <article className="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-900 dark:bg-violet-950/40">
+          <h3 className="font-semibold text-violet-900 dark:text-violet-100">Release ops API: {releaseOperationsRecord.userId}</h3>
+          <p className="mt-1 text-sm text-violet-800 dark:text-violet-200">Ready: {releaseOperationsRecord.ready ? 'yes' : 'no'} · {releaseOperationsRecord.updatedAt}</p>
+        </article>
+      )}
+
+      {uploadBridge && (
+        <article className="rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-950/40">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100">Upload bridge: {uploadBridge.uploadTarget}</h3>
+          <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">{uploadBridge.commands.join(' | ') || uploadBridge.issues.join(', ')}</p>
+        </article>
+      )}
+
+      {replaySmokeGate && (
+        <article className="rounded-xl border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950/40">
+          <h3 className="font-semibold text-green-900 dark:text-green-100">Replay smoke: {replaySmokeGate.ready ? 'ready' : 'blocked'}</h3>
+          <p className="mt-1 text-sm text-green-800 dark:text-green-200">{replaySmokeGate.replayedStatuses.join(' → ')}</p>
         </article>
       )}
     </section>

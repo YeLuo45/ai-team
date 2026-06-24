@@ -3,6 +3,7 @@ import {
   auditReleaseEvidenceBatch,
   buildCiArtifactImportCommandPlan,
   buildCiArtifactIngestionExecution,
+  buildCiArtifactUploadBridge,
   buildProposalDeliveryWizard,
   buildProposalExecutionPlan,
   executeProposalDryRun,
@@ -90,6 +91,24 @@ export function registerDeliveryCommands(program: Command): void {
       for (const issue of result.issues) console.log(c.warn(issue));
       if (result.write) await fs.writeFile(result.write.path, `${result.write.content}\n`, 'utf-8');
       if (result.write) console.log(c.ok(`wrote ${result.write.path}`));
+    });
+
+  cmd
+    .command('ci-artifact-upload-bridge')
+    .description('Validate CI artifact evidence and print the upload bridge command')
+    .requiredOption('--artifact <path>', 'CI artifact JSON path')
+    .requiredOption('--version <version>', 'delivery version such as V100')
+    .requiredOption('--output <path>', 'output release evidence JSON path')
+    .requiredOption('--target <target>', 'local-evidence | github-actions-artifact | release-asset')
+    .option('--dry-run', 'validate without writing', false)
+    .action(async (opts) => {
+      const fs = await import('node:fs/promises');
+      const artifactText = await fs.readFile(opts.artifact, 'utf-8');
+      const target = opts.target as 'local-evidence' | 'github-actions-artifact' | 'release-asset';
+      const result = buildCiArtifactUploadBridge({ artifactPath: opts.artifact, artifactText, version: opts.version, outputPath: opts.output, dryRun: opts.dryRun, uploadTarget: target });
+      console.log(result.ready ? c.ok(`ci artifact upload bridge ready target=${result.uploadTarget}`) : c.err(`ci artifact upload bridge blocked issues=${result.issues.length}`));
+      for (const issue of result.issues) console.log(c.warn(issue));
+      for (const command of result.commands) console.log(command);
     });
 
   cmd

@@ -122,6 +122,30 @@ describe('V81 delivery CLI commands', () => {
     expect(JSON.parse(readFileSync(outputPath, 'utf-8')).version).toBe('V97');
   });
 
+  it('prints CI artifact upload bridge commands', async () => {
+    const artifact = join(dir, 'release-check.json');
+    const outputPath = join(dir, 'ai-team-v100-release-evidence.json');
+    writeFileSync(artifact, JSON.stringify({
+      tests: { passed: 1164, total: 1171, skipped: 7 },
+      coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 },
+      readme: { passed: 14, total: 14 },
+      build: { passed: true },
+    }), 'utf-8');
+
+    const program = await loadProgram();
+    await program.parseAsync([
+      'node', 'ai-team', 'delivery', 'ci-artifact-upload-bridge',
+      '--artifact', artifact,
+      '--version', 'V100',
+      '--output', outputPath,
+      '--target', 'release-asset',
+    ]);
+
+    const output = logSpy.mock.calls.join('\n');
+    expect(output).toContain('ci artifact upload bridge ready target=release-asset');
+    expect(output).toContain('gh release upload v100');
+  });
+
   it('prints guarded proposal execution commands without running them', async () => {
     const program = await loadProgram();
     await program.parseAsync([

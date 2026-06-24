@@ -664,4 +664,61 @@ describe('V36-V41 team orchestration routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe('validation_error');
   });
+
+  it('persists release operations snapshots and exposes upload bridge + replay smoke via REST', async () => {
+    const app = makeApp();
+    const releaseSnapshot = {
+      storageKey: 'ai-team:release-operations:v1',
+      payload: {
+        userId: 'operator-2',
+        selectedTab: 'audit',
+        panel: { ready: true, latestVersion: 'V100', cards: [], markdown: '# panel' },
+        auditFilter: { ok: true },
+        updatedAt: '2026-06-24T11:00:00Z',
+      },
+      serialized: '{"userId":"operator-2"}',
+    };
+    const saved = await request(app).post('/api/team-orchestration/release-operations').send({ userId: 'operator-2', snapshot: releaseSnapshot, now: '2026-06-24T11:00:00Z' });
+    const loaded = await request(app).get('/api/team-orchestration/release-operations/operator-2');
+    const bridge = await request(app).post('/api/team-orchestration/ci-artifact-upload-bridge').send({
+      artifactPath: 'artifacts/release-check.json',
+      artifactText: JSON.stringify({ tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true } }),
+      version: 'V100',
+      outputPath: 'docs/delivery/ai-team-v100-release-evidence.json',
+      uploadTarget: 'github-actions-artifact',
+      dryRun: true,
+    });
+    const replay = await request(app).post('/api/team-orchestration/audit-replay-smoke').send({
+      proposalId: 'P-20260624-024',
+      actor: '小墨',
+      expectedFinalStatus: 'delivered',
+      events: [
+        { at: '2026-06-24T11:00:00Z', status: 'accepted', command: 'accept', ok: true },
+        { at: '2026-06-24T11:01:00Z', status: 'delivered', command: 'deliver', ok: true },
+      ],
+    });
+
+    expect(saved.status).toBe(201);
+    expect(saved.body.record.ready).toBe(true);
+    expect(loaded.body.record.snapshot.payload.latestVersion).toBeUndefined();
+    expect(loaded.body.record.snapshot.payload.panel.latestVersion).toBe('V100');
+    expect(bridge.status).toBe(200);
+    expect(bridge.body.bridge.commands.at(-1)).toContain('gh run download');
+    expect(replay.status).toBe(200);
+    expect(replay.body.gate.ready).toBe(true);
+    expect(replay.body.gate.replayedStatuses).toEqual(['accepted', 'delivered']);
+  });
+
+  it.each([
+    ['/release-operations', { userId: '', snapshot: { storageKey: 'bad' } }],
+    ['/ci-artifact-upload-bridge', { artifactPath: '', artifactText: '{}', version: 'V100', outputPath: 'x', uploadTarget: 'local-evidence' }],
+    ['/ci-artifact-upload-bridge', { artifactPath: 'a', artifactText: '{}', version: 'V100', outputPath: 'x', uploadTarget: 'bad' }],
+    ['/audit-replay-smoke', { proposalId: 'P', actor: '小墨', expectedFinalStatus: 'delivered', events: [{ at: 'x', status: 'bad', command: 'c', ok: true }] }],
+    ['/audit-replay-smoke', { proposalId: 'P', actor: '小墨', expectedFinalStatus: 'bad', events: [] }],
+  ])('rejects invalid V98-V100 payload for %s', async (path, body) => {
+    const app = makeApp();
+    const response = await request(app).post(`/api/team-orchestration${path}`).send(body);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('validation_error');
+  });
 });

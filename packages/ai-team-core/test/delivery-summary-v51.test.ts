@@ -43,6 +43,9 @@ import {
   buildReleaseOperationsPersistenceSnapshot,
   buildCiArtifactIngestionExecution,
   filterProposalExecutionAuditTimeline,
+  buildReleaseOperationsServerRecord,
+  buildCiArtifactUploadBridge,
+  buildProposalAuditReplaySmokeGate,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -1228,5 +1231,64 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     const all = filterProposalExecutionAuditTimeline(ledger, {});
     expect(all.total).toBe(2);
     expect(all.markdown).toContain('mcp deployed');
+  });
+
+  it('builds V98-V100 server records, upload bridges, and replay smoke gates', () => {
+    const panel = buildReleaseOperationsPanelModel({
+      entries: [{ version: 'V100', path: 'docs/delivery/v100.md', updatedAt: '2026-06-24T10:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V100', tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true }, blockers: [] }) }],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'npm run release:check', before: [], after: [], allowedGlobs: [] })),
+      autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-024', currentStatus: 'in_test_acceptance', reportPath: 'docs/delivery/v100.md', gates: { build: true, tests: true, coverage: true, readme: true, release: true }, dryRun: true }),
+      ciArtifact: buildCiArtifactEvidenceInput({ version: 'V100', artifactName: 'release-check.json', jsonText: JSON.stringify({ tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true } }) }),
+    });
+    const snapshot = buildReleaseOperationsPersistenceSnapshot({ userId: 'operator-2', selectedTab: 'artifacts', panel, auditFilter: { ok: true }, now: '2026-06-24T10:00:00Z' });
+    const record = buildReleaseOperationsServerRecord({ userId: 'operator-2', snapshot, now: '2026-06-24T10:00:00Z' });
+    expect(record.id).toBe('release_ops_operator-2_2026-06-24T10:00:00Z');
+    expect(record.ready).toBe(true);
+
+    const bridge = buildCiArtifactUploadBridge({
+      artifactPath: 'artifacts/release-check.json',
+      artifactText: JSON.stringify({ tests: { passed: 1164, total: 1171, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.3, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true } }),
+      version: 'V100',
+      outputPath: 'docs/delivery/ai-team-v100-release-evidence.json',
+      dryRun: false,
+      uploadTarget: 'release-asset',
+    });
+    expect(bridge.ready).toBe(true);
+    expect(bridge.commands.at(-1)).toContain('gh release upload v100');
+
+    const gate = buildProposalAuditReplaySmokeGate({
+      proposalId: 'P-20260624-024',
+      actor: '小墨',
+      expectedFinalStatus: 'delivered',
+      events: [
+        { at: '2026-06-24T10:00:00Z', status: 'in_test_acceptance', command: 'test', ok: true },
+        { at: '2026-06-24T10:01:00Z', status: 'accepted', command: 'accept', ok: true },
+        { at: '2026-06-24T10:02:00Z', status: 'deployed', command: 'deploy', ok: true },
+        { at: '2026-06-24T10:03:00Z', status: 'delivered', command: 'deliver', ok: true },
+      ],
+    });
+    expect(gate.ready).toBe(true);
+    expect(gate.replayedStatuses).toEqual(['in_test_acceptance', 'accepted', 'deployed', 'delivered']);
+    expect(gate.markdown).toContain('Issues: none');
+  });
+
+  it('covers V98-V100 blocked upload and replay branches', () => {
+    const blockedBridge = buildCiArtifactUploadBridge({ artifactPath: '', artifactText: '{bad', version: '', outputPath: '', dryRun: true, uploadTarget: 'local-evidence' });
+    expect(blockedBridge.ready).toBe(false);
+    expect(blockedBridge.commands).toEqual([]);
+    expect(blockedBridge.issues).toContain('ingestion execution is not ready');
+
+    const blockedGate = buildProposalAuditReplaySmokeGate({
+      proposalId: 'P-20260624-024',
+      actor: '小墨',
+      expectedFinalStatus: 'delivered',
+      events: [{ at: '2026-06-24T10:00:00Z', status: 'accepted', command: 'accept', ok: false, note: 'failed' }],
+    });
+    expect(blockedGate.ready).toBe(false);
+    expect(blockedGate.issues).toEqual(expect.arrayContaining(['audit ledger has 1 failed event(s)', 'expected final status delivered, got accepted']));
+
+    const emptyGate = buildProposalAuditReplaySmokeGate({ proposalId: 'P-empty', actor: '小墨', expectedFinalStatus: 'delivered', events: [] });
+    expect(emptyGate.issues).toContain('no audit events to replay');
+    expect(emptyGate.timeline.total).toBe(0);
   });
 });

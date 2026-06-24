@@ -938,6 +938,42 @@ export interface ProposalExecutionAuditTimeline {
   markdown: string;
 }
 
+export interface ReleaseOperationsServerRecord {
+  id: string;
+  userId: string;
+  snapshot: ReleaseOperationsPersistenceSnapshot;
+  updatedAt: string;
+  ready: boolean;
+}
+
+export interface CiArtifactUploadBridgeInput extends CiArtifactIngestionExecutionInput {
+  uploadTarget: 'local-evidence' | 'github-actions-artifact' | 'release-asset';
+}
+
+export interface CiArtifactUploadBridge {
+  ready: boolean;
+  uploadTarget: CiArtifactUploadBridgeInput['uploadTarget'];
+  commands: string[];
+  issues: string[];
+  evidencePath: string;
+}
+
+export interface ProposalAuditReplaySmokeGateInput {
+  proposalId: string;
+  actor: string;
+  events: ProposalExecutionAuditEvent[];
+  expectedFinalStatus: ProposalSyncStatus;
+}
+
+export interface ProposalAuditReplaySmokeGate {
+  ready: boolean;
+  ledger: ProposalExecutionAuditLedger;
+  timeline: ProposalExecutionAuditTimeline;
+  replayedStatuses: ProposalSyncStatus[];
+  issues: string[];
+  markdown: string;
+}
+
 export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
   const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
   const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
@@ -1336,6 +1372,59 @@ export function filterProposalExecutionAuditTimeline(ledger: ProposalExecutionAu
     ? `# Proposal Audit Timeline\n\nNo matching audit events for ${ledger.proposalId}`
     : ['# Proposal Audit Timeline', '', ...rows.map((event) => `- ${event.at} ${event.status} ${event.ok ? 'ok' : 'failed'} ${event.note ?? event.command}`)].join('\n');
   return { total: rows.length, events: rows, markdown };
+}
+
+export function buildReleaseOperationsServerRecord(input: { userId: string; snapshot: ReleaseOperationsPersistenceSnapshot; now: string }): ReleaseOperationsServerRecord {
+  const userId = input.userId.trim() || input.snapshot.payload.userId || 'anonymous';
+  return {
+    id: `release_ops_${userId}_${input.now}`,
+    userId,
+    snapshot: input.snapshot,
+    updatedAt: input.now,
+    ready: input.snapshot.payload.panel.ready,
+  };
+}
+
+export function buildCiArtifactUploadBridge(input: CiArtifactUploadBridgeInput): CiArtifactUploadBridge {
+  const execution = buildCiArtifactIngestionExecution(input);
+  const targetCommand: Record<CiArtifactUploadBridgeInput['uploadTarget'], string> = {
+    'local-evidence': `cp ${input.outputPath} docs/delivery/`,
+    'github-actions-artifact': `gh run download --name ${input.version}-release-evidence --dir docs/delivery`,
+    'release-asset': `gh release upload ${input.version.toLowerCase()} ${input.outputPath} --clobber`,
+  };
+  const issues = [...execution.issues];
+  if (!execution.ready) issues.push('ingestion execution is not ready');
+  const commands = execution.ready ? [...execution.plan.commands, targetCommand[input.uploadTarget]] : [];
+  return {
+    ready: execution.ready && issues.length === 0,
+    uploadTarget: input.uploadTarget,
+    commands,
+    issues,
+    evidencePath: input.outputPath,
+  };
+}
+
+export function buildProposalAuditReplaySmokeGate(input: ProposalAuditReplaySmokeGateInput): ProposalAuditReplaySmokeGate {
+  const ledger = buildProposalExecutionAuditLedger({ proposalId: input.proposalId, actor: input.actor, events: input.events });
+  const timeline = filterProposalExecutionAuditTimeline(ledger, {});
+  const replayedStatuses = input.events.map((event) => event.status);
+  const finalStatus = replayedStatuses.at(-1);
+  const issues = [
+    ...(input.events.length > 0 ? [] : ['no audit events to replay']),
+    ...(ledger.ready ? [] : [`audit ledger has ${ledger.total - ledger.okCount} failed event(s)`]),
+    ...(finalStatus === input.expectedFinalStatus ? [] : [`expected final status ${input.expectedFinalStatus}, got ${finalStatus ?? 'none'}`]),
+  ];
+  const ready = issues.length === 0;
+  const markdown = [
+    `# Proposal Audit Replay Smoke Gate — ${input.proposalId}`,
+    '',
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    `Expected final status: ${input.expectedFinalStatus}`,
+    `Replayed: ${replayedStatuses.join(' → ') || 'none'}`,
+    '',
+    ...(issues.length === 0 ? ['Issues: none'] : ['Issues:', ...issues.map((issue) => `- ${issue}`)]),
+  ].join('\n');
+  return { ready, ledger, timeline, replayedStatuses, issues, markdown };
 }
 
 export function generateNextDeliveryDirections(input: NextDeliveryDirectionInput): string[] {

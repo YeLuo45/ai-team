@@ -9,7 +9,10 @@ import {
   buildReadmeCommandChecklist,
   buildReleaseHardeningReport,
   buildCockpitServerRecord,
+  buildCiArtifactUploadBridge,
   buildDeliveryEvidenceSummary,
+  buildProposalAuditReplaySmokeGate,
+  buildReleaseOperationsServerRecord,
   buildScenarioBatch,
   buildScenarioSimulation,
   orchestrateCandidateWorkflow,
@@ -21,6 +24,7 @@ import {
   type LlmOpsAlertPolicy,
   type LlmOpsCall,
   type OrgMemoryInput,
+  type ProposalExecutionAuditEvent,
   type ReadmeCommandSpec,
   type ReleaseCommandStatus,
   type ReleaseCoverageStatus,
@@ -34,6 +38,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const RISK_LEVELS = new Set<RiskLevel>(['low', 'medium', 'high', 'critical']);
+const PROPOSAL_STATUSES = new Set(['intake', 'clarifying', 'prd_pending_confirmation', 'approved_for_dev', 'in_dev', 'in_test_acceptance', 'accepted', 'deployed', 'delivered']);
 
 function isString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
@@ -49,6 +54,21 @@ function isStringArray(value: unknown): value is string[] {
 
 function isRisk(value: unknown): value is RiskLevel {
   return typeof value === 'string' && RISK_LEVELS.has(value as RiskLevel);
+}
+
+function isProposalStatus(value: unknown): value is ProposalExecutionAuditEvent['status'] {
+  return typeof value === 'string' && PROPOSAL_STATUSES.has(value);
+}
+
+function parseAuditEvents(value: unknown): ProposalExecutionAuditEvent[] | null {
+  if (!Array.isArray(value)) return null;
+  const events: ProposalExecutionAuditEvent[] = [];
+  for (const raw of value) {
+    const event = raw as Partial<ProposalExecutionAuditEvent>;
+    if (!isString(event.at) || !isProposalStatus(event.status) || !isString(event.command) || typeof event.ok !== 'boolean') return null;
+    events.push({ at: event.at, status: event.status, command: event.command, ok: event.ok, note: typeof event.note === 'string' ? event.note : undefined });
+  }
+  return events;
 }
 
 function parseWorkflow(body: Record<string, unknown>): CandidateWorkflowInput | null {
@@ -119,6 +139,7 @@ export function createTeamOrchestrationRouter(options: { memoryStore?: Orchestra
   const router = Router();
   const approvals: ApprovalRecord[] = [];
   const cockpitRecords = new Map<string, ReturnType<typeof buildCockpitServerRecord>>();
+  const releaseOperationsRecords = new Map<string, ReturnType<typeof buildReleaseOperationsServerRecord>>();
   const memoryStore = options.memoryStore ?? new OrchestrationOrgMemoryStore({
     baseDir: process.env.AI_TEAM_ORG_MEMORY_DIR ?? mkdtempSync(path.join(tmpdir(), 'ai-team-org-memory-')),
   });
@@ -282,6 +303,44 @@ export function createTeamOrchestrationRouter(options: { memoryStore?: Orchestra
     const record = cockpitRecords.get(req.params.userId);
     if (!record) return res.status(404).json({ error: 'cockpit_record_not_found' });
     return res.json({ record });
+  });
+
+  router.post('/release-operations', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    const snapshot = body.snapshot as { storageKey?: unknown; payload?: unknown; serialized?: unknown } | undefined;
+    if (!isString(body.userId) || !snapshot || snapshot.storageKey !== 'ai-team:release-operations:v1' || typeof snapshot.payload !== 'object' || typeof snapshot.serialized !== 'string') {
+      return res.status(400).json({ error: 'validation_error' });
+    }
+    const record = buildReleaseOperationsServerRecord({
+      userId: body.userId,
+      snapshot: snapshot as Parameters<typeof buildReleaseOperationsServerRecord>[0]['snapshot'],
+      now: typeof body.now === 'string' ? body.now : new Date().toISOString(),
+    });
+    releaseOperationsRecords.set(record.userId, record);
+    return res.status(201).json({ record });
+  });
+
+  router.get('/release-operations/:userId', (req, res) => {
+    const record = releaseOperationsRecords.get(req.params.userId);
+    if (!record) return res.status(404).json({ error: 'release_operations_record_not_found' });
+    return res.json({ record });
+  });
+
+  router.post('/ci-artifact-upload-bridge', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    if (!isString(body.artifactPath) || !isString(body.artifactText) || !isString(body.version) || !isString(body.outputPath)) return res.status(400).json({ error: 'validation_error' });
+    if (body.uploadTarget !== 'local-evidence' && body.uploadTarget !== 'github-actions-artifact' && body.uploadTarget !== 'release-asset') return res.status(400).json({ error: 'validation_error' });
+    return res.json({ bridge: buildCiArtifactUploadBridge({ artifactPath: body.artifactPath, artifactText: body.artifactText, version: body.version, outputPath: body.outputPath, dryRun: body.dryRun === true, uploadTarget: body.uploadTarget }) });
+  });
+
+  router.post('/audit-replay-smoke', (req, res) => {
+    const body = req.body as Record<string, unknown>;
+    if (!isString(body.proposalId) || !isString(body.actor)) return res.status(400).json({ error: 'validation_error' });
+    const events = parseAuditEvents(body.events);
+    if (!events) return res.status(400).json({ error: 'validation_error' });
+    const expectedFinalStatus = body.expectedFinalStatus;
+    if (!isProposalStatus(expectedFinalStatus)) return res.status(400).json({ error: 'validation_error' });
+    return res.json({ gate: buildProposalAuditReplaySmokeGate({ proposalId: body.proposalId, actor: body.actor, events, expectedFinalStatus }) });
   });
 
   return router;

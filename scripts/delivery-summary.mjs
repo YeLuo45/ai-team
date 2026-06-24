@@ -10,7 +10,6 @@ const STRICT_LAYERS = {
   'v32/core-agent-config': /^packages\/ai-team-core\/src\/agent-config\.ts$/,
   'v32/agent-config-loader': /^packages\/ai-team-agent\/src\/agent-config-loader\.ts$/,
   'v35/core-agent-config-template': /^packages\/ai-team-core\/src\/agent-config-template\.ts$/,
-  'v45/server-team-orchestration': /^packages\/ai-team-server\/src\/routes\/team-orchestration\.ts$/,
   'v51/delivery-summary': /^packages\/ai-team-core\/src\/delivery-summary\.ts$/,
 };
 
