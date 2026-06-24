@@ -9,6 +9,12 @@ import {
   buildProposalDeliveryWizard,
   buildCockpitWebRestoreModel,
   buildCockpitServerRecord,
+  buildReleaseOperationsPanelModel,
+  buildReleaseSideEffectGuard,
+  buildReleaseSideEffectVisualization,
+  buildProposalAutoDeliveryExecution,
+  buildCiArtifactEvidenceInput,
+  buildProposalExecutionAuditLedger,
   classifyChangedFiles,
   executeProposalDryRun,
   parseVersionedReleaseEvidenceJson,
@@ -40,6 +46,8 @@ type DiffClassification = ReturnType<typeof classifyChangedFiles>;
 type DiffAudit = ReturnType<typeof buildDiffOwnershipAudit>;
 type DeliveryChecklist = ReturnType<typeof buildProposalDeliveryChecklist>;
 type CockpitRestore = ReturnType<typeof buildCockpitWebRestoreModel>;
+type OperationsPanel = ReturnType<typeof buildReleaseOperationsPanelModel>;
+type ProposalAuditLedger = ReturnType<typeof buildProposalExecutionAuditLedger>;
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -66,6 +74,8 @@ export default function TeamOrchestrationConsole() {
   const [diffAudit, setDiffAudit] = useState<DiffAudit | null>(null);
   const [deliveryChecklist, setDeliveryChecklist] = useState<DeliveryChecklist | null>(null);
   const [cockpitRestore, setCockpitRestore] = useState<CockpitRestore | null>(null);
+  const [operationsPanel, setOperationsPanel] = useState<OperationsPanel | null>(null);
+  const [auditLedger, setAuditLedger] = useState<ProposalAuditLedger | null>(null);
   const [candidateName, setCandidateName] = useState('Ada Chen');
   const [memoryFeedback, setMemoryFeedback] = useState('ownership matters');
   const [status, setStatus] = useState('');
@@ -291,6 +301,36 @@ export default function TeamOrchestrationConsole() {
     }));
   }
 
+  function showOperationsPanel() {
+    const summary = buildDeliveryEvidenceSummary({
+      version: 'V94',
+      tests: { passed: 1158, total: 1165, skipped: 7 },
+      coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.44, thresholdPct: 95 },
+      readme: { passed: 15, total: 15 },
+      build: { passed: true },
+      blockers: [],
+    });
+    setOperationsPanel(buildReleaseOperationsPanelModel({
+      entries: [{ version: 'V94', path: 'docs/delivery/v94-delivery-report.md', summary, updatedAt: '2026-06-24T06:00:00Z' }],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'npm run release:check', before: [], after: [' M docs/delivery/index.md'], allowedGlobs: ['docs/delivery/**'] })),
+      autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-019', currentStatus: 'in_test_acceptance', reportPath: 'docs/delivery/v94-delivery-report.md', gates: { build: true, tests: true, coverage: true, readme: true, release: true }, dryRun: true }),
+      ciArtifact: buildCiArtifactEvidenceInput({ version: 'V94', artifactName: 'release-check.json', jsonText: JSON.stringify({ tests: { passed: 1158, total: 1165, skipped: 7 }, coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.44, thresholdPct: 95 }, readme: { passed: 15, total: 15 }, build: { passed: true } }) }),
+    }));
+  }
+
+  function showAuditLedger() {
+    setAuditLedger(buildProposalExecutionAuditLedger({
+      proposalId: 'P-20260624-019',
+      actor: '小墨',
+      events: [
+        { at: '2026-06-24T06:00:00Z', status: 'in_test_acceptance', command: 'npm run release:check', ok: true },
+        { at: '2026-06-24T06:01:00Z', status: 'accepted', command: 'mcp_aisp.py update-proposal-status --status accepted', ok: true },
+        { at: '2026-06-24T06:02:00Z', status: 'deployed', command: 'mcp_aisp.py update-proposal-status --status deployed', ok: true },
+        { at: '2026-06-24T06:03:00Z', status: 'delivered', command: 'mcp_aisp.py update-proposal-status --status delivered', ok: true },
+      ],
+    }));
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -329,6 +369,8 @@ export default function TeamOrchestrationConsole() {
         <button data-testid="team-orchestration-classify-diff" className="btn btn-ghost" onClick={classifyDiffLines}>Classify diff</button>
         <button data-testid="team-orchestration-delivery-checklist" className="btn btn-ghost" onClick={buildDeliveryChecklist}>Delivery checklist</button>
         <button data-testid="team-orchestration-restore-cockpit" className="btn btn-ghost" onClick={restoreCockpit}>Restore cockpit</button>
+        <button data-testid="team-orchestration-operations-panel" className="btn btn-ghost" onClick={showOperationsPanel}>Operations panel</button>
+        <button data-testid="team-orchestration-audit-ledger" className="btn btn-ghost" onClick={showAuditLedger}>Audit ledger</button>
       </div>
 
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-2">
@@ -427,6 +469,24 @@ export default function TeamOrchestrationConsole() {
         <article className="rounded-xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/40">
           <h3 className="font-semibold text-sky-900 dark:text-sky-100">{cockpitRestore.restoreButtonLabel}</h3>
           <p className="mt-1 text-sm text-sky-800 dark:text-sky-200">{`${cockpitRestore.filters.gate ?? 'all'} · ${cockpitRestore.filters.status ?? 'all'} · ${cockpitRestore.selectedVersion ?? 'latest'}`}</p>
+        </article>
+      )}
+
+      {operationsPanel && (
+        <article className="rounded-xl border border-teal-200 bg-teal-50 p-4 dark:border-teal-900 dark:bg-teal-950/40">
+          <h3 className="font-semibold text-teal-900 dark:text-teal-100">Release operations: {operationsPanel.latestVersion}</h3>
+          <p className="mt-1 text-sm text-teal-800 dark:text-teal-200">Ready: {operationsPanel.ready ? 'yes' : 'no'}</p>
+          <ul className="mt-2 space-y-1 text-sm text-teal-800 dark:text-teal-200">
+            {operationsPanel.cards.map((card) => <li key={card.label}>{`${card.label}: ${card.status} · ${card.detail}`}</li>)}
+          </ul>
+        </article>
+      )}
+
+      {auditLedger && (
+        <article className="rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-900 dark:bg-orange-950/40">
+          <h3 className="font-semibold text-orange-900 dark:text-orange-100">Proposal audit: {auditLedger.proposalId}</h3>
+          <p className="mt-1 text-sm text-orange-800 dark:text-orange-200">{auditLedger.summary}</p>
+          <p className="mt-1 text-xs text-orange-700 dark:text-orange-300">Path: {auditLedger.statusPath.join(' → ') || 'none'}</p>
         </article>
       )}
     </section>

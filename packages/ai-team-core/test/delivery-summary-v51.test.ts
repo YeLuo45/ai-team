@@ -37,6 +37,9 @@ import {
   buildReleaseSideEffectVisualization,
   buildProposalAutoDeliveryExecution,
   buildCiArtifactEvidenceInput,
+  buildReleaseOperationsPanelModel,
+  buildCiArtifactImportCommandPlan,
+  buildProposalExecutionAuditLedger,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -1057,5 +1060,91 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     const noChange = buildReleaseSideEffectGuard({ command: 'npm run build', before: [' M README.md'], after: [' M README.md'], allowedGlobs: [] });
     expect(noChange.ready).toBe(true);
     expect(noChange.summary).toContain('no new side effects');
+  });
+
+  it('builds V92-V94 release operations panel, CI import plan, and proposal audit ledger', () => {
+    const latestSummary = buildDeliveryEvidenceSummary({
+      version: 'V94',
+      tests: { passed: 1158, total: 1165, skipped: 7 },
+      coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.44, thresholdPct: 95 },
+      readme: { passed: 15, total: 15 },
+      build: { passed: true },
+      blockers: [],
+    });
+    const panel = buildReleaseOperationsPanelModel({
+      entries: [
+        { version: 'V91', path: 'docs/delivery/v91.md', updatedAt: '2026-06-24T04:00:00Z', summary: buildDeliveryEvidenceSummary({ version: 'V91', tests: { passed: 1155, total: 1162, skipped: 7 }, coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.21, thresholdPct: 95 }, readme: { passed: 14, total: 14 }, build: { passed: true }, blockers: [] }) },
+        { version: 'V94', path: 'docs/delivery/v94.md', updatedAt: '2026-06-24T06:00:00Z', summary: latestSummary },
+      ],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({
+        command: 'npm run release:check',
+        before: [],
+        after: [' M docs/delivery/index.md'],
+        allowedGlobs: ['docs/delivery/**'],
+      })),
+      autoDelivery: buildProposalAutoDeliveryExecution({
+        proposalId: 'P-20260624-019',
+        currentStatus: 'in_test_acceptance',
+        reportPath: 'docs/delivery/v94-delivery-report.md',
+        gates: { build: true, tests: true, coverage: true, readme: true, release: true },
+        dryRun: true,
+      }),
+      ciArtifact: buildCiArtifactEvidenceInput({
+        version: 'V94',
+        artifactName: 'release-check.json',
+        jsonText: JSON.stringify({ tests: { passed: 1158, total: 1165, skipped: 7 }, coverage: { strictPassed: 16, strictTotal: 16, averageBranchPct: 98.44, thresholdPct: 95 }, readme: { passed: 15, total: 15 }, build: { passed: true } }),
+      }),
+    });
+
+    expect(panel.latestVersion).toBe('V94');
+    expect(panel.cards.map((card) => card.label)).toEqual(['Latest', 'Side Effects', 'Auto Delivery', 'CI Artifact']);
+    expect(panel.cards.every((card) => card.status === 'ready')).toBe(true);
+    expect(panel.markdown).toContain('release-check.json');
+
+    const commandPlan = buildCiArtifactImportCommandPlan({
+      artifactPath: 'artifacts/release-check.json',
+      version: 'V94',
+      outputPath: 'docs/delivery/ai-team-v94-release-evidence.json',
+      dryRun: true,
+    });
+    expect(commandPlan.ready).toBe(true);
+    expect(commandPlan.commands).toEqual([
+      'node scripts/import-ci-artifact.mjs --version V94 --artifact artifacts/release-check.json --output docs/delivery/ai-team-v94-release-evidence.json --dry-run',
+    ]);
+
+    const ledger = buildProposalExecutionAuditLedger({
+      proposalId: 'P-20260624-019',
+      actor: '小墨',
+      events: [
+        { at: '2026-06-24T06:00:00Z', status: 'in_test_acceptance', command: 'npm run release:check', ok: true },
+        { at: '2026-06-24T06:01:00Z', status: 'accepted', command: 'mcp_aisp.py update-proposal-status --status accepted', ok: true },
+        { at: '2026-06-24T06:02:00Z', status: 'delivered', command: 'mcp_aisp.py update-proposal-status --status delivered', ok: false, note: 'network retry required' },
+      ],
+    });
+    expect(ledger.ready).toBe(false);
+    expect(ledger.summary).toContain('2/3 ok');
+    expect(ledger.markdown).toContain('network retry required');
+    expect(ledger.statusPath).toEqual(['in_test_acceptance', 'accepted', 'delivered']);
+  });
+
+  it('surfaces blocked operations panel and invalid CI import command plans', () => {
+    const panel = buildReleaseOperationsPanelModel({
+      entries: [],
+      sideEffect: buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({ command: 'npm run verify:readme', before: [], after: [' M README.md'], allowedGlobs: ['docs/delivery/**'] })),
+      autoDelivery: buildProposalAutoDeliveryExecution({ proposalId: 'P-20260624-020', currentStatus: 'in_dev', reportPath: 'docs/delivery/v95.md', gates: { build: true, tests: false, coverage: true, readme: true, release: true }, dryRun: true }),
+      ciArtifact: buildCiArtifactEvidenceInput({ version: 'V95', artifactName: 'bad.json', jsonText: '{bad' }),
+    });
+    expect(panel.ready).toBe(false);
+    expect(panel.latestVersion).toBe('none');
+    expect(panel.cards.filter((card) => card.status === 'blocked')).toHaveLength(4);
+
+    const invalid = buildCiArtifactImportCommandPlan({ artifactPath: '', version: '', outputPath: '', dryRun: false });
+    expect(invalid.ready).toBe(false);
+    expect(invalid.commands).toEqual([]);
+    expect(invalid.issues).toEqual(['artifactPath is required', 'version is required', 'outputPath is required']);
+
+    const emptyLedger = buildProposalExecutionAuditLedger({ proposalId: 'P-20260624-020', actor: '小墨', events: [] });
+    expect(emptyLedger.ready).toBe(false);
+    expect(emptyLedger.summary).toBe('P-20260624-020: no audit events');
   });
 });

@@ -83,6 +83,21 @@ describe('V81 delivery CLI commands', () => {
     expect(output).toContain('current=1');
   });
 
+  it('prints a deterministic CI artifact import command plan', async () => {
+    const program = await loadProgram();
+    await program.parseAsync([
+      'node', 'ai-team', 'delivery', 'ci-artifact-import-plan',
+      '--artifact', 'artifacts/release-check.json',
+      '--version', 'V94',
+      '--output', 'docs/delivery/ai-team-v94-release-evidence.json',
+      '--dry-run',
+    ]);
+
+    const output = logSpy.mock.calls.join('\n');
+    expect(output).toContain('ci artifact import ready commands=1');
+    expect(output).toContain('node scripts/import-ci-artifact.mjs --version V94 --artifact artifacts/release-check.json --output docs/delivery/ai-team-v94-release-evidence.json --dry-run');
+  });
+
   it('prints guarded proposal execution commands without running them', async () => {
     const program = await loadProgram();
     await program.parseAsync([

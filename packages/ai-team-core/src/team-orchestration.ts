@@ -55,6 +55,14 @@ export type {
   ProposalAutoDeliveryExecution,
   CiArtifactEvidenceInput,
   CiArtifactEvidenceResult,
+  ReleaseOperationsPanelCard,
+  ReleaseOperationsPanelInput,
+  ReleaseOperationsPanelModel,
+  CiArtifactImportCommandPlanInput,
+  CiArtifactImportCommandPlan,
+  ProposalExecutionAuditEvent,
+  ProposalExecutionAuditLedgerInput,
+  ProposalExecutionAuditLedger,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -87,5 +95,8 @@ export {
   buildReleaseSideEffectVisualization,
   buildProposalAutoDeliveryExecution,
   buildCiArtifactEvidenceInput,
+  buildReleaseOperationsPanelModel,
+  buildCiArtifactImportCommandPlan,
+  buildProposalExecutionAuditLedger,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';

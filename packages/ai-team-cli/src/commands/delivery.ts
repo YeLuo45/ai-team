@@ -1,6 +1,7 @@
 import type { Command } from 'commander';
 import {
   auditReleaseEvidenceBatch,
+  buildCiArtifactImportCommandPlan,
   buildProposalDeliveryWizard,
   buildProposalExecutionPlan,
   executeProposalDryRun,
@@ -46,6 +47,25 @@ export function registerDeliveryCommands(program: Command): void {
       const audit = auditReleaseEvidenceBatch(entries);
       console.log(c.ok(`evidence audit total=${audit.total} migrated=${audit.migrated} current=${audit.current} invalid=${audit.invalid}`));
       for (const item of audit.items) console.log(`${item.status}\t${item.path}`);
+    });
+
+  cmd
+    .command('ci-artifact-import-plan')
+    .description('Print the deterministic CI artifact import command')
+    .requiredOption('--artifact <path>', 'CI artifact JSON path')
+    .requiredOption('--version <version>', 'delivery version such as V94')
+    .requiredOption('--output <path>', 'output release evidence JSON path')
+    .option('--dry-run', 'append --dry-run to the generated command', false)
+    .action((opts) => {
+      const plan = buildCiArtifactImportCommandPlan({
+        artifactPath: opts.artifact,
+        version: opts.version,
+        outputPath: opts.output,
+        dryRun: opts.dryRun,
+      });
+      console.log(plan.ready ? c.ok(`ci artifact import ready commands=${plan.commands.length}`) : c.err(`ci artifact import blocked issues=${plan.issues.length}`));
+      for (const issue of plan.issues) console.log(c.warn(issue));
+      for (const command of plan.commands) console.log(command);
     });
 
   cmd

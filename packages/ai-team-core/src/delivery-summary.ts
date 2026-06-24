@@ -836,6 +836,64 @@ export interface EvidenceTrendDashboard {
   recommendation: string;
 }
 
+export interface ReleaseOperationsPanelCard {
+  label: 'Latest' | 'Side Effects' | 'Auto Delivery' | 'CI Artifact';
+  status: 'ready' | 'blocked';
+  detail: string;
+}
+
+export interface ReleaseOperationsPanelInput {
+  entries: DeliveryReportIndexEntry[];
+  sideEffect: ReleaseSideEffectVisualization;
+  autoDelivery: ProposalAutoDeliveryExecution;
+  ciArtifact: CiArtifactEvidenceResult;
+}
+
+export interface ReleaseOperationsPanelModel {
+  ready: boolean;
+  latestVersion: string;
+  cards: ReleaseOperationsPanelCard[];
+  markdown: string;
+}
+
+export interface CiArtifactImportCommandPlanInput {
+  artifactPath: string;
+  version: string;
+  outputPath: string;
+  dryRun: boolean;
+}
+
+export interface CiArtifactImportCommandPlan {
+  ready: boolean;
+  commands: string[];
+  issues: string[];
+}
+
+export interface ProposalExecutionAuditEvent {
+  at: string;
+  status: ProposalSyncStatus;
+  command: string;
+  ok: boolean;
+  note?: string;
+}
+
+export interface ProposalExecutionAuditLedgerInput {
+  proposalId: string;
+  actor: string;
+  events: ProposalExecutionAuditEvent[];
+}
+
+export interface ProposalExecutionAuditLedger {
+  ready: boolean;
+  proposalId: string;
+  actor: string;
+  okCount: number;
+  total: number;
+  statusPath: ProposalSyncStatus[];
+  summary: string;
+  markdown: string;
+}
+
 export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
   const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
   const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
@@ -1119,6 +1177,65 @@ export function buildEvidenceTrendDashboard(entries: DeliveryReportIndexEntry[])
     readmeStable,
     recommendation,
   };
+}
+
+export function buildReleaseOperationsPanelModel(input: ReleaseOperationsPanelInput): ReleaseOperationsPanelModel {
+  const index = buildDeliveryReportIndex(input.entries);
+  const latest = index.latest;
+  const latestReady = Boolean(latest?.summary.ready);
+  const cards: ReleaseOperationsPanelCard[] = [
+    { label: 'Latest', status: latestReady ? 'ready' : 'blocked', detail: latest ? latest.summary.headline : 'no delivery report' },
+    { label: 'Side Effects', status: input.sideEffect.status === 'blocked' ? 'blocked' : 'ready', detail: input.sideEffect.status },
+    { label: 'Auto Delivery', status: input.autoDelivery.ready ? 'ready' : 'blocked', detail: input.autoDelivery.summary },
+    { label: 'CI Artifact', status: input.ciArtifact.summary.ready && input.ciArtifact.issues.length === 0 ? 'ready' : 'blocked', detail: input.ciArtifact.artifactName },
+  ];
+  const ready = cards.every((card) => card.status === 'ready');
+  const markdown = [
+    '# Release Operations Panel',
+    '',
+    `Latest: ${latest?.version ?? 'none'}`,
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    '',
+    ...cards.map((card) => `- ${card.label}: ${card.status} — ${card.detail}`),
+  ].join('\n');
+  return { ready, latestVersion: latest?.version ?? 'none', cards, markdown };
+}
+
+export function buildCiArtifactImportCommandPlan(input: CiArtifactImportCommandPlanInput): CiArtifactImportCommandPlan {
+  const issues = [
+    ...(input.artifactPath.trim() ? [] : ['artifactPath is required']),
+    ...(input.version.trim() ? [] : ['version is required']),
+    ...(input.outputPath.trim() ? [] : ['outputPath is required']),
+  ];
+  if (issues.length > 0) return { ready: false, commands: [], issues };
+  const dryRun = input.dryRun ? ' --dry-run' : '';
+  return {
+    ready: true,
+    issues: [],
+    commands: [`node scripts/import-ci-artifact.mjs --version ${input.version} --artifact ${input.artifactPath} --output ${input.outputPath}${dryRun}`],
+  };
+}
+
+export function buildProposalExecutionAuditLedger(input: ProposalExecutionAuditLedgerInput): ProposalExecutionAuditLedger {
+  const total = input.events.length;
+  const okCount = input.events.filter((event) => event.ok).length;
+  const statusPath = input.events.map((event) => event.status);
+  const ready = total > 0 && okCount === total;
+  const summary = total === 0
+    ? `${input.proposalId}: no audit events`
+    : `${input.proposalId}: ${okCount}/${total} ok by ${input.actor}`;
+  const markdown = [
+    `# Proposal Execution Audit — ${input.proposalId}`,
+    '',
+    `Actor: ${input.actor}`,
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    `Summary: ${summary}`,
+    '',
+    '| Time | Status | OK | Command | Note |',
+    '|---|---|---:|---|---|',
+    ...input.events.map((event) => `| ${event.at} | ${event.status} | ${event.ok ? 'yes' : 'no'} | \`${event.command}\` | ${event.note ?? ''} |`),
+  ].join('\n');
+  return { ready, proposalId: input.proposalId, actor: input.actor, okCount, total, statusPath, summary, markdown };
 }
 
 export function generateNextDeliveryDirections(input: NextDeliveryDirectionInput): string[] {
