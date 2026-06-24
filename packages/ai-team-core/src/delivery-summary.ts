@@ -281,6 +281,50 @@ export interface ReleaseSideEffectGuard {
   summary: string;
 }
 
+export interface ReleaseSideEffectVisualizationRow {
+  kind: 'allowed' | 'blocked';
+  path: string;
+}
+
+export interface ReleaseSideEffectVisualization {
+  status: 'clean' | 'allowed' | 'blocked';
+  rows: ReleaseSideEffectVisualizationRow[];
+  markdown: string;
+}
+
+export interface ProposalAutoDeliveryExecutionInput {
+  proposalId: string;
+  currentStatus: ProposalSyncStatus;
+  reportPath: string;
+  gates: Record<'build' | 'tests' | 'coverage' | 'readme' | 'release', boolean>;
+  dryRun: boolean;
+}
+
+export interface ProposalAutoDeliveryCommand {
+  status: ProposalSyncStatus;
+  command: string;
+  mutates: boolean;
+}
+
+export interface ProposalAutoDeliveryExecution {
+  ready: boolean;
+  commands: ProposalAutoDeliveryCommand[];
+  summary: string;
+}
+
+export interface CiArtifactEvidenceInput {
+  version: string;
+  artifactName: string;
+  jsonText: string;
+}
+
+export interface CiArtifactEvidenceResult {
+  artifactName: string;
+  summary: DeliveryEvidenceSummary;
+  evidence: DeliveryEvidenceInput;
+  issues: string[];
+}
+
 export function buildDeliveryReportMarkdown(input: DeliveryReportInput): string {
   const proposalLine = input.proposalId ? `**Proposal**: ${input.proposalId}` : '';
   const commitLine = input.commit ? `**Commit**: ${input.commit}` : '';
@@ -392,6 +436,67 @@ export function buildReleaseSideEffectGuard(input: ReleaseSideEffectGuardInput):
       ? `${input.command}: no new side effects`
       : `${input.command}: ${allowed.length} allowed side effect(s)`;
   return { ready: unexpected.length === 0, command: input.command, allowed, unexpected, summary };
+}
+
+export function buildReleaseSideEffectVisualization(guard: ReleaseSideEffectGuard): ReleaseSideEffectVisualization {
+  const rows: ReleaseSideEffectVisualizationRow[] = [
+    ...guard.allowed.map((path) => ({ kind: 'allowed' as const, path })),
+    ...guard.unexpected.map((path) => ({ kind: 'blocked' as const, path })),
+  ];
+  const status = guard.unexpected.length > 0 ? 'blocked' : rows.length > 0 ? 'allowed' : 'clean';
+  const markdown = rows.length === 0
+    ? `# Release Side Effects\n\n${guard.command}: clean`
+    : ['# Release Side Effects', '', `Status: ${status}`, '', ...rows.map((row) => `- ${row.kind}: ${row.path}`)].join('\n');
+  return { status, rows, markdown };
+}
+
+export function buildProposalAutoDeliveryExecution(input: ProposalAutoDeliveryExecutionInput): ProposalAutoDeliveryExecution {
+  const failed = Object.entries(input.gates)
+    .filter(([, ready]) => !ready)
+    .map(([gate]) => `${gate} gate is not green`);
+  if (failed.length > 0) return { ready: false, commands: [], summary: failed.join('; ') };
+  const recovery = planProposalStatusRecovery({ proposalId: input.proposalId, currentStatus: input.currentStatus, targetStatus: 'delivered' });
+  const commands = recovery.statusPath.map((status) => ({
+    status,
+    command: `mcp_aisp.py update-proposal-status --proposal-id ${input.proposalId} --status ${status}`,
+    mutates: !input.dryRun,
+  }));
+  const mode = input.dryRun ? 'dry-run' : 'will execute';
+  return {
+    ready: true,
+    commands,
+    summary: `${mode} ${commands.length} proposal transition(s) after ${input.reportPath}`,
+  };
+}
+
+function fallbackEvidence(version: string, issue: string): DeliveryEvidenceInput {
+  return {
+    version,
+    tests: { passed: 0, total: 0, skipped: 0 },
+    coverage: { strictPassed: 0, strictTotal: 1, averageBranchPct: 0, thresholdPct: 95 },
+    readme: { passed: 0, total: 1 },
+    build: { passed: false, reason: issue },
+    blockers: [issue],
+  };
+}
+
+export function buildCiArtifactEvidenceInput(input: CiArtifactEvidenceInput): CiArtifactEvidenceResult {
+  try {
+    const parsed = JSON.parse(input.jsonText) as Partial<DeliveryEvidenceInput>;
+    const evidence: DeliveryEvidenceInput = {
+      version: input.version,
+      tests: parsed.tests ?? { passed: 0, total: 0, skipped: 0 },
+      coverage: parsed.coverage ?? { strictPassed: 0, strictTotal: 1, averageBranchPct: 0, thresholdPct: 95 },
+      readme: parsed.readme ?? { passed: 0, total: 1 },
+      build: parsed.build ?? { passed: false, reason: 'missing build artifact' },
+      blockers: parsed.blockers ?? [],
+    };
+    return { artifactName: input.artifactName, evidence, summary: buildDeliveryEvidenceSummary(evidence), issues: [] };
+  } catch (error) {
+    const issue = `invalid CI artifact JSON: ${error instanceof Error ? error.message : String(error)}`;
+    const evidence = fallbackEvidence(input.version, issue);
+    return { artifactName: input.artifactName, evidence, summary: buildDeliveryEvidenceSummary(evidence), issues: [issue] };
+  }
 }
 
 export function buildProposalSyncPlan(input: ProposalSyncPlanInput): ProposalSyncPlan {

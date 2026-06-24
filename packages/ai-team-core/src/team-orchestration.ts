@@ -48,6 +48,13 @@ export type {
   ReleaseEvidenceQualityGate,
   ReleaseSideEffectGuardInput,
   ReleaseSideEffectGuard,
+  ReleaseSideEffectVisualizationRow,
+  ReleaseSideEffectVisualization,
+  ProposalAutoDeliveryExecutionInput,
+  ProposalAutoDeliveryCommand,
+  ProposalAutoDeliveryExecution,
+  CiArtifactEvidenceInput,
+  CiArtifactEvidenceResult,
   NextDeliveryDirectionInput,
 } from './delivery-summary.js';
 export {
@@ -77,5 +84,8 @@ export {
   auditReleaseEvidenceBatch,
   buildReleaseEvidenceQualityGate,
   buildReleaseSideEffectGuard,
+  buildReleaseSideEffectVisualization,
+  buildProposalAutoDeliveryExecution,
+  buildCiArtifactEvidenceInput,
   generateNextDeliveryDirections,
 } from './delivery-summary.js';

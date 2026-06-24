@@ -34,6 +34,9 @@ import {
   planProposalStatusRecovery,
   buildEvidenceTrendDashboard,
   buildReleaseSideEffectGuard,
+  buildReleaseSideEffectVisualization,
+  buildProposalAutoDeliveryExecution,
+  buildCiArtifactEvidenceInput,
 } from '../src/delivery-summary.js';
 
 describe('V51 delivery evidence summary', () => {
@@ -924,6 +927,84 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     expect(directions[0]).toContain('VNext');
     expect(directions[0]).toContain('gate currently blocked');
     expect(directions[2]).toContain('monitor 0 evidence files');
+  });
+
+  it('builds release side-effect visualization, proposal execution, and CI artifact evidence inputs', () => {
+    const guard = buildReleaseSideEffectGuard({
+      command: 'npm run release:check',
+      before: [],
+      after: [' M docs/delivery/index.md', ' M scripts/release-check.mjs'],
+      allowedGlobs: ['docs/delivery/**'],
+    });
+    const visualization = buildReleaseSideEffectVisualization(guard);
+    expect(visualization.status).toBe('blocked');
+    expect(visualization.rows.map((row) => row.kind)).toEqual(['allowed', 'blocked']);
+    expect(visualization.markdown).toContain('scripts/release-check.mjs');
+
+    const execution = buildProposalAutoDeliveryExecution({
+      proposalId: 'P-20260624-018',
+      currentStatus: 'in_test_acceptance',
+      reportPath: 'docs/delivery/v91-delivery-report.md',
+      gates: { build: true, tests: true, coverage: true, readme: true, release: true },
+      dryRun: false,
+    });
+    expect(execution.ready).toBe(true);
+    expect(execution.commands.map((command) => command.status)).toEqual(['accepted', 'deployed', 'delivered']);
+    expect(execution.summary).toContain('will execute 3 proposal transition(s)');
+
+    const blockedExecution = buildProposalAutoDeliveryExecution({
+      proposalId: 'P-20260624-018',
+      currentStatus: 'in_dev',
+      reportPath: 'docs/delivery/v91-delivery-report.md',
+      gates: { build: true, tests: true, coverage: false, readme: true, release: true },
+      dryRun: true,
+    });
+    expect(blockedExecution.ready).toBe(false);
+    expect(blockedExecution.commands).toEqual([]);
+    expect(blockedExecution.summary).toContain('coverage gate is not green');
+
+    const evidence = buildCiArtifactEvidenceInput({
+      version: 'V91',
+      artifactName: 'release-check.json',
+      jsonText: JSON.stringify({
+        tests: { passed: 1154, total: 1161, skipped: 7 },
+        coverage: { strictPassed: 15, strictTotal: 15, averageBranchPct: 98.23, thresholdPct: 95 },
+        readme: { passed: 14, total: 14 },
+        build: { passed: true },
+      }),
+    });
+    expect(evidence.summary.ready).toBe(true);
+    expect(evidence.artifactName).toBe('release-check.json');
+    expect(evidence.issues).toEqual([]);
+
+    const allowedVisualization = buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({
+      command: 'npm run delivery:index',
+      before: [],
+      after: [' M docs/delivery/index.md'],
+      allowedGlobs: ['docs/delivery/**'],
+    }));
+    expect(allowedVisualization.status).toBe('allowed');
+
+    const cleanVisualization = buildReleaseSideEffectVisualization(buildReleaseSideEffectGuard({
+      command: 'npm run build',
+      before: [],
+      after: [],
+      allowedGlobs: [],
+    }));
+    expect(cleanVisualization.status).toBe('clean');
+    expect(cleanVisualization.markdown).toContain('clean');
+
+    const sparseEvidence = buildCiArtifactEvidenceInput({
+      version: 'V91',
+      artifactName: 'sparse.json',
+      jsonText: '{}',
+    });
+    expect(sparseEvidence.summary.ready).toBe(false);
+    expect(sparseEvidence.evidence.build.reason).toBe('missing build artifact');
+
+    const invalid = buildCiArtifactEvidenceInput({ version: 'V91', artifactName: 'bad.json', jsonText: '{bad' });
+    expect(invalid.summary.ready).toBe(false);
+    expect(invalid.issues[0]).toContain('invalid CI artifact JSON');
   });
 
   it('guards release commands from unexpected side effects before delivery', () => {
