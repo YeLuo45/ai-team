@@ -1,6 +1,7 @@
 // V107: AppShell integration — Sidebar (4 groups) + Topbar (search/theme) + centered Main
 // V108: replaces the flat 17-NavLink horizontal header with grouped sidebar nav
 // V120: AppSseBootstrap + HamburgerNav + OfflineBanner + OnboardingTour production wiring
+// V127: ConsoleShell replaces /orchestration + A11yAuditBadge in Topbar + skip-to-main
 
 import { Routes, Route } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
@@ -26,39 +27,52 @@ import { AppShell, ThemeProvider } from './components/design-system';
 import { AppSseBootstrap } from './components/sse';
 import { HamburgerNav, MobileBottomBar, OfflineBanner } from './components/mobile';
 import { OnboardingTour } from './components/onboarding';
+import { ConsoleShell } from './components/orchestration';
+import { A11yGateProvider, AppAccessibilityRoot } from './components/a11y';
 
 export default function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <AppSseBootstrap>
-          <AppShell>
-            <HamburgerNav />
-            <OfflineBanner />
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/candidates" element={<Candidates />} />
-              <Route path="/members" element={<Members />} />
-              <Route path="/interviews" element={<Interviews />} />
-              <Route path="/skills" element={<SkillGraph />} />
-              <Route path="/trainings" element={<Trainings />} />
-              <Route path="/reviews" element={<Reviews />} />
-              <Route path="/plugins" element={<Plugins />} />
-              <Route path="/insights" element={<Insights />} />
-              <Route path="/pipeline" element={<Pipeline />} />
-              <Route path="/heatmap" element={<Heatmap />} />
-              <Route path="/audit" element={<AuditConsole />} />
-              <Route path="/agents" element={<AgentReviewConsole />} />
-              <Route path="/agent-config" element={<AgentConfig />} />
-              <Route path="/orchestration" element={<TeamOrchestrationConsole />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/data" element={<Data />} />
-            </Routes>
-            <MobileBottomBar />
-          </AppShell>
-          <CommandPalette />
-          <OnboardingTour />
-        </AppSseBootstrap>
+        <A11yGateProvider>
+          <AppSseBootstrap>
+            <AppShell>
+              <AppAccessibilityRoot targetId="app-main-shell">
+                <HamburgerNav />
+                <OfflineBanner />
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/candidates" element={<Candidates />} />
+                  <Route path="/members" element={<Members />} />
+                  <Route path="/interviews" element={<Interviews />} />
+                  <Route path="/skills" element={<SkillGraph />} />
+                  <Route path="/trainings" element={<Trainings />} />
+                  <Route path="/reviews" element={<Reviews />} />
+                  <Route path="/plugins" element={<Plugins />} />
+                  <Route path="/insights" element={<Insights />} />
+                  <Route path="/pipeline" element={<Pipeline />} />
+                  <Route path="/heatmap" element={<Heatmap />} />
+                  <Route path="/audit" element={<AuditConsole />} />
+                  <Route path="/agents" element={<AgentReviewConsole />} />
+                  <Route path="/agent-config" element={<AgentConfig />} />
+                  <Route
+                    path="/orchestration"
+                    element={<ConsoleShell />}
+                  />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/data" element={<Data />} />
+                  <Route
+                    path="/orchestration-legacy"
+                    element={<TeamOrchestrationConsole />}
+                  />
+                </Routes>
+                <MobileBottomBar />
+              </AppAccessibilityRoot>
+            </AppShell>
+            <CommandPalette />
+            <OnboardingTour />
+          </AppSseBootstrap>
+        </A11yGateProvider>
       </ToastProvider>
     </ThemeProvider>
   );
