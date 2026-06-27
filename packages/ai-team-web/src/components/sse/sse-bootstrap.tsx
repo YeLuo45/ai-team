@@ -1,7 +1,7 @@
 // V117: AppSseBootstrap — auto-attach default bridges + per-page subscriptions
 // Bridges SSE topic → ResourceCache invalidation + EventBus publish
 
-import { ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import {
   createSseBridge,
   detachBridge,

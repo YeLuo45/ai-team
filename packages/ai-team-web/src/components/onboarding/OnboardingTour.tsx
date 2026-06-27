@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '../design-system/primitives.js';
 import {
-  ONBOARDING_STEPS,
   ONBOARDING_TOTAL_STEPS,
   advanceOnboarding,
   getOnboardingStep,

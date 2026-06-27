@@ -28,10 +28,15 @@ export function generateManifest(input: ManifestInput): PwaManifest {
     display: input.display ?? 'standalone',
     theme_color: input.themeColor ?? '#6366f1',
     background_color: input.backgroundColor ?? '#ffffff',
-    icons: input.icons ?? [
-      { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
+    icons: (input.icons ?? [
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ]).map((icon) => ({
+          src: icon.src,
+          sizes: icon.sizes,
+          type: icon.type ?? 'image/png',
+          ...(icon.purpose ? { purpose: icon.purpose } : {}),
+        })),
   };
 }
 
@@ -119,7 +124,7 @@ export function buildOfflineFallbackHtml(appName: string): string {
 }
 
 // ---------- Install prompt ----------
-interface BeforeInstallPromptEvent extends Event {
+export interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
