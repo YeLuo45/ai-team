@@ -46,6 +46,9 @@ record('delivery summary', run('npm', ['run', 'delivery:summary']), /V\d+ ready/
 record('delivery report', run('npm', ['run', 'delivery:report'], { env: { AI_TEAM_DELIVERY_WRITE: '0' } }), /Delivery Report — ai-team/);
 record('delivery index', run('npm', ['run', 'delivery:index']), /Delivery index ready:/);
 
+// V128: a11y gate check — run in Node via simulated clean document
+record('a11y gate', run('node', ['scripts/a11y-gate.mjs'], { timeout: 30_000 }), /a11y gate: PASSED|a11y gate: FAILED/);
+
 if (!existsSync('packages/ai-team-server/dist/index.js')) {
   checks.push({ name: 'dev readiness', command: 'npm run dev', ok: false, exitCode: 1, evidence: 'server dist missing' });
 } else {
