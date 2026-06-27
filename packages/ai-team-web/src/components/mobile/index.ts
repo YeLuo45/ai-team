@@ -4,3 +4,4 @@ export * from './viewport.js';
 export * from './nav.js';
 export * from './pwa.js';
 export * from './PwaInstallPrompt.js';
+export * from './service-worker.js';
