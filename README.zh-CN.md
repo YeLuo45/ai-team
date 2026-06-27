@@ -87,6 +87,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🧪 **Web 测试 + 协同视图** | 5 路径 happy-dom e2e flow（登录/列表/面试/终结/审批）+ CandidateDrawer/MemberDrawer/InterviewCalendar + 8 个 calendar helper | V112-V114 |
 | ⌨️ **状态统一 + 键盘 + 权限 + PWA + a11y** | ErrorBoundary + ErrorState + 12 键盘快捷键（palette/help/4 分组/5 go-to）+ KeyboardHelpOverlay + 4 角色 22 permission RBAC + useOnlineStatus + useSkipToMain + announceToScreenReader | V115-V116 |
 | 🔌 **SSE Bridge 接入 + 移动端 + Onboarding** | AppSseBootstrap（3 默认 bridge 接入 + topic→resource 失效）+ HamburgerNav/MobileBottomBar/OfflineBanner（lg:hidden 移动导航）+ PWA manifest/service worker/PwaInstallPrompt + 3 步 Onboarding Tour（候选人→面试→Pipeline） | V117-V119 |
+| 🚀 **App 生产接入 + Orchestration 拆分 + PWA 真服务化** | App.tsx 接入 SSE/HamburgerNav/OfflineBanner/OnboardingTour + useOrchestrationData/useApprovalData/useDeliveryData/useWorkflowRunner 4 hooks + OrchestrationProvider + buildServiceWorkerScript（cache-first + network-first + offline）+ manifest.json + 192/512 PNG icons | V120-V122 |
 
 ## 7 个包
 
