@@ -157,6 +157,7 @@ export function useBusTopic<T = unknown>(topic: string): T | null {
   return last;
 }
 
-// Re-exports
 export { ResourceCache, getResourceCache, resetResourceCache, type ResourceEntry, type ResourceOptions } from './ResourceCache.js';
 export { EventBus, getEventBus, resetEventBus } from './EventBus.js';
+export * from './SSEBridge.js';
+export * from './resources.js';
