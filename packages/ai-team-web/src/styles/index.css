@@ -13,6 +13,52 @@
   --color-brand-900: #312e81;
 }
 
+/* V107: 4-theme token overrides via [data-theme] selector */
+:root,
+[data-theme="light"] {
+  --app-bg: #f8fafc;
+  --app-surface: #ffffff;
+  --app-surface-2: #f1f5f9;
+  --app-text: #0f172a;
+  --app-text-muted: #64748b;
+  --app-border: #e2e8f0;
+  --app-accent: #6366f1;
+  --app-link: #4338ca;
+}
+
+[data-theme="dark"] {
+  --app-bg: #020617;
+  --app-surface: #0f172a;
+  --app-surface-2: #1e293b;
+  --app-text: #f8fafc;
+  --app-text-muted: #94a3b8;
+  --app-border: #1e293b;
+  --app-accent: #818cf8;
+  --app-link: #a5b4fc;
+}
+
+[data-theme="sepia"] {
+  --app-bg: #f4ecd8;
+  --app-surface: #fbf3df;
+  --app-surface-2: #e8dec3;
+  --app-text: #433422;
+  --app-text-muted: #6b5a3e;
+  --app-border: #d6c8a4;
+  --app-accent: #a86f1c;
+  --app-link: #8b5a0e;
+}
+
+[data-theme="nord"] {
+  --app-bg: #2e3440;
+  --app-surface: #3b4252;
+  --app-surface-2: #434c5e;
+  --app-text: #eceff4;
+  --app-text-muted: #d8dee9;
+  --app-border: #4c566a;
+  --app-accent: #88c0d0;
+  --app-link: #81a1c1;
+}
+
 @layer base {
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;

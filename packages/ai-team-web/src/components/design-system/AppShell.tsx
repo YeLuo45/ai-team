@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </main>
           <footer
             data-testid="app-footer-shell"
-            className="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
+            className="mx-auto w-full max-w-7xl border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400"
           >
             ai-team · 基于 pi-mono 架构 · React 19 + Vite 6 + Tailwind 4 · D3.js 7
           </footer>

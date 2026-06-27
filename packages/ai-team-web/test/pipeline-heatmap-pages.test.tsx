@@ -98,7 +98,9 @@ describe('PipelineFunnel page', () => {
   it('shows loading initially', () => {
     globalThis.fetch = vi.fn(() => new Promise(() => {})) as any; // never resolves
     render(<PipelineFunnel />);
-    expect(screen.getByText('加载中...')).toBeTruthy();
+    // V108: loading uses Skeleton component, not plain text
+    expect(screen.getByTestId('pipeline-loading')).toBeTruthy();
+    expect(screen.getAllByTestId('pipeline-loading').length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -130,8 +132,9 @@ describe('CapabilityHeatmap page', () => {
     };
     globalThis.fetch = vi.fn(async () => jsonResponse(report)) as any;
     render(<CapabilityHeatmap />);
-    await waitFor(() => screen.getByText(/暂无数据/));
-    expect(screen.getByText(/暂无数据/)).toBeTruthy();
+    // V108: EmptyState replaces inline "暂无数据" message
+    await waitFor(() => screen.getByText('暂无能力数据'));
+    expect(screen.getByText('暂无能力数据')).toBeTruthy();
   });
 
   it('renders error state on fetch failure', async () => {

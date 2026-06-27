@@ -6,6 +6,7 @@ import { InterviewSimulator } from '../components/InterviewSimulator';
 import { ResumeUploadModal } from '../components/ResumeUploadModal';
 import { api } from '../lib/api';
 import type { Candidate } from '@ai-team/core';
+import { Card, Button, Badge, EmptyState } from '../components/design-system';
 
 export function Candidates() {
   const { data, source, refresh } = useTeamData();
@@ -63,22 +64,28 @@ export function Candidates() {
       </div>
 
       {items.length === 0 ? (
-        <div className="card text-center text-slate-500">
-          暂无候选人。
-          {source === 'api' ? <span> 点击 "📄 上传简历" 或 "+ 添加" 录入</span> : <span> 启动 server 启用添加功能</span>}
-        </div>
+        <Card>
+          <EmptyState
+            icon="👤"
+            title="还没有候选人"
+            description={source === 'api' ? '点击 "📄 上传简历" 或 "+ 添加" 录入第一位候选人' : '启动 server 启用添加功能'}
+            actionLabel={source === 'api' ? '+ 添加候选人' : undefined}
+            onAction={source === 'api' ? () => setShowAdd(true) : undefined}
+          />
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((c0) => {
             const st = statusLabel(c0.status);
+            const tone = st.cls.includes('badge-green') ? 'success' : st.cls.includes('badge-amber') ? 'warning' : st.cls.includes('badge-red') ? 'danger' : st.cls.includes('badge-blue') ? 'info' : 'neutral';
             return (
-              <div key={c0.id} className="card">
+              <Card key={c0.id}>
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{c0.name}</h3>
                     <p className="mt-0.5 text-sm text-slate-500">{c0.position}</p>
                   </div>
-                  <span className={st.cls}>{st.text}</span>
+                  <Badge tone={tone}>{st.text}</Badge>
                 </div>
                 <div className="mt-4 space-y-1 text-xs text-slate-500">
                   <p>ID: <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">{c0.id}</code></p>
@@ -88,20 +95,16 @@ export function Candidates() {
                 </div>
                 {c0.tags && c0.tags.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-1.5">
-                    {c0.tags.map((t) => <span key={t} className="badge-slate">{t}</span>)}
+                    {c0.tags.map((t) => <Badge key={t} tone="neutral">{t}</Badge>)}
                   </div>
                 )}
                 {source === 'api' && (
                   <div className="mt-4 flex gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-                    <button onClick={() => handleStartInterview(c0)} className="btn-primary text-xs">
-                      🤖 开始面试
-                    </button>
-                    <button onClick={() => handleDelete(c0.id)} className="btn-ghost text-xs">
-                      🗑 删除
-                    </button>
+                    <Button size="sm" onClick={() => handleStartInterview(c0)}>🤖 开始面试</Button>
+                    <Button size="sm" variant="ghost" onClick={() => handleDelete(c0.id)}>🗑 删除</Button>
                   </div>
                 )}
-              </div>
+              </Card>
             );
           })}
         </div>

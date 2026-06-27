@@ -1,4 +1,5 @@
-// V30: App shell centered responsive layout tests
+// V30 + V107: App shell centered responsive layout tests
+// V107 evolution: 17-link horizontal nav → AppShell + 4-group Sidebar + Topbar
 // @vitest-environment happy-dom
 
 import { describe, expect, it, vi } from 'vitest';
@@ -19,35 +20,62 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('V30 App shell layout', () => {
-  it('keeps header, main, and footer centered with the same shell width', () => {
+describe('V30+V107 App shell layout', () => {
+  it('uses AppShell with centered main and footer at consistent shell width', () => {
     render(
       <MemoryRouter>
         <App />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId('app-header-shell').className).toContain('mx-auto');
-    expect(screen.getByTestId('app-header-shell').className).toContain('max-w-7xl');
-    expect(screen.getByTestId('app-main-shell').className).toContain('mx-auto');
-    expect(screen.getByTestId('app-main-shell').className).toContain('max-w-7xl');
-    expect(screen.getByTestId('app-footer-shell').className).toContain('mx-auto');
-    expect(screen.getByTestId('app-footer-shell').className).toContain('max-w-7xl');
+    // V107 AppShell exposes sidebar + topbar + main + footer testIds
+    expect(screen.getByTestId('app-sidebar')).toBeTruthy();
+    expect(screen.getByTestId('app-topbar')).toBeTruthy();
+
+    const main = screen.getByTestId('app-main-shell');
+    const footer = screen.getByTestId('app-footer-shell');
+    expect(main.className).toContain('mx-auto');
+    expect(main.className).toContain('max-w-7xl');
+    expect(footer.className).toContain('mx-auto');
   });
 
-  it('wraps navigation symmetrically instead of overflowing on narrow screens', () => {
+  it('collapses 17 routes into 4 sidebar groups instead of overflowing horizontally', () => {
     render(
       <MemoryRouter>
         <App />
       </MemoryRouter>
     );
 
-    const header = screen.getByTestId('app-header-shell');
-    const nav = screen.getByTestId('app-primary-nav');
-    expect(header.className).toContain('flex-wrap');
-    expect(header.className).toContain('justify-center');
-    expect(nav.className).toContain('flex-wrap');
-    expect(nav.className).toContain('justify-center');
-    expect(nav.className).toContain('max-w-full');
+    // V107 nav structure: 4 groups (recruitment / members / intelligence / system)
+    expect(screen.getByTestId('nav-group-recruitment')).toBeTruthy();
+    expect(screen.getByTestId('nav-group-members')).toBeTruthy();
+    expect(screen.getByTestId('nav-group-intelligence')).toBeTruthy();
+    expect(screen.getByTestId('nav-group-system')).toBeTruthy();
+
+    // All 17 nav items are exposed via the sidebar (no horizontal scroll)
+    expect(screen.getByTestId('nav-candidates')).toBeTruthy();
+    expect(screen.getByTestId('nav-pipeline')).toBeTruthy();
+    expect(screen.getByTestId('nav-skills')).toBeTruthy();
+    expect(screen.getByTestId('nav-orchestration')).toBeTruthy();
+    expect(screen.getByTestId('nav-data')).toBeTruthy();
+
+    // No overflow fallback markers from the old horizontal nav
+    expect(screen.queryByTestId('app-primary-nav')).toBeNull();
+  });
+
+  it('Topbar mounts search trigger and theme switcher (4 themes)', () => {
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId('topbar-search-trigger')).toBeTruthy();
+    const switcher = screen.getByTestId('topbar-theme-switcher');
+    expect(switcher).toBeTruthy();
+    expect(screen.getByTestId('theme-option-light')).toBeTruthy();
+    expect(screen.getByTestId('theme-option-dark')).toBeTruthy();
+    expect(screen.getByTestId('theme-option-sepia')).toBeTruthy();
+    expect(screen.getByTestId('theme-option-nord')).toBeTruthy();
   });
 });

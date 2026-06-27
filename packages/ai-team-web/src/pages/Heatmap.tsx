@@ -1,6 +1,8 @@
 // V23 + V32: Capability heatmap page — 团队×岗位 × 技能矩阵 + 点击 cell 下钻
+// V108: Design System — Card / Stat / Section / Button / Skeleton / Sheet
 
 import { useEffect, useState } from 'react';
+import { Card, Stat, Section, Button, EmptyState, Sheet } from '../components/design-system';
 
 interface HeatmapCell {
   team: string;
@@ -77,32 +79,18 @@ export function CapabilityHeatmap() {
 
   return (
     <div className="space-y-6" data-testid="capability-heatmap">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">组织能力热力图</h2>
-          <p className="text-sm text-slate-500">
-            团队 × 岗位 × 技能 · 共 {report?.rows.length ?? 0} 个分组 / {report?.cols.length ?? 0} 项技能
-          </p>
-        </div>
-        <button onClick={load} className="btn-ghost text-sm" data-testid="heatmap-refresh">刷新</button>
-      </div>
-
+      <Section
+        title="组织能力热力图"
+        description={`团队 × 岗位 × 技能 · 共 ${report?.rows.length ?? 0} 个分组 / ${report?.cols.length ?? 0} 项技能`}
+        actions={<Button size="sm" variant="ghost" onClick={load} testId="heatmap-refresh">刷新</Button>}
+      >
       <div className="grid grid-cols-3 gap-4 text-sm">
-        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <div className="text-xs text-slate-500">全局平均分</div>
-          <div className="text-2xl font-bold">{report?.overallAverage ?? 0}</div>
-        </div>
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4">
-          <div className="text-xs text-rose-600">Critical Gaps</div>
-          <div className="text-2xl font-bold text-rose-700">{report?.criticalGaps ?? 0}</div>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-          <div className="text-xs text-slate-500">报告时间</div>
-          <div className="text-sm font-mono">{report ? new Date(report.generatedAt).toLocaleTimeString() : '—'}</div>
-        </div>
+        <Stat label="全局平均分" value={report?.overallAverage ?? 0} />
+        <Stat label="Critical Gaps" value={report?.criticalGaps ?? 0} />
+        <Stat label="报告时间" value={report ? new Date(report.generatedAt).toLocaleTimeString() : '—'} />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+      <Card>
         <table className="w-full text-sm" data-testid="heatmap-table">
           <thead>
             <tr>
@@ -148,9 +136,13 @@ export function CapabilityHeatmap() {
           </tbody>
         </table>
         {(report?.rows.length ?? 0) === 0 && !loading && !error && (
-          <div className="p-6 text-center text-slate-500">暂无数据 — 添加成员和技能后再查看。</div>
+          <EmptyState
+            icon="🗺️"
+            title="暂无能力数据"
+            description="添加成员和技能后再查看"
+          />
         )}
-      </div>
+      </Card>
 
       <div className="flex flex-wrap gap-4 text-sm">
         <span className="flex items-center gap-1"><span className="inline-block h-3 w-3 rounded bg-emerald-500" /> high (≥71)</span>
@@ -160,12 +152,20 @@ export function CapabilityHeatmap() {
         <span className="flex items-center gap-1 text-xs text-slate-500">点击单元格查看成员</span>
       </div>
 
-      {selected && (
-        <CellDetailModal
-          selection={selected}
-          onClose={() => setSelected(null)}
-        />
-      )}
+      <Sheet
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title="成员覆盖详情"
+        testId="heatmap-cell-sheet"
+      >
+        {selected && (
+          <CellDetailModal
+            selection={selected}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </Sheet>
+      </Section>
     </div>
   );
 }
