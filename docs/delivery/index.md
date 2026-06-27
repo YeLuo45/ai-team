@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 13
-Ready: 13
-Latest: V103
+Total: 14
+Ready: 14
+Latest: V106
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V106 | ready | 100% | 96.22% | 15/15 | `docs/delivery/v106-delivery-report.md` |
 | V103 | ready | 100% | 98.23% | 14/14 | `docs/delivery/v103-delivery-report.md` |
 | V100 | ready | 100% | 98.13% | 14/14 | `docs/delivery/v100-delivery-report.md` |
 | V97 | ready | 100% | 98.21% | 14/14 | `docs/delivery/v97-delivery-report.md` |

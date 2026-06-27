@@ -726,6 +726,21 @@ describe('V82-V96 delivery automation closed loop helpers', () => {
     expect(restored.filters.gate).toBe('coverage');
   });
 
+  it('falls back to a saved cockpit label when selected version is absent', () => {
+    const snapshot = buildCockpitPersistenceSnapshot({
+      filters: { status: 'ready' },
+      importedEvidence: [],
+      diffText: '',
+    });
+
+    const restored = buildCockpitWebRestoreModel({
+      records: [buildCockpitServerRecord({ userId: 'operator-1', snapshot, now: '2026-06-24T12:00:00.000Z' })],
+      userId: 'operator-1',
+    });
+
+    expect(restored.restoreButtonLabel).toBe('Restore saved cockpit');
+  });
+
   it('audits and migrates a batch of release evidence payloads deterministically', () => {
     const batch = auditReleaseEvidenceBatch([
       { path: 'docs/delivery/legacy.json', text: '{"version":"V72","summary":{"ready":true,"headline":"V72 ready","blockers":[]},"reportMarkdown":"# R","indexMarkdown":"# I"}' },

@@ -1,0 +1,15 @@
+{
+  "version": "V106",
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "summary": {
+    "ready": true,
+    "headline": "V106 ready — tests 100%, coverage 96.22%, README 15/15",
+    "testPassRatePct": 100,
+    "coverageStatus": "pass",
+    "readmeStatus": "pass",
+    "buildStatus": "pass",
+    "blockers": []
+  },
+  "reportMarkdown": "# Delivery Report — ai-team\n\n**Ready**: yes\n**Headline**: V106 ready — tests 100%, coverage 96.22%, README 15/15\n**Proposal**: P-20260627-001\n**Commit**: uncommitted (local working tree)\n\n## Validation\n- `npm test` — 1208 passed | 7 skipped\n- `npm run verify:readme` — 15/15 passed\n- `npm run test:coverage:incremental` — 15/15 strict layers, 96.22% avg branch\n\n## Changed Files\n- M docs/delivery/index.md\n- M packages/ai-team-core/src/delivery-summary.ts\n- M packages/ai-team-core/test/delivery-summary-v51.test.ts\n- M packages/ai-team-web/public/data/team.json\n- M packages/ai-team-web/src/pages/TeamOrchestrationConsole.tsx\n- M packages/ai-team-web/test/team-orchestration-console.test.tsx\n- M scripts/verify-readme-commands.mjs\n- docs/delivery/ai-team-v106-release-evidence.json\n- docs/delivery/v106-delivery-report.md\n- packages/ai-team-core/test/release-ops-v104-v106.test.ts\n\n## Blockers\n- none\n\n## Next Directions\n1. V107 provenance policy route hardening\n2. V108 replay diff saved filters\n3. V109 retention archive dry-run CLI\n",
+  "indexMarkdown": "# Delivery Reports Index\n\nTotal: 14\nReady: 14\nLatest: V106\n\n| Version | Status | Tests | Coverage | README | Path |\n|---|---|---:|---:|---:|---|\n| V106 | ready | 100% | 96.22% | 15/15 | `docs/delivery/v106-delivery-report.md` |\n| V103 | ready | 100% | 98.23% | 14/14 | `docs/delivery/v103-delivery-report.md` |\n| V100 | ready | 100% | 98.13% | 14/14 | `docs/delivery/v100-delivery-report.md` |\n| V97 | ready | 100% | 98.21% | 14/14 | `docs/delivery/v97-delivery-report.md` |\n| V94 | ready | 100% | 98.22% | 14/14 | `docs/delivery/v94-delivery-report.md` |\n| V91 | ready | 100% | 98.21% | 14/14 | `docs/delivery/v91-delivery-report.md` |\n| V88 | ready | 100% | 98.23% | 14/14 | `docs/delivery/v88-delivery-report.md` |\n| V84 | ready | 100% | 98.2% | 14/14 | `docs/delivery/v84-delivery-report.md` |\n| V81 | ready | 100% | 98.28% | 14/14 | `docs/delivery/v81-delivery-report.md` |\n| V78 | ready | 100% | 98.3% | 13/13 | `docs/delivery/v78-delivery-report.md` |\n| V72 | ready | 100% | 98.31% | 13/13 | `docs/delivery/v72-delivery-report.md` |\n| V65 | ready | 100% | 98.36% | 13/13 | `docs/delivery/v65-delivery-report.md` |\n| V60 | ready | 100% | 98.54% | 12/12 | `docs/delivery/v60-delivery-report.md` |\n| V55 | ready | 100% | 98.54% | 11/11 | `docs/delivery/v55-delivery-report.md` |"
+}

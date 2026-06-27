@@ -1040,6 +1040,46 @@ export interface ProposalReplayVisualDiff {
   markdown: string;
 }
 
+export interface SignedCiArtifactProvenancePolicy {
+  trustedSigners: string[];
+  requiredWorkflowRunId?: string;
+  minGeneratedAt?: string;
+}
+
+export interface SignedCiArtifactProvenanceEnforcement {
+  ready: boolean;
+  policy: 'trusted-signer+workflow+freshness';
+  provenance: CiArtifactProvenance;
+  issues: string[];
+  markdown: string;
+}
+
+export interface ProposalReplayDiffTimelineFilter {
+  state?: ProposalReplayVisualDiffStep['state'];
+  query?: string;
+}
+
+export interface ProposalReplayDiffTimeline {
+  total: number;
+  steps: ProposalReplayVisualDiffStep[];
+  markdown: string;
+}
+
+export interface ReleaseHistoryRetentionPolicy {
+  keepLatest: number;
+  archiveBefore: string;
+  now: string;
+}
+
+export interface ReleaseHistoryRetentionPlan {
+  ready: boolean;
+  keep: ReleaseOperationsHistoryEntry[];
+  archive: ReleaseOperationsHistoryEntry[];
+  commands: string[];
+  issues: string[];
+  markdown: string;
+}
+
 export function buildBrowserEvidenceDownloadIntent(download: ReleaseEvidenceDownload, options: { objectUrl: string }): BrowserEvidenceDownloadIntent {
   const parsed = JSON.parse(download.serialized) as Record<string, unknown>;
   const serialized = JSON.stringify({ schemaVersion: 2, ...parsed }, null, 2);
@@ -1582,4 +1622,82 @@ export function buildProposalReplayVisualDiff(input: ProposalReplayVisualDiffInp
     ...steps.map((step) => `| ${step.status} | ${step.before ? 'yes' : 'no'} | ${step.after ? 'yes' : 'no'} | ${step.state} |`),
   ].join('\n');
   return { proposalId: input.proposalId, changed, added, removed, steps, markdown };
+}
+
+export function enforceSignedCiArtifactProvenance(
+  provenance: CiArtifactProvenance,
+  policy: SignedCiArtifactProvenancePolicy,
+): SignedCiArtifactProvenanceEnforcement {
+  const trustedSigners = new Set(policy.trustedSigners.map((signer) => signer.trim()).filter(Boolean));
+  const signer = provenance.attestation.signer;
+  const issues = [
+    ...(provenance.ready ? [] : ['base provenance is not ready']),
+    ...(trustedSigners.has(signer) ? [] : [`signer ${signer || 'missing'} is not trusted`]),
+    ...(!policy.requiredWorkflowRunId || provenance.attestation.workflowRunId === policy.requiredWorkflowRunId ? [] : [`workflowRunId must be ${policy.requiredWorkflowRunId}`]),
+    ...(!policy.minGeneratedAt || provenance.attestation.generatedAt >= policy.minGeneratedAt ? [] : [`generatedAt is older than ${policy.minGeneratedAt}`]),
+  ];
+  const ready = issues.length === 0;
+  const markdown = [
+    `# Signed Provenance Enforcement — ${provenance.attestation.version || 'VNext'}`,
+    '',
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    `Signer: ${signer || 'missing'}`,
+    `Workflow: ${provenance.attestation.workflowRunId || 'missing'}`,
+    `Policy: trusted-signer+workflow+freshness`,
+    '',
+    ...(issues.length === 0 ? ['Issues: none'] : ['Issues:', ...issues.map((issue) => `- ${issue}`)]),
+  ].join('\n');
+  return { ready, policy: 'trusted-signer+workflow+freshness', provenance, issues, markdown };
+}
+
+export function filterProposalReplayDiffTimeline(diff: ProposalReplayVisualDiff, filter: ProposalReplayDiffTimelineFilter): ProposalReplayDiffTimeline {
+  const query = filter.query?.trim().toLowerCase();
+  const steps = diff.steps
+    .filter((step) => !filter.state || step.state === filter.state)
+    .filter((step) => {
+      if (!query) return true;
+      const haystack = `${step.status} ${step.state} ${step.before ? 'before' : ''} ${step.after ? 'after' : ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  const markdown = steps.length === 0
+    ? `# Proposal Replay Diff Timeline\n\nNo matching replay diff steps for ${diff.proposalId}`
+    : ['# Proposal Replay Diff Timeline', '', ...steps.map((step) => `- ${step.status}: ${step.state} (before=${step.before ? 'yes' : 'no'}, after=${step.after ? 'yes' : 'no'})`)].join('\n');
+  return { total: steps.length, steps, markdown };
+}
+
+function archiveCommandForEvidencePath(path: string): string {
+  const fileName = path.split('/').at(-1) || path;
+  return `mkdir -p docs/delivery/archive && mv ${path} docs/delivery/archive/${fileName}`;
+}
+
+export function planReleaseHistoryRetention(
+  history: ReleaseOperationsHistorySnapshot,
+  policy: ReleaseHistoryRetentionPolicy,
+): ReleaseHistoryRetentionPlan {
+  const issues = [
+    ...(policy.keepLatest >= 1 ? [] : ['keepLatest must be at least 1']),
+    ...(policy.archiveBefore.trim() ? [] : ['archiveBefore is required']),
+    ...(policy.now.trim() ? [] : ['now is required']),
+  ];
+  const sorted = [...history.entries].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  const keep = issues.length === 0 ? sorted.slice(0, policy.keepLatest) : [];
+  const keepSet = new Set(keep.map((entry) => `${entry.version}:${entry.updatedAt}`));
+  const archive = issues.length === 0
+    ? sorted.filter((entry) => !keepSet.has(`${entry.version}:${entry.updatedAt}`) && entry.updatedAt < policy.archiveBefore)
+    : [];
+  const commands = archive.map((entry) => archiveCommandForEvidencePath(entry.evidencePath));
+  const ready = issues.length === 0;
+  const markdown = [
+    '# Release History Retention Plan',
+    '',
+    `Ready: ${ready ? 'yes' : 'no'}`,
+    `Keep latest: ${policy.keepLatest}`,
+    `Archive before: ${policy.archiveBefore || 'missing'}`,
+    `Generated at: ${policy.now || 'missing'}`,
+    '',
+    `Keep: ${keep.map((entry) => entry.version).join(', ') || 'none'}`,
+    `Archive: ${archive.map((entry) => entry.version).join(', ') || 'none'}`,
+    ...(issues.length === 0 ? ['Issues: none'] : ['Issues:', ...issues.map((issue) => `- ${issue}`)]),
+  ].join('\n');
+  return { ready, keep, archive, commands, issues, markdown };
 }

@@ -36,10 +36,11 @@ record('test targeted core', run('npm', ['test', '--', 'packages/ai-team-core/te
 record('test targeted core v42', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration-v42.test.ts']), /5 passed/);
 record('test targeted core v45', run('npm', ['test', '--', 'packages/ai-team-core/test/team-orchestration-v45.test.ts']), /22 passed/);
 record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-server/test/team-orchestration-routes.test.ts']), /91 passed/);
-record('test targeted web console', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-console.test.tsx']), /8 passed/);
+record('test targeted web console', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-console.test.tsx']), /9 passed/);
+record('test targeted release ops v104-v106', run('npm', ['test', '--', 'packages/ai-team-core/test/release-ops-v104-v106.test.ts']), /12 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
-record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /56 passed/);
+record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /57 passed/);
 record('test targeted delivery cli', run('npm', ['test', '--', 'packages/ai-team-cli/test/delivery-command.test.ts']), /8 passed/);
 record('delivery summary', run('npm', ['run', 'delivery:summary']), /V\d+ ready/);
 record('delivery report', run('npm', ['run', 'delivery:report'], { env: { AI_TEAM_DELIVERY_WRITE: '0' } }), /Delivery Report — ai-team/);

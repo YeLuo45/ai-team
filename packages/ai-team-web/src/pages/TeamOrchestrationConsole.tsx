@@ -19,6 +19,9 @@ import {
   buildReleaseOperationsHistorySnapshot,
   buildCiArtifactProvenance,
   buildProposalReplayVisualDiff,
+  enforceSignedCiArtifactProvenance,
+  filterProposalReplayDiffTimeline,
+  planReleaseHistoryRetention,
   filterProposalExecutionAuditTimeline,
   classifyChangedFiles,
   executeProposalDryRun,
@@ -61,6 +64,9 @@ type ReplaySmokeGate = { ready: boolean; replayedStatuses: string[]; issues: str
 type OperationsHistory = ReturnType<typeof buildReleaseOperationsHistorySnapshot>;
 type ArtifactProvenance = ReturnType<typeof buildCiArtifactProvenance>;
 type ReplayVisualDiff = ReturnType<typeof buildProposalReplayVisualDiff>;
+type SignedProvenance = ReturnType<typeof enforceSignedCiArtifactProvenance>;
+type ReplayDiffTimeline = ReturnType<typeof filterProposalReplayDiffTimeline>;
+type RetentionPlan = ReturnType<typeof planReleaseHistoryRetention>;
 
 async function postJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, {
@@ -97,6 +103,9 @@ export default function TeamOrchestrationConsole() {
   const [operationsHistory, setOperationsHistory] = useState<OperationsHistory | null>(null);
   const [artifactProvenance, setArtifactProvenance] = useState<ArtifactProvenance | null>(null);
   const [replayVisualDiff, setReplayVisualDiff] = useState<ReplayVisualDiff | null>(null);
+  const [signedProvenance, setSignedProvenance] = useState<SignedProvenance | null>(null);
+  const [replayDiffTimeline, setReplayDiffTimeline] = useState<ReplayDiffTimeline | null>(null);
+  const [retentionPlan, setRetentionPlan] = useState<RetentionPlan | null>(null);
   const [candidateName, setCandidateName] = useState('Ada Chen');
   const [memoryFeedback, setMemoryFeedback] = useState('ownership matters');
   const [status, setStatus] = useState('');
@@ -478,6 +487,41 @@ export default function TeamOrchestrationConsole() {
     }
   }
 
+  function enforceProvenance() {
+    const provenance = artifactProvenance ?? buildCiArtifactProvenance({
+      version: 'V104',
+      artifactName: 'release-check.json',
+      artifactSha256: 'a'.repeat(64),
+      commit: '7407871',
+      workflowRunId: '123456789',
+      signer: 'github-actions',
+      generatedAt: '2026-06-27T00:00:00Z',
+    });
+    setSignedProvenance(enforceSignedCiArtifactProvenance(provenance, {
+      trustedSigners: ['github-actions', 'release-bot'],
+      requiredWorkflowRunId: '123456789',
+      minGeneratedAt: '2026-06-26T00:00:00Z',
+    }));
+  }
+
+  function filterReplayDiffTimeline() {
+    const diff = replayVisualDiff ?? buildProposalReplayVisualDiff({
+      proposalId: 'P-20260627-001',
+      before: ['in_test_acceptance', 'accepted'],
+      after: ['in_test_acceptance', 'accepted', 'deployed', 'delivered'],
+    });
+    setReplayDiffTimeline(filterProposalReplayDiffTimeline(diff, { state: 'added', query: 'deliver' }));
+  }
+
+  function planRetentionPolicy() {
+    const history = operationsHistory ?? buildReleaseOperationsHistorySnapshot([
+      { version: 'V101', proposalId: 'P-20260625-001', updatedAt: '2026-06-21T00:00:00Z', ready: true, summary: 'old ready', evidencePath: 'docs/delivery/ai-team-v101-release-evidence.json' },
+      { version: 'V102', proposalId: 'P-20260625-002', updatedAt: '2026-06-22T00:00:00Z', ready: true, summary: 'signed provenance', evidencePath: 'docs/delivery/ai-team-v102-release-evidence.json' },
+      { version: 'V103', proposalId: 'P-20260625-003', updatedAt: '2026-06-27T00:00:00Z', ready: true, summary: 'replay diff', evidencePath: 'docs/delivery/ai-team-v103-release-evidence.json' },
+    ]);
+    setRetentionPlan(planReleaseHistoryRetention(history, { keepLatest: 2, archiveBefore: '2026-06-23T00:00:00Z', now: '2026-06-27T00:00:00Z' }));
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -526,6 +570,9 @@ export default function TeamOrchestrationConsole() {
         <button data-testid="team-orchestration-ops-history" className="btn btn-ghost" onClick={loadOperationsHistory}>Ops history</button>
         <button data-testid="team-orchestration-provenance" className="btn btn-ghost" onClick={loadArtifactProvenance}>Artifact provenance</button>
         <button data-testid="team-orchestration-replay-diff" className="btn btn-ghost" onClick={loadReplayVisualDiff}>Replay diff</button>
+        <button data-testid="team-orchestration-signed-provenance" className="btn btn-ghost" onClick={enforceProvenance}>Signed provenance</button>
+        <button data-testid="team-orchestration-replay-diff-timeline" className="btn btn-ghost" onClick={filterReplayDiffTimeline}>Replay diff timeline</button>
+        <button data-testid="team-orchestration-retention-policy" className="btn btn-ghost" onClick={planRetentionPolicy}>Retention policy</button>
       </div>
 
       <div className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 md:grid-cols-2">
@@ -698,6 +745,27 @@ export default function TeamOrchestrationConsole() {
         <article className="rounded-xl border border-pink-200 bg-pink-50 p-4 dark:border-pink-900 dark:bg-pink-950/40">
           <h3 className="font-semibold text-pink-900 dark:text-pink-100">Replay diff: {replayVisualDiff.changed ? 'changed' : 'unchanged'}</h3>
           <p className="mt-1 text-sm text-pink-800 dark:text-pink-200">Added: {replayVisualDiff.added.join(', ') || 'none'} · Removed: {replayVisualDiff.removed.join(', ') || 'none'}</p>
+        </article>
+      )}
+
+      {signedProvenance && (
+        <article className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
+          <h3 className="font-semibold text-amber-900 dark:text-amber-100">Signed provenance enforcement: {signedProvenance.ready ? 'trusted' : 'blocked'}</h3>
+          <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">{signedProvenance.policy} · {signedProvenance.issues.join(', ') || 'none'}</p>
+        </article>
+      )}
+
+      {replayDiffTimeline && (
+        <article className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950/40">
+          <h3 className="font-semibold text-indigo-900 dark:text-indigo-100">Replay diff timeline: {replayDiffTimeline.total}</h3>
+          <p className="mt-1 text-sm text-indigo-800 dark:text-indigo-200">{replayDiffTimeline.steps.map((step) => `${step.status}:${step.state}`).join(' · ') || 'none'}</p>
+        </article>
+      )}
+
+      {retentionPlan && (
+        <article className="rounded-xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950/40">
+          <h3 className="font-semibold text-stone-900 dark:text-stone-100">Retention policy: {retentionPlan.ready ? 'ready' : 'blocked'}</h3>
+          <p className="mt-1 text-sm text-stone-700 dark:text-stone-300">Keep {retentionPlan.keep.map((entry) => entry.version).join(', ') || 'none'} · Archive {retentionPlan.archive.map((entry) => entry.version).join(', ') || 'none'}</p>
         </article>
       )}
     </section>

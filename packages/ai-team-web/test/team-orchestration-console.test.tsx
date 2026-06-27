@@ -209,4 +209,17 @@ describe('V42 TeamOrchestrationConsole page', () => {
     expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/ci-artifact-provenance'))).toBe(true);
     expect(fetchCalls.some((call) => call.url.endsWith('/api/team-orchestration/audit-replay-diff'))).toBe(true);
   });
+
+  it('surfaces V104-V106 release operations hardening from visible console actions', async () => {
+    render(<TeamOrchestrationConsole />);
+
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-signed-provenance')); });
+    expect(screen.getByText(/Signed provenance enforcement: trusted/)).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-replay-diff-timeline')); });
+    expect(screen.getByText(/Replay diff timeline: 1/)).toBeTruthy();
+    expect(screen.getByText(/delivered:added/)).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByTestId('team-orchestration-retention-policy')); });
+    expect(screen.getByText(/Retention policy: ready/)).toBeTruthy();
+    expect(screen.getByText(/Keep V103, V102 · Archive V101/)).toBeTruthy();
+  });
 });
