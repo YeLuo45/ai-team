@@ -1,4 +1,4 @@
-// V123: WorkflowPanel + ApprovalPanel + DeliveryPanel + OperationsPanel (RED tests)
+// V123: Orchestration panel components + selectors — extracted from 773-line monolith
 // @vitest-environment happy-dom
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -31,14 +31,9 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
-  resetSharedState();
-});
-
-// Helper: reset shared caches between tests
-function resetSharedState() {
   resetResourceCache();
   resetEventBus();
-}
+});
 
 function jsonResponse(data: unknown, ok = true, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -109,7 +104,7 @@ describe('V123 summarizeOperations', () => {
 describe('V123 panel tabs', () => {
   it('DEFAULT_PANEL_TABS has 4 entries', () => {
     expect(DEFAULT_PANEL_TABS.length).toBe(4);
-    const keys = DEFAULT_PANEL_TABS.map((t) => t.key);
+    const keys = DEFAULT_PANEL_TABS.map((t: PanelTab) => t.key);
     expect(keys).toEqual(['workflow', 'approvals', 'delivery', 'operations']);
   });
 
@@ -210,8 +205,7 @@ describe('V123 useDeliveryPanelState', () => {
       return null;
     }
     render(<Probe />);
-    await waitFor(() => expect(api).not.toBeNull());
-    expect(api?.summary?.headline).toBe('OK');
+    await waitFor(() => expect(api?.summary?.headline).toBe('OK'));
   });
 });
 
@@ -229,8 +223,7 @@ describe('V123 useOperationsPanelState', () => {
       return null;
     }
     render(<Probe />);
-    await waitFor(() => expect(api).not.toBeNull());
-    expect(api!.summary.total).toBe(1);
+    await waitFor(() => expect(api?.summary.total).toBe(1));
   });
 });
 

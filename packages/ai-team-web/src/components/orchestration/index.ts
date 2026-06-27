@@ -2,3 +2,4 @@
 
 export * from './hooks.js';
 export * from './panels.js';
+export * from './console-shell.js';
