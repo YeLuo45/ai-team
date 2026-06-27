@@ -104,15 +104,30 @@ export function useApprovalData(): ApprovalData {
   }, [refresh]);
 
   const decide = useCallback(async (id: string, decision: string) => {
-    return fetchJson<{ ok: boolean }>(
-      `/api/team-orchestration/approvals/${encodeURIComponent(id)}/decide`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
-      }
-    );
-  }, []);
+    // Optimistic update: remove from queue immediately
+    const previous = snapshot;
+    setSnapshot((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        queue: prev.queue.filter((q: { id: string }) => String(q.id) !== id),
+      };
+    });
+    try {
+      return await fetchJson<{ ok: boolean }>(
+        `/api/team-orchestration/approvals/${encodeURIComponent(id)}/decide`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision }),
+        }
+      );
+    } catch (err) {
+      // Rollback on failure
+      setSnapshot(previous ?? null);
+      throw err;
+    }
+  }, [snapshot]);
 
   return {
     queue: snapshot?.queue ?? [],
