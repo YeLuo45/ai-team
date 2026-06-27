@@ -88,6 +88,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | ⌨️ **状态统一 + 键盘 + 权限 + PWA + a11y** | ErrorBoundary + ErrorState + 12 键盘快捷键（palette/help/4 分组/5 go-to）+ KeyboardHelpOverlay + 4 角色 22 permission RBAC + useOnlineStatus + useSkipToMain + announceToScreenReader | V115-V116 |
 | 🔌 **SSE Bridge 接入 + 移动端 + Onboarding** | AppSseBootstrap（3 默认 bridge 接入 + topic→resource 失效）+ HamburgerNav/MobileBottomBar/OfflineBanner（lg:hidden 移动导航）+ PWA manifest/service worker/PwaInstallPrompt + 3 步 Onboarding Tour（候选人→面试→Pipeline） | V117-V119 |
 | 🚀 **App 生产接入 + Orchestration 拆分 + PWA 真服务化** | App.tsx 接入 SSE/HamburgerNav/OfflineBanner/OnboardingTour + useOrchestrationData/useApprovalData/useDeliveryData/useWorkflowRunner 4 hooks + OrchestrationProvider + buildServiceWorkerScript（cache-first + network-first + offline）+ manifest.json + 192/512 PNG icons | V120-V122 |
+| 🧱 **Orchestration 4 Panels + SkillGraph V2** | WorkflowPanel / ApprovalPanel / DeliveryPanel / OperationsPanel 4 子组件 + DEFAULT_PANEL_TABS + 9 纯函数 helpers（selectors / filters / transforms）+ ZoomController/NodeSelector/TooltipRenderer + SkillGraphV2 React 组件（zoom/pan/下钻/过滤） | V123-V124 |
 
 ## 7 个包
 
