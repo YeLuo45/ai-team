@@ -1,6 +1,6 @@
 // V116: RBAC + PWA + a11y primitives
 
-import { ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
+import { ReactNode, useEffect, useSyncExternalStore } from 'react';
 import { Badge } from '../design-system/index.js';
 
 // ---------- RBAC ----------

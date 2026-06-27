@@ -82,6 +82,10 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🔁 **提案同步规划器** | 纯函数生成 MCP 安全正向状态路径，避免跳级/回退状态 | V64 |
 | 🧰 **交付驾驶舱强化** | 证据筛选/导入查看器、提案交付向导、发布就绪看板、MCP 状态回退防护、可提交 diff 分类 | V66-V72 |
 | 🚚 **交付闭环自动化** | 浏览器安全证据、MCP 执行确认计划、驾驶舱服务端/Web 恢复持久化、证据 schema 批量审计、质量门禁、后续方向生成、CI 证据摄取、审计时间线、Release Ops API、上传桥接、审计回放门禁、历史快照、签名来源、回放 diff | V73-V103 |
+| 🎨 **Web 交互体验底盘** | Design System 12 原语 + 4 主题（light/dark/sepia/nord）+ AppShell（Sidebar 4 分组 + Topbar + 居中 Main）+ Candidates/Pipeline/Heatmap 改造 | V107-V108 |
+| 🧠 **Web 统一数据层** | ResourceCache + EventBus + useResource/useResourceMutation + SSE Bridge（topic→resource 自动失效）+ 15 useXxx hook + 4 乐观更新（Pipeline/Approval/Interview/Candidate）| V109-V111 |
+| 🧪 **Web 测试 + 协同视图** | 5 路径 happy-dom e2e flow（登录/列表/面试/终结/审批）+ CandidateDrawer/MemberDrawer/InterviewCalendar + 8 个 calendar helper | V112-V114 |
+| ⌨️ **状态统一 + 键盘 + 权限 + PWA + a11y** | ErrorBoundary + ErrorState + 12 键盘快捷键（palette/help/4 分组/5 go-to）+ KeyboardHelpOverlay + 4 角色 22 permission RBAC + useOnlineStatus + useSkipToMain + announceToScreenReader | V115-V116 |
 
 ## 7 个包
 

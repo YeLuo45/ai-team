@@ -10,7 +10,7 @@ interface Approval {
 export default function ApprovalPanel() {
   const { data, refetch } = useApprovalQueue();
   const { decide } = useApprovalDecide();
-  const list = (data ?? []) as Approval[];
+  const list = ((data ?? []) as unknown as Approval[]);
 
   async function onApprove(id: string) {
     try {

@@ -1,6 +1,5 @@
 // V113: Drawers (Candidate / Member) + Interview Calendar
 
-import { ReactNode } from 'react';
 import { Drawer, Badge, Card, EmptyState } from '../design-system/index.js';
 import {
   buildCalendarMonth,
@@ -8,7 +7,6 @@ import {
   calendarMonthLabel,
   calendarPrevMonth,
   calendarNextMonth,
-  type CalendarCell,
 } from './calendar-utils.js';
 
 // ---------- CandidateDrawer ----------
@@ -261,15 +259,4 @@ export function InterviewCalendar({
   );
 }
 
-// Re-exports for convenience
-export {
-  buildCalendarMonth,
-  buildHeatmapCalendar,
-  groupInterviewsByDate,
-  formatInterviewTime,
-  calendarMonthLabel,
-  calendarPrevMonth,
-  calendarNextMonth,
-  navigateCalendarMonth,
-  type CalendarCell,
-};
+// Re-exports for convenience (calendar helpers are imported above and re-exported)

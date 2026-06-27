@@ -180,7 +180,7 @@ export function useApprovalDecide() {
   const { mutate, loading } = useResourceMutation<{ id: string; decision: string }, Array<Record<string, unknown>>>({
     resourceKey: 'approvals',
     optimistic: (input) => (prev) =>
-      prev ? prev.filter((a: { id: string }) => a.id !== input.id) : prev,
+      prev ? prev.filter((a: Record<string, unknown>) => (a as { id: string }).id !== input.id) : prev,
     mutate: ({ id, decision }) => fetchJson(`/api/team-orchestration/approvals/${encodeURIComponent(id)}/decide`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -203,7 +203,7 @@ export function useInterviewFinalize() {
   const { mutate, loading } = useResourceMutation<{ id: string }, Array<Record<string, unknown>>>({
     resourceKey: 'interviews',
     optimistic: (input) => (prev) =>
-      prev ? prev.map((i: { id: string }) => (i.id === input.id ? { ...i, status: 'finalized' } : i)) : prev,
+      prev ? prev.map((i: Record<string, unknown>) => (i as { id: string }).id === input.id ? { ...i, status: 'finalized' } : i) : prev,
     mutate: ({ id }) => fetchJson(`/api/interviews/${encodeURIComponent(id)}/finalize`, {
       method: 'POST',
     }),
@@ -224,7 +224,7 @@ export function useCandidateDelete() {
   const { mutate, loading } = useResourceMutation<{ id: string }, Array<Record<string, unknown>>>({
     resourceKey: 'candidates',
     optimistic: (input) => (prev) =>
-      prev ? prev.filter((c: { id: string }) => c.id !== input.id) : prev,
+      prev ? prev.filter((c: Record<string, unknown>) => (c as { id: string }).id !== input.id) : prev,
     mutate: ({ id }) => fetchJson(`/api/candidates/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     }),
