@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 17
+Total: 18
 Ready: 14
-Latest: V120
+Latest: V123
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V123 | blocked | 100% | 0% | 0/0 | `docs/delivery/v124-delivery-report.md` |
 | V120 | blocked | 100% | 0% | 0/0 | `docs/delivery/v122-delivery-report.md` |
 | V117 | blocked | 100% | 0% | 0/0 | `docs/delivery/v119-delivery-report.md` |
 | V107 | blocked | 100% | 0% | 0/0 | `docs/delivery/v116-delivery-report.md` |
