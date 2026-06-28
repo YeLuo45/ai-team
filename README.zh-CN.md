@@ -93,6 +93,7 @@ npm run dev           # ← 一键同时启动 server (3000) + web (5173)
 | 🪪 **App A11y 接入 + verify:readme a11y gate** | A11yGateProvider/useA11yGate + A11yGateConfig + 6 gate helpers + runA11yGateCheck + useSkipToMainElement + A11yBadgeSlot + AppAccessibilityRoot + scripts/a11y-gate.mjs（verify:readme 集成 15/16） + App.tsx /orchestration 改用 ConsoleShell | V127-V128 |
 | 🌐 **Web i18n 4 locales + access 本地化 + i18n gate** | WebLocale（en/zh-CN/ja/ko）+ LocaleProvider + useT + LanguageSwitcher + 4 翻译字典（common/design/nav/auth 共 184 键）+ Design System Button/Badge/EmptyState 本地化 + access-i18n（SHORTCUT_PRESET_LABELS/ROLE_PRESET_LABELS/OFFLINE_BANNER_COPY 4 locales）+ buildLocalizedAccessBundle + scripts/i18n-gate.mjs（verify:readme 集成 16/17） | V129-V130 |
 | ⚡ **Lazy 路由加载 + Bundle 分析 + 773 行 refactor 验证** | React.lazy + Suspense fallback + RouteErrorBoundary + withLazyRouteBoundary + 17 路由 manifest + preloadRoute/OnHover/OnIdle + buildBundleReport/formatBundleReport + RouteLoadingProvider + orchestration-shell-v132 parity 测试（4 面板功能对等 773 行） | V131-V132 |
+| 🧹 **773 行 → 1 行 wrapper + verify:readme 全绿 + tooltipConfig 收尾** | TeamOrchestrationConsole 9 行 wrapper + 7-test page suite + 9-test V134 tooltipConfig coverage + scripts/bundle-gate.mjs + service-worker 移出 client bundle + verify:readme 19/19 | V133-V134 |
 
 ## 7 个包
 
