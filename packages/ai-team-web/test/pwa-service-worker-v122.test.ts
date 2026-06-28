@@ -15,7 +15,7 @@ import {
   buildPwaAssetBundle,
   writePwaAssets,
   PwaAssetBundle,
-} from '../src/components/mobile/service-worker.js';
+} from '../scripts/service-worker.ts';
 
 beforeEach(() => {
   vi.restoreAllMocks();
