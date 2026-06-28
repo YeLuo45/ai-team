@@ -380,6 +380,15 @@ export function SkillGraphV2({
     selRef.current?.clear();
   }
 
+  // V135: hover state for tooltip rendering
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  function handleNodeEnter(id: string) {
+    setHoveredId(id);
+  }
+  function handleNodeLeave() {
+    setHoveredId(null);
+  }
+
   const selectedNode = selectedId ? skills.find((s) => s.id === selectedId) ?? members.find((m) => m.id === selectedId) ?? null : null;
 
   return (
@@ -410,7 +419,14 @@ export function SkillGraphV2({
             const r = 8 + s.memberCount * 2;
             const fill = s.category === 'technical' ? '#4f46e5' : s.category === 'soft' ? '#10b981' : '#a855f7';
             return (
-              <g key={s.id} data-testid={`node-${s.id}`} onClick={() => handleNodeClick(s.id)} className="cursor-pointer">
+              <g
+                key={s.id}
+                data-testid={`node-${s.id}`}
+                onClick={() => handleNodeClick(s.id)}
+                onMouseEnter={() => handleNodeEnter(s.id)}
+                onMouseLeave={handleNodeLeave}
+                className="cursor-pointer"
+              >
                 <circle cx={p.x} cy={p.y} r={r} fill={fill} opacity={selectedId === s.id ? 1 : 0.7} />
                 <text x={p.x} y={p.y + r + 12} textAnchor="middle" fontSize="10" fill="#475569">
                   {s.name}
@@ -423,7 +439,14 @@ export function SkillGraphV2({
             if (!p) return null;
             const size = 8 + m.skillCount * 2;
             return (
-              <g key={m.id} data-testid={`node-${m.id}`} onClick={() => handleNodeClick(m.id)} className="cursor-pointer">
+              <g
+                key={m.id}
+                data-testid={`node-${m.id}`}
+                onClick={() => handleNodeClick(m.id)}
+                onMouseEnter={() => handleNodeEnter(m.id)}
+                onMouseLeave={handleNodeLeave}
+                className="cursor-pointer"
+              >
                 <rect x={p.x - size / 2} y={p.y - size / 2} width={size} height={size} fill="#f59e0b" opacity={selectedId === m.id ? 1 : 0.7} />
                 <text x={p.x} y={p.y + size / 2 + 12} textAnchor="middle" fontSize="10" fill="#475569">
                   {m.name}
@@ -442,6 +465,27 @@ export function SkillGraphV2({
           {zoomState.scale.toFixed(2)}×
         </span>
       </div>
+
+      {hoveredId && !selectedId && (() => {
+        const node: SkillNode | MemberNode | undefined = skills.find((s) => s.id === hoveredId) ?? members.find((m) => m.id === hoveredId);
+        if (!node) return null;
+        const isSkill = 'avgScore' in node;
+        const title = node.name;
+        const detail = isSkill
+          ? `分类: ${node.category} · 均分: ${node.avgScore} · 成员: ${node.memberCount}`
+          : `团队: ${node.team} · 角色: ${node.role} · 职级: ${node.level}`;
+        return (
+          <div
+            data-testid="node-tooltip"
+            role="tooltip"
+            className="absolute left-2 top-2 rounded border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm dark:border-slate-700 dark:bg-slate-800"
+          >
+            <strong>{title}</strong>
+            <br />
+            <span>{detail}</span>
+          </div>
+        );
+      })()}
 
       {selectedNode && (
         <div
