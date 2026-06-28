@@ -49,6 +49,9 @@ record('delivery index', run('npm', ['run', 'delivery:index']), /Delivery index 
 // V128: a11y gate check — run in Node via simulated clean document
 record('a11y gate', run('node', ['scripts/a11y-gate.mjs'], { timeout: 30_000 }), /a11y gate: PASSED|a11y gate: FAILED/);
 
+// V130: i18n gate check — validates 4 locales with 100+ keys
+record('i18n gate', run('node', ['scripts/i18n-gate.mjs'], { timeout: 30_000 }), /i18n gate: PASSED|i18n gate: FAILED/);
+
 if (!existsSync('packages/ai-team-server/dist/index.js')) {
   checks.push({ name: 'dev readiness', command: 'npm run dev', ok: false, exitCode: 1, evidence: 'server dist missing' });
 } else {

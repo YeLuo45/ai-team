@@ -206,10 +206,13 @@ export function useGlobalShortcuts(handlers: GlobalShortcutHandlers): void {
 export interface KeyboardHelpOverlayProps {
   open: boolean;
   onClose: () => void;
+  shortcuts?: ShortcutBinding[];
+  localizedLabels?: Record<string, { label: string; hint?: string }>;
 }
 
-export function KeyboardHelpOverlay({ open, onClose }: KeyboardHelpOverlayProps) {
+export function KeyboardHelpOverlay({ open, onClose, shortcuts, localizedLabels }: KeyboardHelpOverlayProps = {}) {
   if (!open) return null;
+  const list = shortcuts ?? SHORTCUT_PRESETS;
   return (
     <div
       data-testid="keyboard-help"
@@ -232,18 +235,23 @@ export function KeyboardHelpOverlay({ open, onClose }: KeyboardHelpOverlayProps)
           </button>
         </div>
         <ul className="mt-3 max-h-96 space-y-1 overflow-auto text-sm">
-          {SHORTCUT_PRESETS.map((s) => (
-            <li
-              key={s.id}
-              data-testid="shortcut-row"
-              className="flex items-center justify-between border-b border-slate-100 py-1.5 last:border-b-0 dark:border-slate-800"
-            >
-              <span>{s.label}</span>
-              <code className="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">
-                {s.hint ?? s.key}
-              </code>
-            </li>
-          ))}
+          {list.map((s) => {
+            const loc = localizedLabels?.[s.id];
+            const label = loc?.label ?? s.label;
+            const hint = loc?.hint ?? s.hint ?? s.key;
+            return (
+              <li
+                key={s.id}
+                data-testid="shortcut-row"
+                className="flex items-center justify-between border-b border-slate-100 py-1.5 last:border-b-0 dark:border-slate-800"
+              >
+                <span>{label}</span>
+                <code className="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">
+                  {hint}
+                </code>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
