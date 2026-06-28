@@ -3,3 +3,4 @@
 export * from './hooks.js';
 export * from './panels.js';
 export * from './console-shell.js';
+export * from './console-i18n.js';

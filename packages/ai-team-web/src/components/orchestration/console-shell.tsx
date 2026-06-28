@@ -1,4 +1,5 @@
 // V125: ConsoleShell — tabs-based 4-panel orchestration shell
+// V137: locale-aware tab labels via useConsoleTabI18n
 
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Card } from '../design-system/index.js';
@@ -9,95 +10,11 @@ import {
   OperationsPanel,
 } from './panels.js';
 import { OrchestrationProvider } from './hooks.js';
-
-// ---------- Constants ----------
-export const CONSOLE_TAB_KEYS = ['workflow', 'approvals', 'delivery', 'operations'] as const;
-export type ConsoleTabKey = (typeof CONSOLE_TAB_KEYS)[number];
-
-export const DEFAULT_CONSOLE_TAB: ConsoleTabKey = 'workflow';
-
-const TAB_ICONS: Record<ConsoleTabKey, string> = {
-  workflow: '🔄',
-  approvals: '⚖️',
-  delivery: '🚚',
-  operations: '🛰️',
-};
-
-const TAB_LABELS: Record<ConsoleTabKey, string> = {
-  workflow: '工作流',
-  approvals: '审批',
-  delivery: '交付',
-  operations: '运维',
-};
-
-export const DEFAULT_SHELL_TABS = CONSOLE_TAB_KEYS.map((key) => ({
-  key,
-  label: TAB_LABELS[key],
-  icon: TAB_ICONS[key],
-  testId: `shell-tab-${key}`,
-}));
-
-// ---------- Pure helpers ----------
-export function isValidTabKey(value: unknown): value is ConsoleTabKey {
-  return typeof value === 'string' && (CONSOLE_TAB_KEYS as readonly string[]).includes(value);
-}
-
-export function selectInitialTab(value: unknown): ConsoleTabKey {
-  return isValidTabKey(value) ? value : DEFAULT_CONSOLE_TAB;
-}
-
-export function nextTabKey(current: ConsoleTabKey): ConsoleTabKey {
-  const idx = CONSOLE_TAB_KEYS.indexOf(current);
-  const next = (idx + 1) % CONSOLE_TAB_KEYS.length;
-  return CONSOLE_TAB_KEYS[next]!;
-}
-
-export function prevTabKey(current: ConsoleTabKey): ConsoleTabKey {
-  const idx = CONSOLE_TAB_KEYS.indexOf(current);
-  const prev = (idx - 1 + CONSOLE_TAB_KEYS.length) % CONSOLE_TAB_KEYS.length;
-  return CONSOLE_TAB_KEYS[prev]!;
-}
-
-export function tabIconFor(key: string): string {
-  return (TAB_ICONS as Record<string, string>)[key] ?? '?';
-}
-
-export function tabLabelFor(key: string): string {
-  return (TAB_LABELS as Record<string, string>)[key] ?? key;
-}
-
-export interface ShellTab {
-  key: ConsoleTabKey;
-  label: string;
-  icon: string;
-  testId: string;
-}
-
-export function buildShellTabs(overrides?: ShellTab[]): ShellTab[] {
-  if (overrides && overrides.length > 0) return [...overrides];
-  return DEFAULT_SHELL_TABS.map((t) => ({ ...t }));
-}
-
-// ---------- Shell layout ----------
-export interface ShellLayout {
-  columns: 1 | 2 | 3;
-  workflow: { visible: boolean };
-  approvals: { visible: boolean };
-  delivery: { visible: boolean };
-  operations: { visible: boolean };
-}
-
-export const DEFAULT_SHELL_LAYOUT: ShellLayout = {
-  columns: 2,
-  workflow: { visible: true },
-  approvals: { visible: true },
-  delivery: { visible: true },
-  operations: { visible: true },
-};
-
-export function buildShellLayout(overrides?: Partial<ShellLayout>): ShellLayout {
-  return { ...DEFAULT_SHELL_LAYOUT, ...(overrides ?? {}) };
-}
+import { useConsoleTabI18n, DEFAULT_CONSOLE_TAB, buildShellLayout, isValidTabKey, nextTabKey, prevTabKey, localizeConsoleTabLabel } from './console-i18n.js';
+import type { ConsoleTabKey, ShellLayout } from './console-i18n.js';
+// Re-exports for backward compat
+export { CONSOLE_TAB_KEYS, DEFAULT_CONSOLE_TAB, DEFAULT_SHELL_TABS, DEFAULT_SHELL_LAYOUT, buildShellTabs, buildShellLayout, selectInitialTab, isValidTabKey, nextTabKey, prevTabKey, tabIconFor, tabLabelFor, localizeConsoleTabLabel, ariaLabelFor, localizeShellTabs, buildI18nConsoleTabList, buildConsoleTabI18n, useConsoleTabI18n } from './console-i18n.js';
+export type { ShellTab, ShellLayout, ConsoleTabI18n, ConsoleTabI18nEntry } from './console-i18n.js';
 
 // ---------- Hooks ----------
 const STORAGE_KEY = 'ai-team-console-tab';
@@ -120,13 +37,12 @@ export function useShellTab() {
   const reset = useCallback(() => {
     setActive(DEFAULT_CONSOLE_TAB);
   }, []);
-
   return { active, goto, next, prev, reset };
 }
 
+
 export function useConsoleTab() {
   const tab = useShellTab();
-  // Hydrate from localStorage on mount
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -135,7 +51,7 @@ export function useConsoleTab() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Persist on every change (subscribe to active via wrapper)
+  // Persist on every change
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
     try {
@@ -165,7 +81,8 @@ export function ConsoleShell({ initialTab, layout: layoutProp, toolbar }: Consol
 
   const layout = buildShellLayout(layoutProp);
   const active = tab.active;
-  const tabs = buildShellTabs();
+  const { tabs: i18nTabs } = useConsoleTabI18n();
+  const tabs = i18nTabs;
   const containerClass =
     layout.columns === 1
       ? 'grid grid-cols-1 gap-4'
@@ -176,7 +93,7 @@ export function ConsoleShell({ initialTab, layout: layoutProp, toolbar }: Consol
   return (
     <OrchestrationProvider>
       <div data-testid="console-shell" className="space-y-4">
-        <Card testId="shell-toolbar" title="编排台" subtitle={`视图：${tabLabelFor(active)}`}>
+        <Card testId="shell-toolbar" title="编排台" subtitle={`视图：${localizeConsoleTabLabel(active, 'zh-CN')}`}>
           <div className="flex flex-wrap items-center gap-2">
             {tabs.map((t) => (
               <button
@@ -184,7 +101,7 @@ export function ConsoleShell({ initialTab, layout: layoutProp, toolbar }: Consol
                 data-testid={t.testId}
                 role="tab"
                 aria-selected={active === t.key}
-                onClick={() => tab.goto(t.key)}
+                onClick={() => tab.goto(t.key as ConsoleTabKey)}
                 className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
                   active === t.key
                     ? 'bg-brand-500 text-white'
