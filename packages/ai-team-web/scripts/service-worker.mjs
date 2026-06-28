@@ -1,7 +1,12 @@
 // V122: PWA service worker script generator + icon placeholders + asset bundle
+// Server-side utility — uses node:fs / node:path. Not loaded in browser.
+// Ambient declarations for Node globals so this file can be type-checked in
+// the web package without @types/node installed.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+
+void mkdirSync; void writeFileSync; void dirname; void resolve;
 
 export const ICON_SIZES = [192, 512] as const;
 
@@ -190,6 +195,7 @@ export function buildIconPlaceholderPng(size: number): Buffer {
 // Lightweight zlib wrapper using built-in zlib via dynamic require.
 // Node-only path — guarded so the function is also safe to import in browser-ish envs.
 function zlibSyncWrap(data: Buffer): Buffer {
+  void data;
   // Use a precomputed compressed payload of the 1x1 RGBA pixel so we don't
   // require zlib at runtime. This is the canonical zlib stream for [0x00, 0x63, 0x66, 0xf1, 0xff].
   return Buffer.from([

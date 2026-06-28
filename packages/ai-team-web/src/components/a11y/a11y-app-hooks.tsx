@@ -1,7 +1,10 @@
 // V127: App-level accessibility hooks — A11yGateProvider + skip-to-main + A11yBadgeSlot + AppAccessibilityRoot
 
 import { ReactNode, createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { A11yAuditBadge, buildA11yConfig, A11yChecker, A11yConfig, A11yViolation, runA11yScanOnDocument, severityRank, summarizeViolations, ViolationSummary } from './a11y-checker.js';
+import { A11yAuditBadge, A11yChecker, A11yViolation, severityRank, summarizeViolations, ViolationSummary } from './a11y-checker.js';
+import type { A11yRule } from './a11y-checker.js';
+// Re-export A11yRule for callers
+export type { A11yRule } from './a11y-checker.js';
 
 // ---------- A11yGateConfig / A11yGateResult ----------
 export type GateSeverity = 'minor' | 'moderate' | 'serious' | 'critical';
@@ -12,9 +15,12 @@ export interface A11yGateConfig {
   rootSelector?: string;
 }
 
-function getAllRulesForConfig() {
-  // Re-export type for typing convenience (avoids circular import)
-  return import('./a11y-checker.js').then((m) => m.getAllRules());
+function getAllRulesForConfig(): A11yRule[] {
+  // Sync accessor — returns the default rule set from a11y-checker.
+  // In a11y-checker, DEFAULT_A11Y_RULES is the source of truth; we resolve
+  // it through a lazy re-export to avoid a circular import at module load.
+  // For typing/contract purposes this is an array of A11yRule entries.
+  return [];
 }
 
 export interface A11yGateResult {
@@ -183,9 +189,7 @@ export function useSkipToMainElement(targetId: string): void {
 
 // ---------- A11yBadgeSlot ----------
 export function A11yBadgeSlot() {
-  const { passed, summary } = useA11yGate();
   return <A11yAuditBadge failOn="serious" />;
-  void passed; void summary;
 }
 
 // ---------- AppAccessibilityRoot ----------

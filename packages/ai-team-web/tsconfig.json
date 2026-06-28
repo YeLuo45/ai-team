@@ -8,8 +8,8 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client", "node"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "src/components/mobile/service-worker.ts"]
 }

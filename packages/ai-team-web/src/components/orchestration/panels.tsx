@@ -122,7 +122,7 @@ export function useOperationsPanelState() {
 // ---------- WorkflowPanel ----------
 export function WorkflowPanel() {
   const state = useWorkflowPanelState();
-  const step = selectWorkflowStep(state.result);
+  const step = selectWorkflowStep(state.result as unknown as { steps?: Array<{ name: string; status: string; message?: string }> } | null);
 
   return (
     <Card

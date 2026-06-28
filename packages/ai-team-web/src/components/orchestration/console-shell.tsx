@@ -3,13 +3,12 @@
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Card } from '../design-system/index.js';
 import {
-  OrchestrationProvider,
   WorkflowPanel,
   ApprovalPanel,
   DeliveryPanel,
   OperationsPanel,
-  DEFAULT_PANEL_TABS,
-} from './index.js';
+} from './panels.js';
+import { OrchestrationProvider } from './hooks.js';
 
 // ---------- Constants ----------
 export const CONSOLE_TAB_KEYS = ['workflow', 'approvals', 'delivery', 'operations'] as const;

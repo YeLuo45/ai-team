@@ -3,13 +3,11 @@
 import {
   Component,
   ErrorInfo,
-  ReactElement,
   ReactNode,
   Suspense,
   lazy,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   createContext,
@@ -136,22 +134,22 @@ export function formatBundleReport(report: BundleReport): string {
 // ---------- Preload registry ----------
 const _preloaded = new Map<string, Promise<{ default: unknown }>>();
 
-export async function preloadRoute<T = unknown>(id: string, loader: () => Promise<{ default: T }>): Promise<string> {
-  if (!_preloaded.has(id)) {
-    _preloaded.set(id, loader());
+export function preloadRoute<T = unknown>(_id: string, loader: () => Promise<{ default: T }>): Promise<string> {
+  if (!_preloaded.has(_id)) {
+    _preloaded.set(_id, loader());
   }
-  return id;
+  return Promise.resolve(_id);
 }
 
-export function isRoutePreloaded(id: string): boolean {
-  return _preloaded.has(id);
+export function isRoutePreloaded(_id: string): boolean {
+  return _preloaded.has(_id);
 }
 
 export function listPreloadedRoutes(): string[] {
   return [..._preloaded.keys()];
 }
 
-export function preloadOnHover(id: string) {
+export function preloadOnHover(_id: string) {
   return {
     onMouseEnter: () => {
       // In production: trigger preload. Stub for tests.
@@ -192,7 +190,7 @@ export function PageLoader({ children }: { children: ReactNode }) {
 }
 
 // ---------- LazyRoute component ----------
-export function LazyRoute<P>({ route: Route }: { route: React.ComponentType<P> & { testId?: string; displayName?: string } }) {
+export function LazyRoute({ route: Route }: { route: React.ComponentType<Record<string, unknown>> & { testId?: string; displayName?: string } }) {
   return <Route />;
 }
 
@@ -290,15 +288,14 @@ export function useRouteLoadingState(): RouteLoadingState {
 }
 
 export function buildRouteLoadingState(): RouteLoadingState {
-  let cur: string | null = null;
   return {
     loading: false,
     currentRoute: null,
-    startLoading: (route) => {
-      cur = route;
+    startLoading: (_route) => {
+      void _route;
     },
     finishLoading: (_route) => {
-      cur = null;
+      void _route;
     },
   };
 }

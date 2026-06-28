@@ -1,8 +1,8 @@
 // V130: keyboard + access components i18n + Localized types + bundle
 
 import { WebLocale } from './web-i18n.js';
-import { SHORTCUT_PRESETS, type ShortcutBinding } from '../components/keyboard/keyboard.js';
-import { ROLE_PRESETS, type RolePreset } from '../components/access/access.js';
+import { SHORTCUT_PRESETS } from '../components/keyboard/keyboard.js';
+import { ROLE_PRESETS } from '../components/access/access.js';
 
 // ---------- Re-exports from existing modules ----------
 export {

@@ -210,7 +210,7 @@ export interface KeyboardHelpOverlayProps {
   localizedLabels?: Record<string, { label: string; hint?: string }>;
 }
 
-export function KeyboardHelpOverlay({ open, onClose, shortcuts, localizedLabels }: KeyboardHelpOverlayProps = {}) {
+export function KeyboardHelpOverlay({ open, onClose, shortcuts, localizedLabels }: KeyboardHelpOverlayProps) {
   if (!open) return null;
   const list = shortcuts ?? SHORTCUT_PRESETS;
   return (

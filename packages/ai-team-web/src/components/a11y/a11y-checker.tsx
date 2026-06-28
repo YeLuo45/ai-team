@@ -359,7 +359,7 @@ export interface A11yAuditBadgeProps {
 }
 
 export function A11yAuditBadge({ failOn = 'serious' }: A11yAuditBadgeProps = {}) {
-  const { violations, summary, passed } = useA11yChecker(buildA11yConfig({ failOn }));
+  const { summary, passed } = useA11yChecker(buildA11yConfig({ failOn }));
   const tone = !passed ? 'danger' : summary.critical > 0 ? 'warning' : 'success';
   return (
     <span

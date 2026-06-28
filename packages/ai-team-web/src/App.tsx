@@ -2,6 +2,7 @@
 // V108: replaces the flat 17-NavLink horizontal header with grouped sidebar nav
 // V120: AppSseBootstrap + HamburgerNav + OfflineBanner + OnboardingTour production wiring
 // V127: ConsoleShell replaces /orchestration + A11yAuditBadge in Topbar + skip-to-main
+// V133: removed /orchestration-legacy fallback (773-line monolith is now a 1-line wrapper)
 
 import { Routes, Route } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
@@ -20,7 +21,10 @@ import Heatmap from './pages/Heatmap';
 import AuditConsole from './pages/AuditConsole';
 import AgentReviewConsole from './pages/AgentReviewConsole';
 import AgentConfig from './pages/AgentConfig';
+// V133: TeamOrchestrationConsole is now a 1-line wrapper around ConsoleShell
+// (kept the import for backward compatibility with any external consumers)
 import TeamOrchestrationConsole from './pages/TeamOrchestrationConsole';
+void TeamOrchestrationConsole; // legacy shim — re-export kept in case any import expects the symbol
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
 import { AppShell, ThemeProvider } from './components/design-system';
@@ -61,10 +65,6 @@ export default function App() {
                   />
                   <Route path="/notifications" element={<Notifications />} />
                   <Route path="/data" element={<Data />} />
-                  <Route
-                    path="/orchestration-legacy"
-                    element={<TeamOrchestrationConsole />}
-                  />
                 </Routes>
                 <MobileBottomBar />
               </AppAccessibilityRoot>

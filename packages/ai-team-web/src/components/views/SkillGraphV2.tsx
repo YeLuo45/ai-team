@@ -315,10 +315,11 @@ export function SkillGraphV2({
   height = 600,
   zoomConfig = DEFAULT_ZOOM_CONFIG,
   panConfig = DEFAULT_PAN_CONFIG,
-  tooltipConfig = DEFAULT_TOOLTIP_CONFIG,
   onNodeSelect,
   detailPanel,
 }: SkillGraphV2Props) {
+  const tooltipConfig: unknown = DEFAULT_TOOLTIP_CONFIG;
+  void tooltipConfig;
   const filteredSkills = useMemo(() => filterNodesByScore(skills, minScore), [skills, minScore]);
   const filteredLinks = useMemo(() => filterLinksByScore(links, minScore), [links, minScore]);
   const positions = useMemo(
@@ -448,7 +449,7 @@ export function SkillGraphV2({
           className="absolute right-2 top-20 w-64 rounded border border-slate-200 bg-white p-3 shadow-md dark:border-slate-700 dark:bg-slate-900"
         >
           <div className="flex items-center justify-between">
-            <strong className="text-sm">{'name' in selectedNode ? selectedNode.name : selectedNode.id}</strong>
+            <strong className="text-sm">{'name' in selectedNode ? selectedNode.name : (selectedNode as { id: string }).id}</strong>
             <button onClick={handleCloseDrawer} className="text-xs text-slate-500 hover:text-slate-700">×</button>
           </div>
           {detailPanel ?? (
