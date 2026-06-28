@@ -71,16 +71,21 @@ export function Button({
   children,
   type = 'button',
   testId,
+  t,
+  tKey,
 }: {
   variant?: ButtonVariant;
   size?: Size;
   disabled?: boolean;
   className?: string;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
-  children: ReactNode;
+  children?: ReactNode;
   type?: 'button' | 'submit' | 'reset';
   testId?: string;
+  t?: (key: string, options?: { vars?: Record<string, string | number>; fallback?: string }) => string;
+  tKey?: string;
 }) {
+  const label = t && tKey ? t(tKey, { fallback: typeof children === 'string' ? children : undefined }) : children;
   return (
     <button
       data-testid={testId}
@@ -89,7 +94,7 @@ export function Button({
       onClick={onClick}
       className={`inline-flex items-center justify-center rounded-md font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${BTN_VARIANT_CLASS[variant]} ${BTN_SIZE_CLASS[size]} ${className}`}
     >
-      {children}
+      {label}
     </button>
   );
 }
@@ -103,8 +108,9 @@ const BADGE_TONE_CLASS: Record<BadgeTone, string> = {
   info: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
 };
 
-export function Badge({ tone = 'neutral', className = '', children }: { tone?: BadgeTone; className?: string; children: ReactNode }) {
-  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BADGE_TONE_CLASS[tone]} ${className}`}>{children}</span>;
+export function Badge({ tone = 'neutral', className = '', children, t, tKey }: { tone?: BadgeTone; className?: string; children?: ReactNode; t?: (key: string, options?: { vars?: Record<string, string | number>; fallback?: string }) => string; tKey?: string }) {
+  const label = t && tKey ? t(tKey, { fallback: typeof children === 'string' ? children : undefined }) : children;
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${BADGE_TONE_CLASS[tone]} ${className}`}>{label}</span>;
 }
 
 // ---------- EmptyState ----------
@@ -115,6 +121,10 @@ export function EmptyState({
   actionLabel,
   onAction,
   className = '',
+  t,
+  tKeyTitle,
+  tKeyDescription,
+  tKeyAction,
 }: {
   icon?: string;
   title: string;
@@ -122,14 +132,21 @@ export function EmptyState({
   actionLabel?: string;
   onAction?: () => void;
   className?: string;
+  t?: (key: string, options?: { vars?: Record<string, string | number>; fallback?: string }) => string;
+  tKeyTitle?: string;
+  tKeyDescription?: string;
+  tKeyAction?: string;
 }) {
+  const finalTitle = t && tKeyTitle ? t(tKeyTitle, { fallback: title }) : title;
+  const finalDescription = t && tKeyDescription ? t(tKeyDescription, { fallback: description }) : description;
+  const finalActionLabel = t && tKeyAction ? t(tKeyAction, { fallback: actionLabel }) : actionLabel;
   return (
     <div data-testid="empty-state" className={`flex flex-col items-center justify-center px-6 py-12 text-center ${className}`}>
       <div className="text-4xl">{icon}</div>
-      <h3 className="mt-3 text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h3>
-      {description && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{description}</p>}
-      {actionLabel && onAction && (
-        <Button className="mt-4" onClick={onAction}>{actionLabel}</Button>
+      <h3 className="mt-3 text-base font-semibold text-slate-900 dark:text-slate-100">{finalTitle}</h3>
+      {finalDescription && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{finalDescription}</p>}
+      {finalActionLabel && onAction && (
+        <Button className="mt-4" onClick={onAction}>{finalActionLabel}</Button>
       )}
     </div>
   );
