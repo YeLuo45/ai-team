@@ -3,6 +3,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import type { Candidate, Interview } from '@ai-team/core';
 import {
   groupInterviewsByCandidate,
@@ -586,7 +587,7 @@ describe('Interviews page — V143 candidate grouping', () => {
       },
     });
 
-    render(<Interviews />);
+    render(<MemoryRouter><Interviews /></MemoryRouter>);
 
     await waitFor(() => screen.getByTestId(`candidate-card-${candidate.id}`));
     expect(screen.getByTestId(`candidate-round-count-${candidate.id}`).textContent).toContain('3 轮');
@@ -615,7 +616,7 @@ describe('Interviews page — V143 candidate grouping', () => {
       },
     });
 
-    render(<Interviews />);
+    render(<MemoryRouter><Interviews /></MemoryRouter>);
 
     await waitFor(() => screen.getByTestId('candidate-card-ct_b'));
     // Auto-selects the latest (B)
@@ -635,7 +636,7 @@ describe('Interviews page — V143 candidate grouping', () => {
       error: null,
       data: { candidates: [], members: [], trainings: [], generatedAt: '', interviews: [] },
     });
-    render(<Interviews />);
+    render(<MemoryRouter><Interviews /></MemoryRouter>);
     expect(screen.getByText(/暂无面试记录/)).toBeTruthy();
   });
 
@@ -657,7 +658,7 @@ describe('Interviews page — V143 candidate grouping', () => {
       },
     });
 
-    render(<Interviews />);
+    render(<MemoryRouter><Interviews /></MemoryRouter>);
     await waitFor(() => screen.getByTestId(`candidate-card-${candidate.id}`));
     const card = screen.getByTestId(`candidate-card-${candidate.id}`);
     // 1 小时前 relative + 完整日期 title attribute

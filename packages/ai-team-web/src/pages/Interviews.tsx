@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, relativeTime, statusLabel } from '../lib/format';
 import {
@@ -12,6 +13,7 @@ import { Card } from '../components/design-system';
 
 export function Interviews() {
   const { data, loading, source } = useTeamData();
+  const [searchParams, setSearchParams] = useSearchParams();
   const groups = useMemo(
     () => groupInterviewsByCandidate(data.interviews, data.candidates),
     [data.interviews, data.candidates],
@@ -20,13 +22,23 @@ export function Interviews() {
 
   // Auto-select first candidate on data load
   useEffect(() => {
-    if (!selectedCandidateId && groups.length > 0) {
+    if (groups.length === 0) {
+      setSelectedCandidateId(null);
+      return;
+    }
+    const requestedId = searchParams.get('candidate');
+    if (requestedId && groups.find((g) => g.candidateId === requestedId)) {
+      setSelectedCandidateId(requestedId);
+    } else if (!selectedCandidateId || !groups.find((g) => g.candidateId === selectedCandidateId)) {
       setSelectedCandidateId(groups[0].candidateId);
     }
-    if (selectedCandidateId && !groups.find((g) => g.candidateId === selectedCandidateId)) {
-      setSelectedCandidateId(groups[0]?.candidateId ?? null);
-    }
-  }, [groups, selectedCandidateId]);
+  }, [groups, searchParams, selectedCandidateId]);
+
+  const handleSelectCandidate = (id: string) => {
+    setSelectedCandidateId(id);
+    // Sync the URL hash so a deep-link can be shared / bookmarked
+    setSearchParams({ candidate: id }, { replace: true });
+  };
 
   if (loading) return <div className="text-slate-500">加载中...</div>;
 
@@ -58,7 +70,7 @@ export function Interviews() {
               return (
                 <button
                   key={group.candidateId}
-                  onClick={() => setSelectedCandidateId(group.candidateId)}
+                  onClick={() => handleSelectCandidate(group.candidateId)}
                   data-testid={`candidate-card-${group.candidateId}`}
                   className={`w-full rounded-xl border p-4 text-left transition ${
                     isActive

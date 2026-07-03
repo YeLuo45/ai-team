@@ -3,6 +3,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { InterviewSimulator } from '../src/components/InterviewSimulator.js';
 import { Interviews } from '../src/pages/Interviews.js';
 import { api } from '../src/lib/api.js';
@@ -88,7 +89,7 @@ describe('Interviews page regressions', () => {
       },
     });
 
-    render(<Interviews />);
+    render(<MemoryRouter><Interviews /></MemoryRouter>);
 
     // V143: candidate sidebar shows total round count + latest round label
     await waitFor(() => screen.getByTestId(`candidate-card-${candidate.id}`));

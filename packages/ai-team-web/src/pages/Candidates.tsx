@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
 import { AddCandidateModal } from '../components/AddCandidateModal';
@@ -10,6 +11,7 @@ import { Card, Button, Badge, EmptyState } from '../components/design-system';
 
 export function Candidates() {
   const { data, source, refresh } = useTeamData();
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<string>('all');
   const [showAdd, setShowAdd] = useState(false);
   const [showResume, setShowResume] = useState(false);
@@ -17,6 +19,11 @@ export function Candidates() {
 
   const items = filter === 'all' ? data.candidates : data.candidates.filter((c) => c.status === filter);
   const statuses = ['all', ...new Set(data.candidates.map((c) => c.status))];
+
+  const interviewCountByCandidate = new Map<string, number>();
+  for (const iv of data.interviews) {
+    interviewCountByCandidate.set(iv.candidateId, (interviewCountByCandidate.get(iv.candidateId) ?? 0) + 1);
+  }
 
   const handleStartInterview = async (c: Candidate) => {
     if (source === 'api') {
@@ -34,6 +41,10 @@ export function Candidates() {
     } else {
       alert('删除功能需要连接 server');
     }
+  };
+
+  const handleViewInterview = (c: Candidate) => {
+    navigate(`/interviews?candidate=${encodeURIComponent(c.id)}`);
   };
 
   return (
@@ -104,6 +115,21 @@ export function Candidates() {
                     <Button size="sm" variant="ghost" onClick={() => handleDelete(c0.id)}>🗑 删除</Button>
                   </div>
                 )}
+                <div className={`mt-3 flex items-center justify-between gap-2 ${source === 'api' ? '' : 'border-t border-slate-100 pt-3 dark:border-slate-800'}`}>
+                  <span className="text-xs text-slate-500" data-testid={`candidate-interview-count-${c0.id}`}>
+                    {interviewCountByCandidate.get(c0.id) ?? 0} 场面试
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleViewInterview(c0)}
+                    disabled={(interviewCountByCandidate.get(c0.id) ?? 0) === 0}
+                    className="text-xs font-medium text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
+                    data-testid={`candidate-view-interviews-${c0.id}`}
+                    title={(interviewCountByCandidate.get(c0.id) ?? 0) === 0 ? '该候选人暂无面试记录' : '查看面试详情'}
+                  >
+                    📋 查看面试详情
+                  </button>
+                </div>
               </Card>
             );
           })}
