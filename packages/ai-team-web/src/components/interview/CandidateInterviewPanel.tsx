@@ -1,0 +1,205 @@
+// V143: CandidateInterviewPanel — full interview detail surface for one
+// candidate: resume (top), round tabs (multi-round switching), and the
+// selected round's evaluation + turns.
+
+import { useMemo, useState } from 'react';
+import type { Candidate, Interview } from '@ai-team/core';
+import { Card } from '../design-system';
+import { recommendationLabel, formatDateTime } from '../../lib/format';
+import { ResumeCard } from './ResumeCard';
+import { RoundTabs, type InterviewRound } from './RoundTabs';
+import {
+  buildRoundLabel,
+  formatRoundTimeline,
+  interviewTypeLabel,
+} from '../../lib/interview-helpers';
+
+interface Props {
+  candidate: Candidate | null;
+  candidateId: string;
+  rounds: ReadonlyArray<InterviewRound>;
+}
+
+export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Props) {
+  const initialRound = rounds.length > 0 ? rounds[0].round : 1;
+  const [activeRound, setActiveRound] = useState<number>(initialRound);
+
+  const selected = useMemo<InterviewRound | null>(() => {
+    if (rounds.length === 0) return null;
+    return rounds.find((r) => r.round === activeRound) ?? rounds[0];
+  }, [rounds, activeRound]);
+
+  if (rounds.length === 0) {
+    return (
+      <div className="space-y-4" data-testid="candidate-panel-empty">
+        <ResumeCard
+          candidateName={candidate?.name ?? candidateId}
+          candidatePosition={candidate?.position ?? ''}
+          candidateEmail={candidate?.email}
+          candidatePhone={candidate?.phone}
+          candidateTags={candidate?.tags ?? []}
+          candidateSkills={(candidate?.skills ?? []).map((s) => ({ skillId: s.skillId, score: s.score }))}
+          resume={candidate?.resume}
+        />
+        <Card className="text-center text-sm text-slate-500">
+          该候选人暂未开始面试。在候选人页点击 &quot;🤖 开始面试&quot; 启动一面。
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5" data-testid="candidate-panel">
+      <ResumeCard
+        candidateName={candidate?.name ?? candidateId}
+        candidatePosition={candidate?.position ?? ''}
+        candidateEmail={candidate?.email}
+        candidatePhone={candidate?.phone}
+        candidateTags={candidate?.tags ?? []}
+        candidateSkills={(candidate?.skills ?? []).map((s) => ({ skillId: s.skillId, score: s.score }))}
+        resume={candidate?.resume}
+      />
+
+      <section className="space-y-3" data-testid="candidate-rounds">
+        <header className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            面试轮次 ({rounds.length})
+          </h4>
+          <span className="text-xs text-slate-500">点击 tab 切换查看详情</span>
+        </header>
+        <RoundTabs rounds={rounds} activeRound={activeRound} onChange={setActiveRound} />
+      </section>
+
+      {selected && <RoundDetail round={selected} />}
+    </div>
+  );
+}
+
+function RoundDetail({ round }: { round: InterviewRound }) {
+  const rec = recommendationLabel(round.evaluation?.recommendation);
+  const evalSummary = round.evaluation?.summary;
+  return (
+    <Card className="space-y-5" testId={`round-detail-${round.id}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-xs text-slate-500">
+            {buildRoundLabel(round.round)} · {interviewTypeLabel(round.type)}
+          </div>
+          <h3 className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-50">
+            {round.id}
+          </h3>
+          <p className="mt-1 text-xs text-slate-500">
+            岗位 {round.position}
+            {round.startedAt && <> · 开始 {formatDateTime(round.startedAt)}</>}
+            {round.completedAt && <> · 完成 {formatDateTime(round.completedAt)}</>}
+          </p>
+          <p className="mt-1 text-xs text-slate-500" data-testid={`round-timeline-summary-${round.id}`}>
+            {formatRoundTimeline(round)}
+          </p>
+        </div>
+        {round.evaluation && (
+          <span className={`shrink-0 ${rec.cls}`} data-testid={`round-rec-${round.id}`}>
+            {rec.text}
+          </span>
+        )}
+      </div>
+
+      {round.evaluation ? (
+        <div
+          className="rounded-lg bg-gradient-to-br from-brand-50 to-violet-50 p-5 dark:from-brand-900/20 dark:to-violet-900/20"
+          data-testid={`round-evaluation-${round.id}`}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-slate-500">总评分</div>
+              <div className="text-4xl font-bold text-brand-600">
+                {round.evaluation.overall}
+                <span className="text-base text-slate-400">/100</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ScoreBar label="技术" value={round.evaluation.breakdown.technical} />
+            <ScoreBar label="沟通" value={round.evaluation.breakdown.communication} />
+            <ScoreBar label="解决问题" value={round.evaluation.breakdown.problemSolving} />
+            <ScoreBar label="文化契合" value={round.evaluation.breakdown.culture} />
+          </div>
+          {evalSummary && (
+            <p className="mt-4 text-sm text-slate-700 dark:text-slate-300">{evalSummary}</p>
+          )}
+          {round.evaluation.strengths.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-semibold text-emerald-600">优势</p>
+              <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                {round.evaluation.strengths.map((s, i) => (
+                  <li key={i}>· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {round.evaluation.concerns.length > 0 && (
+            <div className="mt-3">
+              <p className="text-xs font-semibold text-rose-600">顾虑</p>
+              <ul className="mt-1 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                {round.evaluation.concerns.map((s, i) => (
+                  <li key={i}>· {s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500 dark:border-slate-700">
+          暂无评估结果
+        </div>
+      )}
+
+      <div>
+        <h4 className="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
+          对话记录 ({round.turns.length} 轮)
+        </h4>
+        {round.turns.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500 dark:border-slate-700">
+            该轮次暂无对话记录
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {round.turns.map((t, i) => (
+              <div
+                key={i}
+                className={`rounded-lg p-3 text-sm ${
+                  t.role === 'interviewer'
+                    ? 'bg-brand-50 dark:bg-brand-900/20'
+                    : 'bg-slate-50 dark:bg-slate-800/50'
+                }`}
+              >
+                <div className="mb-1 text-xs font-medium text-slate-500">
+                  {t.role === 'interviewer' ? '🤖 面试官' : '👤 候选人'} · {formatDateTime(t.timestamp)}
+                </div>
+                <p className="whitespace-pre-wrap text-slate-800 dark:text-slate-200">{t.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function ScoreBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.max(0, Math.min(100, value));
+  const color =
+    pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-brand-500' : pct >= 40 ? 'bg-amber-500' : 'bg-rose-500';
+  return (
+    <div>
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="mt-1 text-lg font-bold text-slate-900 dark:text-slate-50">{pct}</div>
+      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// Re-export so consumers can pick up Interview type if needed.
+export type { Interview };

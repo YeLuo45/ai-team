@@ -70,7 +70,7 @@ describe('InterviewSimulator regressions', () => {
 });
 
 describe('Interviews page regressions', () => {
-  it('shows interview attempt number for each candidate interview', async () => {
+  it('groups candidate interviews and labels rounds chronologically (V143 candidate view)', async () => {
     vi.mocked(useTeamData).mockReturnValue({
       loading: false,
       source: 'api',
@@ -90,8 +90,14 @@ describe('Interviews page regressions', () => {
 
     render(<Interviews />);
 
-    await waitFor(() => screen.getByTestId('interview-attempt-iv_second'));
-    expect(screen.getByTestId('interview-attempt-iv_first').textContent).toContain('第 1 面');
-    expect(screen.getByTestId('interview-attempt-iv_second').textContent).toContain('第 2 面');
+    // V143: candidate sidebar shows total round count + latest round label
+    await waitFor(() => screen.getByTestId(`candidate-card-${candidate.id}`));
+    const roundCount = screen.getByTestId(`candidate-round-count-${candidate.id}`).textContent;
+    expect(roundCount).toContain('2 轮');
+    expect(roundCount).toContain('二面');
+
+    // V143: per-round tabs render with Chinese round labels
+    expect(screen.getByTestId('round-tab-iv_first').textContent).toContain('一面');
+    expect(screen.getByTestId('round-tab-iv_second').textContent).toContain('二面');
   });
 });

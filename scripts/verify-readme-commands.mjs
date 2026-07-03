@@ -42,6 +42,7 @@ record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-serve
 record('test targeted web shell', run('npm', ['test', '--', 'packages/ai-team-web/test/orchestration-shell-v132.test.tsx']), /14 passed/);
 record('test targeted web page v133', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-page-v133.test.tsx']), /7 passed/);
 record('test targeted release ops v104-v106', run('npm', ['test', '--', 'packages/ai-team-core/test/release-ops-v104-v106.test.ts']), /12 passed/);
+record('test targeted interview detail v143', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-detail-v143.test.tsx']), /44 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
 record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /57 passed/);

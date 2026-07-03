@@ -44,6 +44,8 @@ const STRICT_LAYERS = {
   'v53/orchestration-org-memory': /^packages\/ai-team-core\/src\/team-orchestration-org-memory\.ts$/,
   'v53/orchestration-scenario-batch': /^packages\/ai-team-core\/src\/team-orchestration-scenario-batch\.ts$/,
   'v53/orchestration-release-hardening': /^packages\/ai-team-core\/src\/team-orchestration-release-hardening\.ts$/,
+  // V143: interview detail — resume viewing + multi-round grouping
+  'v143/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
 };
 
 const SOFT_LAYERS = {
