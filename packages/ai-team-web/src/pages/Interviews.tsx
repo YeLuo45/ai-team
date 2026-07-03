@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTeamData } from '../lib/hooks';
-import { formatDate, statusLabel } from '../lib/format';
+import { formatDate, relativeTime, statusLabel } from '../lib/format';
 import {
   CandidateInterviewPanel,
   groupInterviewsByCandidate,
@@ -76,7 +76,9 @@ export function Interviews() {
                     {group.candidatePosition}
                   </p>
                   <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
-                    <span>{formatDate(latest?.completedAt ?? latest?.startedAt)}</span>
+                    <span title={formatDate(latest?.completedAt ?? latest?.startedAt)}>
+                      {relativeTime(latest?.completedAt ?? latest?.startedAt)}
+                    </span>
                     <span data-testid={`candidate-round-count-${group.candidateId}`}>
                       {group.rounds.length} 轮 · 最新 {buildRoundLabel(group.rounds.length)}
                     </span>

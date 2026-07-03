@@ -8,6 +8,7 @@ import { Card } from '../design-system';
 import { recommendationLabel, formatDateTime } from '../../lib/format';
 import { ResumeCard } from './ResumeCard';
 import { RoundTabs, type InterviewRound } from './RoundTabs';
+import { RoundsComparison } from './RoundsComparison';
 import {
   buildRoundLabel,
   formatRoundTimeline,
@@ -69,6 +70,8 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Prop
         </header>
         <RoundTabs rounds={rounds} activeRound={activeRound} onChange={setActiveRound} />
       </section>
+
+      <RoundsComparison rounds={rounds} />
 
       {selected && <RoundDetail round={selected} />}
     </div>

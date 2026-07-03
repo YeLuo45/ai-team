@@ -638,4 +638,32 @@ describe('Interviews page — V143 candidate grouping', () => {
     render(<Interviews />);
     expect(screen.getByText(/暂无面试记录/)).toBeTruthy();
   });
+
+  it('shows relative time + ISO title for candidate cards (V144)', async () => {
+    const candidate = makeCandidate();
+    vi.mocked(useTeamData).mockReturnValue({
+      loading: false,
+      source: 'api',
+      refresh: vi.fn(),
+      error: null,
+      data: {
+        candidates: [candidate],
+        members: [],
+        trainings: [],
+        generatedAt: '2026-06-21T00:00:00Z',
+        interviews: [
+          makeInterview({ id: 'iv_recent', candidateId: candidate.id, completedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString() }),
+        ],
+      },
+    });
+
+    render(<Interviews />);
+    await waitFor(() => screen.getByTestId(`candidate-card-${candidate.id}`));
+    const card = screen.getByTestId(`candidate-card-${candidate.id}`);
+    // 1 小时前 relative + 完整日期 title attribute
+    expect(card.textContent).toMatch(/小时前/);
+    const timeSpan = card.querySelector('span[title]');
+    expect(timeSpan).not.toBeNull();
+    expect(timeSpan!.getAttribute('title')).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });

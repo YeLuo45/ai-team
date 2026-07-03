@@ -209,6 +209,77 @@ export function roundRecommendation(recommendation: string | undefined): string 
   return (recommendation && map[recommendation]) ?? '—';
 }
 
+export interface RoundsSparklinePoint {
+  round: number;
+  overall: number | null;
+  technical: number | null;
+  communication: number | null;
+  problemSolving: number | null;
+  culture: number | null;
+}
+
+/**
+ * Build a series of per-round numeric points for the multi-round sparkline.
+ * Rounds without an evaluation get null for every metric (rendered as a gap).
+ */
+export function buildRoundsSparkline(
+  rounds: ReadonlyArray<Interview & { round: number }>,
+): RoundsSparklinePoint[] {
+  return rounds.map((r) => ({
+    round: r.round,
+    overall: r.evaluation?.overall ?? null,
+    technical: r.evaluation?.breakdown.technical ?? null,
+    communication: r.evaluation?.breakdown.communication ?? null,
+    problemSolving: r.evaluation?.breakdown.problemSolving ?? null,
+    culture: r.evaluation?.breakdown.culture ?? null,
+  }));
+}
+
+export type SparklineMetric = 'overall' | 'technical' | 'communication' | 'problemSolving' | 'culture';
+
+export const SPARKLINE_METRICS: ReadonlyArray<{
+  key: SparklineMetric;
+  label: string;
+  tone: string;
+}> = [
+  { key: 'overall',       label: '总评分',  tone: 'stroke-brand-500' },
+  { key: 'technical',     label: '技术',    tone: 'stroke-emerald-500' },
+  { key: 'communication', label: '沟通',    tone: 'stroke-violet-500' },
+  { key: 'problemSolving',label: '解决问题',tone: 'stroke-amber-500' },
+  { key: 'culture',       label: '文化契合',tone: 'stroke-sky-500' },
+];
+
+/**
+ * Map a score (0-100) to an SVG y coordinate inside a chart with the given
+ * height (default 60px). Higher scores appear higher (smaller y). NaN /
+ * negative / >100 inputs are clamped.
+ */
+export function scoreToY(score: number | null | undefined, height = 60): number {
+  if (score == null || Number.isNaN(score)) return height / 2; // mid-line for missing
+  const clamped = Math.max(0, Math.min(100, score));
+  return height - (clamped / 100) * height;
+}
+
+/** Build SVG path "d" attribute for a series of points. Returns empty string when fewer than 2 points. */
+export function buildSparklinePath(
+  points: ReadonlyArray<{ x: number; y: number }>,
+): string {
+  if (points.length < 2) return '';
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    d += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return d;
+}
+
+/** Compute evenly-spaced x coordinates for N points across a chart of given width. */
+export function buildSparklineX(width: number, count: number): number[] {
+  if (count <= 0) return [];
+  if (count === 1) return [width / 2];
+  const step = width / (count - 1);
+  return Array.from({ length: count }, (_, i) => i * step);
+}
+
 /** Compute the latest timestamp string across a list of rounds. */
 function latestTimestamp(rounds: ReadonlyArray<Interview>): string {
   let latest = '';

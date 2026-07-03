@@ -46,6 +46,8 @@ const STRICT_LAYERS = {
   'v53/orchestration-release-hardening': /^packages\/ai-team-core\/src\/team-orchestration-release-hardening\.ts$/,
   // V143: interview detail — resume viewing + multi-round grouping
   'v143/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
+  // V144: multi-round sparkline helpers (overall + 4 breakdown metrics)
+  'v144/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
 };
 
 const SOFT_LAYERS = {
