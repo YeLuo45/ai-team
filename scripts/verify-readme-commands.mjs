@@ -46,8 +46,10 @@ record('test targeted interview detail v143', run('npm', ['test', '--', 'package
 record('test targeted rounds comparison v144', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-rounds-comparison-v144.test.tsx']), /18 passed/);
 record('test targeted candidate interview link v145', run('npm', ['test', '--', 'packages/ai-team-web/test/candidate-interview-link-v145.test.tsx']), /4 passed/);
 record('test targeted candidate interview nav v146', run('npm', ['test', '--', 'packages/ai-team-web/test/candidate-interview-nav-v146.test.tsx']), /8 passed/);
-record('test targeted interview comparison matrix v147', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-comparison-matrix-v147.test.tsx']), /16 passed/);
+record('test targeted interview comparison matrix v147', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-comparison-matrix-v147.test.tsx']), /17 passed/);
 record('test targeted candidates batch select v148', run('npm', ['test', '--', 'packages/ai-team-web/test/candidates-batch-select-v148.test.tsx']), /6 passed/);
+record('test targeted comparison matrix metric switcher v149', run('npm', ['test', '--', 'packages/ai-team-web/test/comparison-matrix-metric-switcher-v149.test.tsx']), /10 passed/);
+record('test targeted pipeline progress v150', run('npm', ['test', '--', 'packages/ai-team-web/test/pipeline-progress-v150.test.tsx']), /9 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
 record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /57 passed/);

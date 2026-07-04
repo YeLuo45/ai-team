@@ -47,6 +47,54 @@ function makeEval(overall: number) {
   };
 }
 
+const EMPTY_METRICS = {
+  overall: null,
+  technical: null,
+  communication: null,
+  problemSolving: null,
+  culture: null,
+} as const;
+
+function row(overrides: Partial<{
+  candidateId: string;
+  candidateName: string;
+  candidatePosition: string;
+  rounds: ReadonlyArray<Interview & { round: number }>;
+  bestOverall: number | null;
+  avgOverall: number | null;
+  evaluatedRounds: number;
+  bestByMetric?: Partial<Record<'overall' | 'technical' | 'communication' | 'problemSolving' | 'culture', number | null>>;
+  avgByMetric?: Partial<Record<'overall' | 'technical' | 'communication' | 'problemSolving' | 'culture', number | null>>;
+}>): CandidateComparisonRow {
+  const bestByMetric: CandidateComparisonRow['bestByMetric'] = {
+    overall: overrides.bestOverall ?? null,
+    technical: null,
+    communication: null,
+    problemSolving: null,
+    culture: null,
+    ...(overrides.bestByMetric ?? {}),
+  };
+  const avgByMetric: CandidateComparisonRow['avgByMetric'] = {
+    overall: overrides.avgOverall ?? null,
+    technical: null,
+    communication: null,
+    problemSolving: null,
+    culture: null,
+    ...(overrides.avgByMetric ?? {}),
+  };
+  return {
+    candidateId: overrides.candidateId ?? 'ct_a',
+    candidateName: overrides.candidateName ?? 'A',
+    candidatePosition: overrides.candidatePosition ?? 'X',
+    rounds: overrides.rounds ?? [],
+    bestOverall: overrides.bestOverall ?? null,
+    avgOverall: overrides.avgOverall ?? null,
+    evaluatedRounds: overrides.evaluatedRounds ?? 0,
+    bestByMetric,
+    avgByMetric,
+  };
+}
+
 beforeEach(() => vi.restoreAllMocks());
 afterEach(() => cleanup());
 
@@ -89,10 +137,10 @@ describe('buildCandidateComparisonRow', () => {
 describe('groupComparisonByPosition', () => {
   it('groups rows by position and picks the top scorer per position', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A1', candidatePosition: '前端', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 },
-      { candidateId: 'ct_b', candidateName: 'A2', candidatePosition: '前端', rounds: [], bestOverall: 90, avgOverall: 90, evaluatedRounds: 1 },
-      { candidateId: 'ct_c', candidateName: 'B1', candidatePosition: '后端', rounds: [], bestOverall: 85, avgOverall: 85, evaluatedRounds: 1 },
-      { candidateId: 'ct_d', candidateName: 'A3', candidatePosition: '前端', rounds: [], bestOverall: 70, avgOverall: 70, evaluatedRounds: 1 },
+      row({ candidateId: 'ct_a', candidateName: 'A1', candidatePosition: '前端', bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 }),
+      row({ candidateId: 'ct_b', candidateName: 'A2', candidatePosition: '前端', bestOverall: 90, avgOverall: 90, evaluatedRounds: 1 }),
+      row({ candidateId: 'ct_c', candidateName: 'B1', candidatePosition: '后端', bestOverall: 85, avgOverall: 85, evaluatedRounds: 1 }),
+      row({ candidateId: 'ct_d', candidateName: 'A3', candidatePosition: '前端', bestOverall: 70, avgOverall: 70, evaluatedRounds: 1 }),
     ];
     const groups = groupComparisonByPosition(rows);
     expect(groups).toHaveLength(2);
@@ -108,7 +156,7 @@ describe('groupComparisonByPosition', () => {
 
   it('returns topScorerId=null when no candidate has been evaluated', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', rounds: [], bestOverall: null, avgOverall: null, evaluatedRounds: 0 },
+      row({ candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', bestOverall: null, avgOverall: null, evaluatedRounds: 0 }),
     ];
     const groups = groupComparisonByPosition(rows);
     expect(groups).toHaveLength(1);
@@ -117,8 +165,8 @@ describe('groupComparisonByPosition', () => {
 
   it('sorts groups by evaluated round count desc, then position asc', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A', candidatePosition: '前端', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 },
-      { candidateId: 'ct_b', candidateName: 'B', candidatePosition: '后端', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 3 },
+      row({ candidateId: 'ct_a', candidateName: 'A', candidatePosition: '前端', bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 }),
+      row({ candidateId: 'ct_b', candidateName: 'B', candidatePosition: '后端', bestOverall: 80, avgOverall: 80, evaluatedRounds: 3 }),
     ];
     const groups = groupComparisonByPosition(rows);
     expect(groups[0].position).toBe('后端'); // 3 rounds first
@@ -127,8 +175,8 @@ describe('groupComparisonByPosition', () => {
 
   it('falls back to candidateName asc when bestOverall is equal between two rows', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_z', candidateName: 'Zara', candidatePosition: 'X', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 },
-      { candidateId: 'ct_a', candidateName: 'Anna', candidatePosition: 'X', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 },
+      row({ candidateId: 'ct_z', candidateName: 'Zara', candidatePosition: 'X', bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 }),
+      row({ candidateId: 'ct_a', candidateName: 'Anna', candidatePosition: 'X', bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 }),
     ];
     const groups = groupComparisonByPosition(rows);
     expect(groups[0].rows.map((r) => r.candidateName)).toEqual(['Anna', 'Zara']);
@@ -136,8 +184,8 @@ describe('groupComparisonByPosition', () => {
 
   it('handles a mix of evaluated + unevaluated candidates (unevaluated rows fall below)', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', rounds: [], bestOverall: null, avgOverall: null, evaluatedRounds: 0 },
-      { candidateId: 'ct_b', candidateName: 'B', candidatePosition: 'X', rounds: [], bestOverall: 90, avgOverall: 90, evaluatedRounds: 1 },
+      row({ candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', bestOverall: null, avgOverall: null, evaluatedRounds: 0 }),
+      row({ candidateId: 'ct_b', candidateName: 'B', candidatePosition: 'X', bestOverall: 90, avgOverall: 90, evaluatedRounds: 1 }),
     ];
     const groups = groupComparisonByPosition(rows);
     expect(groups[0].rows[0].candidateId).toBe('ct_b');
@@ -146,6 +194,19 @@ describe('groupComparisonByPosition', () => {
 
   it('returns an empty array when no rows are given', () => {
     expect(groupComparisonByPosition([])).toEqual([]);
+  });
+
+  it('places rows with null bestOverall below evaluated rows via the -Infinity fallback', () => {
+    const rows: CandidateComparisonRow[] = [
+      row({ candidateId: 'ct_un', candidateName: 'Unevaluated', candidatePosition: 'X', bestOverall: null, avgOverall: null, evaluatedRounds: 0 }),
+      row({ candidateId: 'ct_b', candidateName: 'B', candidatePosition: 'X', bestOverall: 90, avgOverall: 90, evaluatedRounds: 1 }),
+    ];
+    const groups = groupComparisonByPosition(rows);
+    // bestOverall=90 (B) sorts before null (Unevaluated via -Infinity fallback)
+    expect(groups[0].rows[0].candidateId).toBe('ct_b');
+    expect(groups[0].rows[1].candidateId).toBe('ct_un');
+    // topScorer is the evaluated one
+    expect(groups[0].topScorerId).toBe('ct_b');
   });
 });
 
@@ -160,9 +221,9 @@ describe('ComparisonMatrix UI', () => {
 
   it('groups rows by position with per-group SVG + top scorer badge', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: '李婷', candidatePosition: '前端', rounds: [], bestOverall: 90, avgOverall: 88, evaluatedRounds: 3 },
-      { candidateId: 'ct_b', candidateName: '王浩', candidatePosition: '后端', rounds: [], bestOverall: 86, avgOverall: 84, evaluatedRounds: 2 },
-      { candidateId: 'ct_c', candidateName: '陈思', candidatePosition: '前端', rounds: [], bestOverall: 82, avgOverall: 80, evaluatedRounds: 2 },
+      row({ candidateId: 'ct_a', candidateName: '李婷', candidatePosition: '前端', bestOverall: 90, avgOverall: 88, evaluatedRounds: 3 }),
+      row({ candidateId: 'ct_b', candidateName: '王浩', candidatePosition: '后端', bestOverall: 86, avgOverall: 84, evaluatedRounds: 2 }),
+      row({ candidateId: 'ct_c', candidateName: '陈思', candidatePosition: '前端', bestOverall: 82, avgOverall: 80, evaluatedRounds: 2 }),
     ];
     render(<ComparisonMatrix rows={rows} />);
     expect(screen.getByTestId('comparison-matrix')).toBeTruthy();
@@ -181,7 +242,7 @@ describe('ComparisonMatrix UI', () => {
   it('invokes onSelectCandidate when a row is clicked', () => {
     const onSelect = vi.fn();
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', rounds: [], bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 },
+      row({ candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', bestOverall: 80, avgOverall: 80, evaluatedRounds: 1 }),
     ];
     render(<ComparisonMatrix rows={rows} onSelectCandidate={onSelect} />);
     fireEvent.click(screen.getByTestId('comparison-row-ct_a'));
@@ -190,7 +251,7 @@ describe('ComparisonMatrix UI', () => {
 
   it('does not throw when a row has no evaluation (no best/avg chips)', () => {
     const rows: CandidateComparisonRow[] = [
-      { candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', rounds: [], bestOverall: null, avgOverall: null, evaluatedRounds: 0 },
+      row({ candidateId: 'ct_a', candidateName: 'A', candidatePosition: 'X', bestOverall: null, avgOverall: null, evaluatedRounds: 0 }),
     ];
     render(<ComparisonMatrix rows={rows} />);
     expect(screen.getByTestId('comparison-row-ct_a')).toBeTruthy();

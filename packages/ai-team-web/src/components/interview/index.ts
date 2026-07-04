@@ -6,6 +6,9 @@ export { CandidateInterviewPanel } from './CandidateInterviewPanel';
 export type { CandidateNavContext } from './CandidateInterviewPanel';
 export { RoundsComparison } from './RoundsComparison';
 export { ComparisonMatrix } from './ComparisonMatrix';
+export { PipelineProgress } from './PipelineProgress';
+export type { PipelineStage, PipelineProgressResult } from './PipelineProgress';
+export { mapStatusToPipeline } from './PipelineProgress';
 // Re-export helpers from lib/ so feature code keeps a single import root.
 export {
   groupInterviewsByCandidate,
@@ -24,6 +27,7 @@ export {
   SPARKLINE_METRICS,
   groupComparisonByPosition,
   buildCandidateComparisonRow,
+  metricSeries,
 } from '../../lib/interview-helpers';
 export type {
   InterviewGroup,
@@ -33,4 +37,5 @@ export type {
   SparklineMetric,
   CandidateComparisonRow,
   PositionComparisonGroup,
+  ComparisonMetricKey,
 } from '../../lib/interview-helpers';

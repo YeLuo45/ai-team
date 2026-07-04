@@ -300,6 +300,8 @@ export function shouldCollapseResume(summary: ResumeSummary): boolean {
 // the top-scorer per position for side-by-side evaluation comparison.
 // ============================================================================
 
+export type ComparisonMetricKey = 'overall' | 'technical' | 'communication' | 'problemSolving' | 'culture';
+
 export interface CandidateComparisonRow {
   candidateId: string;
   candidateName: string;
@@ -311,6 +313,10 @@ export interface CandidateComparisonRow {
   avgOverall: number | null;
   /** Number of rounds with completed evaluation. */
   evaluatedRounds: number;
+  /** Per-metric best scores across rounds. Used by V149 metric switcher. */
+  bestByMetric: Record<ComparisonMetricKey, number | null>;
+  /** Per-metric average scores across rounds. */
+  avgByMetric: Record<ComparisonMetricKey, number | null>;
 }
 
 export interface PositionComparisonGroup {
@@ -377,6 +383,35 @@ export function buildCandidateComparisonRow(
     overalls.length > 0
       ? Math.round((overalls.reduce((a, b) => a + b, 0) / overalls.length) * 10) / 10
       : null;
+
+  // V149: per-metric stats
+  const bestByMetric: Record<ComparisonMetricKey, number | null> = {
+    overall: bestOverall,
+    technical: null,
+    communication: null,
+    problemSolving: null,
+    culture: null,
+  };
+  const avgByMetric: Record<ComparisonMetricKey, number | null> = {
+    overall: avgOverall,
+    technical: null,
+    communication: null,
+    problemSolving: null,
+    culture: null,
+  };
+
+  const metricKeys: ComparisonMetricKey[] = ['overall', 'technical', 'communication', 'problemSolving', 'culture'];
+  for (const key of metricKeys) {
+    const values = evaluated
+      .map((r) => (key === 'overall' ? r.evaluation?.overall : r.evaluation?.breakdown[key]) ?? null)
+      .filter((v): v is number => v != null);
+    bestByMetric[key] = values.length > 0 ? Math.max(...values) : null;
+    avgByMetric[key] =
+      values.length > 0
+        ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10
+        : null;
+  }
+
   return {
     candidateId,
     candidateName,
@@ -385,5 +420,18 @@ export function buildCandidateComparisonRow(
     bestOverall,
     avgOverall,
     evaluatedRounds: evaluated.length,
+    bestByMetric,
+    avgByMetric,
   };
+}
+
+/** Extract just the numeric series for a given metric across rounds (null for missing). */
+export function metricSeries(
+  rounds: ReadonlyArray<Interview & { round: number }>,
+  metric: ComparisonMetricKey,
+): Array<number | null> {
+  return rounds.map((r) => {
+    if (r.evaluation == null) return null;
+    return metric === 'overall' ? r.evaluation.overall : r.evaluation.breakdown[metric];
+  });
 }

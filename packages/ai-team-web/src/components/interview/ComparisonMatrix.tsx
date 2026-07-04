@@ -1,13 +1,17 @@
-// V147: ComparisonMatrix — side-by-side multi-candidate evaluation chart.
-// Groups rows by position and renders each candidate's overall score trend
-// in one shared SVG per position. Highlights the top scorer.
+// V147/V149: ComparisonMatrix — side-by-side multi-candidate evaluation chart.
+// Groups rows by position and renders each candidate's trend in one shared
+// SVG per position. Highlights the top scorer for the currently selected
+// metric (overall / technical / communication / problem-solving / culture).
 
+import { useState } from 'react';
 import {
   buildSparklinePath,
   buildSparklineX,
   groupComparisonByPosition,
+  metricSeries,
   scoreToY,
   type CandidateComparisonRow,
+  type ComparisonMetricKey,
   type PositionComparisonGroup,
 } from '../../lib/interview-helpers';
 import { Card } from '../design-system';
@@ -33,6 +37,14 @@ const PALETTE = [
   'stroke-teal-500',
 ];
 
+const METRIC_OPTIONS: ReadonlyArray<{ key: ComparisonMetricKey; label: string }> = [
+  { key: 'overall', label: '总评分' },
+  { key: 'technical', label: '技术' },
+  { key: 'communication', label: '沟通' },
+  { key: 'problemSolving', label: '解决问题' },
+  { key: 'culture', label: '文化契合' },
+];
+
 export function ComparisonMatrix({
   rows,
   width = DEFAULT_WIDTH,
@@ -40,6 +52,8 @@ export function ComparisonMatrix({
   onSelectCandidate,
   selectedCandidateId,
 }: Props) {
+  const [metric, setMetric] = useState<ComparisonMetricKey>('overall');
+
   if (rows.length === 0) {
     return (
       <Card className="text-center text-sm text-slate-500" testId="comparison-matrix-empty">
@@ -54,10 +68,37 @@ export function ComparisonMatrix({
 
   return (
     <div className="space-y-5" data-testid="comparison-matrix">
+      <div
+        className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/40"
+        role="radiogroup"
+        aria-label="对比维度"
+        data-testid="comparison-metric-switcher"
+      >
+        <span className="mr-1 text-xs font-semibold text-slate-500">对比维度</span>
+        {METRIC_OPTIONS.map((opt) => (
+          <button
+            key={opt.key}
+            type="button"
+            role="radio"
+            aria-checked={metric === opt.key}
+            onClick={() => setMetric(opt.key)}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              metric === opt.key
+                ? 'bg-brand-500 text-white shadow'
+                : 'bg-white text-slate-600 hover:bg-slate-100 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-700/60'
+            }`}
+            data-testid={`comparison-metric-${opt.key}`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {groups.map((group) => (
         <PositionGroup
           key={group.position}
           group={group}
+          metric={metric}
           width={width}
           height={height}
           onSelectCandidate={onSelectCandidate}
@@ -70,20 +111,32 @@ export function ComparisonMatrix({
 
 function PositionGroup({
   group,
+  metric,
   width,
   height,
   onSelectCandidate,
   selectedCandidateId,
 }: {
   group: PositionComparisonGroup;
+  metric: ComparisonMetricKey;
   width: number;
   height: number;
   onSelectCandidate?: (candidateId: string) => void;
   selectedCandidateId?: string | null;
 }) {
-  // Maximum round count across all rows in this group determines the x-axis span
-  const maxRounds = Math.max(...group.rows.map((r) => r.evaluatedRounds), 1);
+  // Filter to rows that have a non-null value for the current metric
+  const eligibleRows = group.rows.filter((r) => r.bestByMetric[metric] != null);
+  const maxRounds = Math.max(...eligibleRows.map((r) => metricSeries(r.rounds, metric).filter((v) => v != null).length), 1);
   const xs = buildSparklineX(width, maxRounds);
+
+  // Pick top scorer for THIS metric
+  const sorted = [...eligibleRows].sort((a, b) => {
+    const av = a.bestByMetric[metric] ?? -Infinity;
+    const bv = b.bestByMetric[metric] ?? -Infinity;
+    if (bv !== av) return bv - av;
+    return a.candidateName.localeCompare(b.candidateName);
+  });
+  const topScorerId = sorted[0]?.candidateId ?? null;
 
   return (
     <Card className="space-y-3" testId={`comparison-group-${group.position}`}>
@@ -96,12 +149,12 @@ function PositionGroup({
             {group.rows.length} 位候选人 · {group.rows.reduce((acc, r) => acc + r.evaluatedRounds, 0)} 轮评估
           </p>
         </div>
-        {group.topScorerId && (
+        {topScorerId && (
           <span
             className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
             data-testid={`comparison-top-scorer-${group.position}`}
           >
-            🏆 Top: {group.rows.find((r) => r.candidateId === group.topScorerId)?.candidateName}
+            🏆 Top: {sorted[0].candidateName}
           </span>
         )}
       </header>
@@ -145,13 +198,11 @@ function PositionGroup({
           </text>
         ))}
 
-        {/* one line per candidate */}
-        {group.rows.map((row, idx) => {
+        {/* one line per candidate for the SELECTED metric */}
+        {eligibleRows.map((row, idx) => {
           const tone = PALETTE[idx % PALETTE.length];
-          const overalls = row.rounds
-            .filter((r) => r.evaluation != null)
-            .map((r) => r.evaluation?.overall ?? null);
-          const seriesPoints = overalls.map((score, i) => ({
+          const series = metricSeries(row.rounds, metric);
+          const seriesPoints = series.map((score, i) => ({
             x: xs[i] ?? 0,
             y: scoreToY(score, height),
           }));
@@ -166,19 +217,19 @@ function PositionGroup({
                   strokeWidth={row.candidateId === selectedCandidateId ? 3 : 1.5}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  opacity={row.candidateId === group.topScorerId ? 1 : 0.75}
+                  opacity={row.candidateId === topScorerId ? 1 : 0.75}
                   data-testid={`comparison-path-${row.candidateId}`}
                 />
               )}
               {seriesPoints.map((p, i) => {
-                const score = overalls[i];
+                const score = series[i];
                 if (score == null) return null;
                 return (
                   <circle
                     key={i}
                     cx={p.x}
                     cy={p.y}
-                    r={row.candidateId === group.topScorerId ? 3 : 2}
+                    r={row.candidateId === topScorerId ? 3 : 2}
                     className={tone}
                     fill="currentColor"
                   />
@@ -192,8 +243,10 @@ function PositionGroup({
       <ul className="space-y-1.5" data-testid={`comparison-rows-${group.position}`}>
         {group.rows.map((row, idx) => {
           const tone = PALETTE[idx % PALETTE.length];
-          const isTop = row.candidateId === group.topScorerId;
+          const isTop = row.candidateId === topScorerId;
           const isSelected = row.candidateId === selectedCandidateId;
+          const best = row.bestByMetric[metric];
+          const avg = row.avgByMetric[metric];
           return (
             <li
               key={row.candidateId}
@@ -214,14 +267,14 @@ function PositionGroup({
                 <span className="text-slate-500">· {row.evaluatedRounds} 轮</span>
               </span>
               <span className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                {row.bestOverall != null && (
+                {best != null && (
                   <span data-testid={`comparison-best-${row.candidateId}`}>
-                    最高 <strong className="text-brand-600">{row.bestOverall}</strong>
+                    最高 <strong className="text-brand-600">{best}</strong>
                   </span>
                 )}
-                {row.avgOverall != null && (
+                {avg != null && (
                   <span data-testid={`comparison-avg-${row.candidateId}`}>
-                    均 <strong>{row.avgOverall}</strong>
+                    均 <strong>{avg}</strong>
                   </span>
                 )}
               </span>

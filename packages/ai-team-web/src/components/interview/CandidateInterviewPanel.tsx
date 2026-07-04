@@ -10,6 +10,7 @@ import { recommendationLabel, formatDateTime } from '../../lib/format';
 import { ResumeCard } from './ResumeCard';
 import { RoundTabs, type InterviewRound } from './RoundTabs';
 import { RoundsComparison } from './RoundsComparison';
+import { PipelineProgress } from './PipelineProgress';
 import {
   buildRoundLabel,
   formatRoundTimeline,
@@ -69,6 +70,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
   return (
     <div className="space-y-5" data-testid="candidate-panel">
       {showNavToolbar && <NavToolbar nav={nav!} onBack={onBack} onPrev={onPrev} onNext={onNext} />}
+      <PipelineProgress status={candidate?.status} />
       <ResumeCard
         candidateName={candidate?.name ?? candidateId}
         candidatePosition={candidate?.position ?? ''}
