@@ -2,8 +2,10 @@
 // Groups rows by position and renders each candidate's trend in one shared
 // SVG per position. Highlights the top scorer for the currently selected
 // metric (overall / technical / communication / problem-solving / culture).
+// V155: controlled mode — the selected metric is owned by the parent and
+// synced to the URL hash so deep-links / refresh preserve the view.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   buildSparklinePath,
   buildSparklineX,
@@ -22,6 +24,9 @@ interface Props {
   height?: number;
   onSelectCandidate?: (candidateId: string) => void;
   selectedCandidateId?: string | null;
+  /** V155: parent-controlled metric. Falls back to internal state when undefined. */
+  metric?: ComparisonMetricKey;
+  onMetricChange?: (metric: ComparisonMetricKey) => void;
 }
 
 const DEFAULT_WIDTH = 480;
@@ -37,7 +42,7 @@ const PALETTE = [
   'stroke-teal-500',
 ];
 
-const METRIC_OPTIONS: ReadonlyArray<{ key: ComparisonMetricKey; label: string }> = [
+export const METRIC_OPTIONS: ReadonlyArray<{ key: ComparisonMetricKey; label: string }> = [
   { key: 'overall', label: '总评分' },
   { key: 'technical', label: '技术' },
   { key: 'communication', label: '沟通' },
@@ -45,14 +50,38 @@ const METRIC_OPTIONS: ReadonlyArray<{ key: ComparisonMetricKey; label: string }>
   { key: 'culture', label: '文化契合' },
 ];
 
+export function isValidMetricKey(value: string | null | undefined): value is ComparisonMetricKey {
+  if (!value) return false;
+  return METRIC_OPTIONS.some((o) => o.key === value);
+}
+
 export function ComparisonMatrix({
   rows,
   width = DEFAULT_WIDTH,
   height = DEFAULT_HEIGHT,
   onSelectCandidate,
   selectedCandidateId,
+  metric: controlledMetric,
+  onMetricChange,
 }: Props) {
-  const [metric, setMetric] = useState<ComparisonMetricKey>('overall');
+  const [internalMetric, setInternalMetric] = useState<ComparisonMetricKey>('overall');
+  const isControlled = controlledMetric !== undefined;
+  const metric = isControlled ? controlledMetric : internalMetric;
+
+  // Mirror internal state into the parent's notifier so they can sync
+  // the URL hash without us having to expose the setter.
+  useEffect(() => {
+    if (isControlled) return;
+    onMetricChange?.(internalMetric);
+  }, [isControlled, internalMetric, onMetricChange]);
+
+  const setMetric = (next: ComparisonMetricKey) => {
+    if (isControlled) {
+      onMetricChange?.(next);
+    } else {
+      setInternalMetric(next);
+    }
+  };
 
   if (rows.length === 0) {
     return (

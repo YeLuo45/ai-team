@@ -14,6 +14,7 @@ import {
   buildRoundLabel,
   interviewTypeLabel,
   formatRoundTimeline,
+  isValidMetricKey,
   type CandidateComparisonRow,
 } from '../components/interview';
 import { Card } from '../components/design-system';
@@ -167,6 +168,11 @@ export function Interviews() {
 
   // V147: compare-mode state derived from URL ?compare=1
   const compareMode = searchParams.get('compare') === '1';
+
+  // V155: metric state derived from URL ?metric=technical
+  const urlMetric = searchParams.get('metric');
+  const selectedMetric = isValidMetricKey(urlMetric) ? urlMetric : 'overall';
+
   const setCompareMode = (next: boolean) => {
     if (next) {
       setSearchParams({ compare: '1' }, { replace: true });
@@ -174,6 +180,15 @@ export function Interviews() {
       setSearchParams({ candidate: selectedCandidateId }, { replace: true });
     } else {
       setSearchParams({}, { replace: true });
+    }
+  };
+
+  // V155: write the metric back to the URL when the user picks a new one
+  const handleMetricChange = (next: string) => {
+    if (compareMode) {
+      setSearchParams({ compare: '1', metric: next }, { replace: true });
+    } else {
+      setSearchParams({ metric: next }, { replace: true });
     }
   };
 
@@ -226,6 +241,8 @@ export function Interviews() {
               handleSelectCandidate(id);
             }}
             selectedCandidateId={selectedCandidateId}
+            metric={selectedMetric}
+            onMetricChange={handleMetricChange}
           />
         </div>
       )}
