@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { Candidate } from '@ai-team/core';
 import { useTeamData } from '../lib/hooks';
+import { api } from '../lib/api';
 import { formatDate, relativeTime, statusLabel } from '../lib/format';
 import {
   CandidateInterviewPanel,
@@ -16,9 +18,10 @@ import {
 import { Card } from '../components/design-system';
 
 export function Interviews() {
-  const { data, loading, source } = useTeamData();
+  const { data, loading, source, refresh } = useTeamData();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [pipelineBusy, setPipelineBusy] = useState(false);
   const groups = useMemo(
     () => groupInterviewsByCandidate(data.interviews, data.candidates),
     [data.interviews, data.candidates],
@@ -60,6 +63,22 @@ export function Interviews() {
 
   const handleBackToCandidates = () => {
     navigate('/candidates');
+  };
+
+  // V152: pipeline advance — call api.updateCandidate then refresh
+  const handlePipelineAdvance = async (nextStatus: string) => {
+    if (!selectedCandidateId) return;
+    if (source !== 'api') {
+      alert('推进 Pipeline 需要连接 server');
+      return;
+    }
+    setPipelineBusy(true);
+    try {
+      await api.updateCandidate(selectedCandidateId, { status: nextStatus as Candidate['status'] });
+      await refresh();
+    } finally {
+      setPipelineBusy(false);
+    }
   };
 
   // Keyboard shortcuts: ← / → to navigate candidates when toolbar is shown
@@ -229,6 +248,11 @@ export function Interviews() {
                   onBack={handleBackToCandidates}
                   onPrev={navContext?.hasPrev ? () => handleNavigateBy(-1) : undefined}
                   onNext={navContext?.hasNext ? () => handleNavigateBy(1) : undefined}
+                  pipeline={
+                    source === 'api'
+                      ? { onAdvance: handlePipelineAdvance, busy: pipelineBusy }
+                      : undefined
+                  }
                 />
               );
             })()}

@@ -8,7 +8,7 @@ export { RoundsComparison } from './RoundsComparison';
 export { ComparisonMatrix } from './ComparisonMatrix';
 export { PipelineProgress } from './PipelineProgress';
 export type { PipelineStage, PipelineProgressResult } from './PipelineProgress';
-export { mapStatusToPipeline } from './PipelineProgress';
+export { mapStatusToPipeline, nextStage, prevStage, stageToStatus } from './PipelineProgress';
 // Re-export helpers from lib/ so feature code keeps a single import root.
 export {
   groupInterviewsByCandidate,

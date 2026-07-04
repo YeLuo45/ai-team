@@ -61,12 +61,36 @@ export function mapStatusToPipeline(status: string | undefined): PipelineProgres
   };
 }
 
-interface Props {
-  status: string | undefined;
+/** Compute the next / previous stage from a given pipeline stage. */
+export function nextStage(stage: PipelineStage): PipelineStage | null {
+  const idx = PIPELINE_STEPS.findIndex((s) => s.key === stage);
+  if (idx < 0 || idx >= PIPELINE_STEPS.length - 1) return null;
+  return PIPELINE_STEPS[idx + 1].key;
 }
 
-export function PipelineProgress({ status }: Props) {
-  const { currentIndex, totalStages, isOffPath } = mapStatusToPipeline(status);
+export function prevStage(stage: PipelineStage): PipelineStage | null {
+  const idx = PIPELINE_STEPS.findIndex((s) => s.key === stage);
+  if (idx <= 0) return null;
+  return PIPELINE_STEPS[idx - 1].key;
+}
+
+/** Map a pipeline stage to the CandidateStatus string. */
+export function stageToStatus(stage: PipelineStage): CandidateStatus {
+  return stage;
+}
+
+interface Props {
+  status: string | undefined;
+  /** Optional callback when the user clicks "上一阶段" / "下一阶段". */
+  onAdvance?: (next: CandidateStatus) => void;
+  /** Disable the advance buttons (e.g. when the network call is in flight). */
+  busy?: boolean;
+}
+
+export function PipelineProgress({ status, onAdvance, busy }: Props) {
+  const { currentIndex, totalStages, isOffPath, currentStage } = mapStatusToPipeline(status);
+  const next = nextStage(currentStage);
+  const prev = prevStage(currentStage);
 
   return (
     <Card
@@ -77,14 +101,40 @@ export function PipelineProgress({ status }: Props) {
         <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           招聘流程进度
         </h4>
-        {isOffPath && (
-          <span
-            className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
-            data-testid="pipeline-off-path"
-          >
-            ❌ 已拒绝
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isOffPath && (
+            <span
+              className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-300"
+              data-testid="pipeline-off-path"
+            >
+              ❌ 已拒绝
+            </span>
+          )}
+          {onAdvance && (
+            <>
+              <button
+                type="button"
+                onClick={() => prev && onAdvance(stageToStatus(prev))}
+                disabled={busy || prev === null}
+                className="rounded-md border border-slate-300 px-2.5 py-0.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                data-testid="pipeline-prev"
+                title={prev ? `上一阶段：${prev}` : '已是第一阶段'}
+              >
+                ← 上一阶段
+              </button>
+              <button
+                type="button"
+                onClick={() => next && onAdvance(stageToStatus(next))}
+                disabled={busy || next === null}
+                className="rounded-md border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-brand-700/50 dark:bg-brand-900/30 dark:text-brand-200"
+                data-testid="pipeline-next"
+                title={next ? `下一阶段：${next}` : '已是最后阶段'}
+              >
+                下一阶段 →
+              </button>
+            </>
+          )}
+        </div>
       </header>
 
       <ol

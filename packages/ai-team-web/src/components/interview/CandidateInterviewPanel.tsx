@@ -26,6 +26,13 @@ export interface CandidateNavContext {
   total: number;
 }
 
+export interface PipelineAdvanceHandler {
+  /** Advance the candidate to the chosen status. */
+  onAdvance: (nextStatus: string) => void;
+  /** Whether an in-flight advance call is pending. */
+  busy: boolean;
+}
+
 interface Props {
   candidate: Candidate | null;
   candidateId: string;
@@ -34,9 +41,11 @@ interface Props {
   onBack?: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /** V152: optional pipeline-advance callback for the PipelineProgress. */
+  pipeline?: PipelineAdvanceHandler;
 }
 
-export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, onBack, onPrev, onNext }: Props) {
+export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, onBack, onPrev, onNext, pipeline }: Props) {
   const initialRound = rounds.length > 0 ? rounds[0].round : 1;
   const [activeRound, setActiveRound] = useState<number>(initialRound);
 
@@ -51,6 +60,13 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
     return (
       <div className="space-y-4" data-testid="candidate-panel-empty">
         {showNavToolbar && <NavToolbar nav={nav!} onBack={onBack} onPrev={onPrev} onNext={onNext} />}
+        {pipeline && (
+          <PipelineProgress
+            status={candidate?.status}
+            onAdvance={pipeline.onAdvance}
+            busy={pipeline.busy}
+          />
+        )}
         <ResumeCard
           candidateName={candidate?.name ?? candidateId}
           candidatePosition={candidate?.position ?? ''}
@@ -70,7 +86,13 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
   return (
     <div className="space-y-5" data-testid="candidate-panel">
       {showNavToolbar && <NavToolbar nav={nav!} onBack={onBack} onPrev={onPrev} onNext={onNext} />}
-      <PipelineProgress status={candidate?.status} />
+      {pipeline && (
+        <PipelineProgress
+          status={candidate?.status}
+          onAdvance={pipeline.onAdvance}
+          busy={pipeline.busy}
+        />
+      )}
       <ResumeCard
         candidateName={candidate?.name ?? candidateId}
         candidatePosition={candidate?.position ?? ''}
