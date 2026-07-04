@@ -85,9 +85,11 @@ interface Props {
   onAdvance?: (next: CandidateStatus) => void;
   /** Disable the advance buttons (e.g. when the network call is in flight). */
   busy?: boolean;
+  /** V153: callback for "记录被拒原因" — only rendered when status is 'rejected'. */
+  onRecordReject?: () => void;
 }
 
-export function PipelineProgress({ status, onAdvance, busy }: Props) {
+export function PipelineProgress({ status, onAdvance, busy, onRecordReject }: Props) {
   const { currentIndex, totalStages, isOffPath, currentStage } = mapStatusToPipeline(status);
   const next = nextStage(currentStage);
   const prev = prevStage(currentStage);
@@ -109,6 +111,17 @@ export function PipelineProgress({ status, onAdvance, busy }: Props) {
             >
               ❌ 已拒绝
             </span>
+          )}
+          {isOffPath && onRecordReject && (
+            <button
+              type="button"
+              onClick={onRecordReject}
+              disabled={busy}
+              className="rounded-md border border-rose-300 bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-700/50 dark:bg-rose-900/30 dark:text-rose-200"
+              data-testid="pipeline-record-reject"
+            >
+              📝 记录被拒原因
+            </button>
           )}
           {onAdvance && (
             <>

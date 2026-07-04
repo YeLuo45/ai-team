@@ -8,6 +8,7 @@ import {
   CandidateInterviewPanel,
   type CandidateNavContext,
   ComparisonMatrix,
+  RejectReasonModal,
   buildCandidateComparisonRow,
   groupInterviewsByCandidate,
   buildRoundLabel,
@@ -22,6 +23,8 @@ export function Interviews() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [pipelineBusy, setPipelineBusy] = useState(false);
+  // V153: reject reason modal
+  const [rejectOpen, setRejectOpen] = useState(false);
   const groups = useMemo(
     () => groupInterviewsByCandidate(data.interviews, data.candidates),
     [data.interviews, data.candidates],
@@ -76,6 +79,31 @@ export function Interviews() {
     try {
       await api.updateCandidate(selectedCandidateId, { status: nextStatus as Candidate['status'] });
       await refresh();
+    } finally {
+      setPipelineBusy(false);
+    }
+  };
+
+  // V153: open the reject-reason modal
+  const openRejectModal = () => setRejectOpen(true);
+  const closeRejectModal = () => setRejectOpen(false);
+
+  const handleRejectSubmit = async (reason: string) => {
+    if (!selectedCandidateId) return;
+    if (source !== 'api') {
+      alert('记录被拒原因需要连接 server');
+      return;
+    }
+    const candidate = data.candidates.find((c) => c.id === selectedCandidateId);
+    const previousNotes = candidate?.notes ?? '';
+    const stamped = previousNotes
+      ? `${previousNotes}\n[rejected ${new Date().toISOString()}] ${reason}`
+      : `[rejected ${new Date().toISOString()}] ${reason}`;
+    setPipelineBusy(true);
+    try {
+      await api.updateCandidate(selectedCandidateId, { notes: stamped });
+      await refresh();
+      setRejectOpen(false);
     } finally {
       setPipelineBusy(false);
     }
@@ -250,7 +278,11 @@ export function Interviews() {
                   onNext={navContext?.hasNext ? () => handleNavigateBy(1) : undefined}
                   pipeline={
                     source === 'api'
-                      ? { onAdvance: handlePipelineAdvance, busy: pipelineBusy }
+                      ? {
+                          onAdvance: handlePipelineAdvance,
+                          busy: pipelineBusy,
+                          onRecordReject: openRejectModal,
+                        }
                       : undefined
                   }
                 />
@@ -258,6 +290,18 @@ export function Interviews() {
             })()}
           </div>
         </div>
+      )}
+
+      {rejectOpen && selectedCandidateId && (
+        <RejectReasonModal
+          open={rejectOpen}
+          candidateName={
+            data.candidates.find((c) => c.id === selectedCandidateId)?.name ?? selectedCandidateId
+          }
+          onCancel={closeRejectModal}
+          onSubmit={handleRejectSubmit}
+          busy={pipelineBusy}
+        />
       )}
     </div>
   );

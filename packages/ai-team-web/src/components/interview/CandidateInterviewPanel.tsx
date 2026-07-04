@@ -31,6 +31,8 @@ export interface PipelineAdvanceHandler {
   onAdvance: (nextStatus: string) => void;
   /** Whether an in-flight advance call is pending. */
   busy: boolean;
+  /** V153: open the reject-reason modal. Only used when current status is 'rejected'. */
+  onRecordReject?: () => void;
 }
 
 interface Props {
@@ -65,6 +67,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
             status={candidate?.status}
             onAdvance={pipeline.onAdvance}
             busy={pipeline.busy}
+            onRecordReject={pipeline.onRecordReject}
           />
         )}
         <ResumeCard
