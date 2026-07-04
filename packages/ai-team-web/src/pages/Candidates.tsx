@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
@@ -16,6 +16,9 @@ export function Candidates() {
   const [showAdd, setShowAdd] = useState(false);
   const [showResume, setShowResume] = useState(false);
   const [interviewTarget, setInterviewTarget] = useState<Candidate | null>(null);
+  // V148: multi-select state for batch operations
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState(false);
 
   const items = filter === 'all' ? data.candidates : data.candidates.filter((c) => c.status === filter);
   const statuses = ['all', ...new Set(data.candidates.map((c) => c.status))];
@@ -47,32 +50,117 @@ export function Candidates() {
     navigate(`/interviews?candidate=${encodeURIComponent(c.id)}`);
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">候选人</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            共 {data.candidates.length} 位候选人
-            {source === 'static' && <span className="ml-2 badge-amber">静态数据 (启动 server 启用交互)</span>}
-            {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
-          </p>
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const selectAllVisible = () => {
+    setSelectedIds(new Set(items.map((c) => c.id)));
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (source !== 'api') {
+      alert('批量删除需要连接 server');
+      return;
+    }
+    if (!confirm(`确定删除选中的 ${selectedIds.size} 位候选人？`)) return;
+    setBatchBusy(true);
+    try {
+      await Promise.all([...selectedIds].map((id) => api.deleteCandidate(id)));
+      clearSelection();
+      await refresh();
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // Reset selection when filter changes so out-of-view IDs don't linger.
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const visibleIds = new Set(items.map((c) => c.id));
+    const next = new Set<string>();
+    for (const id of selectedIds) if (visibleIds.has(id)) next.add(id);
+    if (next.size !== selectedIds.size) setSelectedIds(next);
+  }, [filter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const allVisibleSelected = items.length > 0 && items.every((c) => selectedIds.has(c.id));
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">候选人</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              共 {data.candidates.length} 位候选人
+              {source === 'static' && <span className="ml-2 badge-amber">静态数据</span>}
+              {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {source === 'api' && items.length > 0 && (
+              <button
+                type="button"
+                onClick={allVisibleSelected ? clearSelection : selectAllVisible}
+                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                data-testid="select-all-toggle"
+              >
+                {allVisibleSelected ? '取消全选' : '全选当前'}
+              </button>
+            )}
+            {statuses.map((s) => (
+              <button key={s} onClick={() => setFilter(s)}
+                className={`btn ${filter === s ? 'bg-brand-50 text-brand-700' : 'btn-ghost'}`}>
+                {s === 'all' ? '全部' : statusLabel(s).text}
+              </button>
+            ))}
+            {source === 'api' && (
+              <>
+                <button onClick={() => setShowResume(true)} className="btn-ghost">📄 上传简历</button>
+                <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加</button>
+              </>
+            )}
+          </div>
         </div>
-        <div className="flex gap-2">
-          {statuses.map((s) => (
-            <button key={s} onClick={() => setFilter(s)}
-              className={`btn ${filter === s ? 'bg-brand-50 text-brand-700' : 'btn-ghost'}`}>
-              {s === 'all' ? '全部' : statusLabel(s).text}
-            </button>
-          ))}
-          {source === 'api' && (
-            <>
-              <button onClick={() => setShowResume(true)} className="btn-ghost">📄 上传简历</button>
-              <button onClick={() => setShowAdd(true)} className="btn-primary">+ 添加</button>
-            </>
-          )}
-        </div>
-      </div>
+
+        {selectedIds.size > 0 && source === 'api' && (
+          <div
+            className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2 text-sm backdrop-blur dark:border-brand-800/50 dark:bg-brand-900/30"
+            data-testid="batch-action-toolbar"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-brand-700 dark:text-brand-300" data-testid="batch-selected-count">
+                已选 <strong>{selectedIds.size}</strong> 位候选人
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="text-xs text-slate-600 hover:underline dark:text-slate-300"
+                data-testid="batch-clear-selection"
+              >
+                取消选择
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchDelete}
+                disabled={batchBusy}
+                className="rounded-md bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                data-testid="batch-delete"
+              >
+                {batchBusy ? '删除中...' : `🗑 批量删除 (${selectedIds.size})`}
+              </button>
+            </div>
+          </div>
+        )}
 
       {items.length === 0 ? (
         <Card>
@@ -91,6 +179,23 @@ export function Candidates() {
             const tone = st.cls.includes('badge-green') ? 'success' : st.cls.includes('badge-amber') ? 'warning' : st.cls.includes('badge-red') ? 'danger' : st.cls.includes('badge-blue') ? 'info' : 'neutral';
             return (
               <Card key={c0.id}>
+                {source === 'api' && (
+                  <label
+                    className="mb-2 flex cursor-pointer items-center gap-2 text-xs text-slate-500 hover:text-slate-700"
+                    data-testid={`candidate-checkbox-label-${c0.id}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(c0.id)}
+                      onChange={() => toggleSelect(c0.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 cursor-pointer rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                      data-testid={`candidate-checkbox-${c0.id}`}
+                      aria-label={`选择 ${c0.name}`}
+                    />
+                    <span>{selectedIds.has(c0.id) ? '已选中' : '选择'}</span>
+                  </label>
+                )}
                 <div className="flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{c0.name}</h3>
