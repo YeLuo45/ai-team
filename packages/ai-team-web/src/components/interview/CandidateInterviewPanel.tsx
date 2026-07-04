@@ -33,6 +33,8 @@ export interface PipelineAdvanceHandler {
   busy: boolean;
   /** V153: open the reject-reason modal. Only used when current status is 'rejected'. */
   onRecordReject?: () => void;
+  /** V154: restore a rejected candidate back to 'interviewing'. */
+  onRestore?: (nextStatus: string) => void;
 }
 
 interface Props {
@@ -68,6 +70,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
             onAdvance={pipeline.onAdvance}
             busy={pipeline.busy}
             onRecordReject={pipeline.onRecordReject}
+            onRestore={pipeline.onRestore}
           />
         )}
         <ResumeCard

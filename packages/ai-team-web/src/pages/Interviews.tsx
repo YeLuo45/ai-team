@@ -109,6 +109,23 @@ export function Interviews() {
     }
   };
 
+  // V154: restore a rejected candidate back to 'interviewing' (no notes change — keep the
+  // recorded reject reason in the notes trail so the audit history is preserved).
+  const handleRestoreFromReject = async (nextStatus: string) => {
+    if (!selectedCandidateId) return;
+    if (source !== 'api') {
+      alert('恢复 Pipeline 需要连接 server');
+      return;
+    }
+    setPipelineBusy(true);
+    try {
+      await api.updateCandidate(selectedCandidateId, { status: nextStatus as Candidate['status'] });
+      await refresh();
+    } finally {
+      setPipelineBusy(false);
+    }
+  };
+
   // Keyboard shortcuts: ← / → to navigate candidates when toolbar is shown
   useEffect(() => {
     if (!navContext) return;
@@ -282,6 +299,7 @@ export function Interviews() {
                           onAdvance: handlePipelineAdvance,
                           busy: pipelineBusy,
                           onRecordReject: openRejectModal,
+                          onRestore: handleRestoreFromReject,
                         }
                       : undefined
                   }

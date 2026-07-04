@@ -87,9 +87,11 @@ interface Props {
   busy?: boolean;
   /** V153: callback for "记录被拒原因" — only rendered when status is 'rejected'. */
   onRecordReject?: () => void;
+  /** V154: callback for "恢复为 interviewing" — only rendered when status is 'rejected'. */
+  onRestore?: (next: CandidateStatus) => void;
 }
 
-export function PipelineProgress({ status, onAdvance, busy, onRecordReject }: Props) {
+export function PipelineProgress({ status, onAdvance, busy, onRecordReject, onRestore }: Props) {
   const { currentIndex, totalStages, isOffPath, currentStage } = mapStatusToPipeline(status);
   const next = nextStage(currentStage);
   const prev = prevStage(currentStage);
@@ -121,6 +123,18 @@ export function PipelineProgress({ status, onAdvance, busy, onRecordReject }: Pr
               data-testid="pipeline-record-reject"
             >
               📝 记录被拒原因
+            </button>
+          )}
+          {isOffPath && onRestore && (
+            <button
+              type="button"
+              onClick={() => onRestore('interviewing')}
+              disabled={busy}
+              className="rounded-md border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-emerald-700/50 dark:bg-emerald-900/30 dark:text-emerald-200"
+              data-testid="pipeline-restore"
+              title="将被拒候选人恢复到面试中阶段"
+            >
+              🔄 恢复为面试中
             </button>
           )}
           {onAdvance && (
