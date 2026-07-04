@@ -55,6 +55,7 @@ record('test targeted pipeline progress advance v152', run('npm', ['test', '--',
 record('test targeted reject reason modal v153', run('npm', ['test', '--', 'packages/ai-team-web/test/reject-reason-modal-v153.test.tsx']), /14 passed/);
 record('test targeted pipeline restore v154', run('npm', ['test', '--', 'packages/ai-team-web/test/pipeline-restore-v154.test.tsx']), /6 passed/);
 record('test targeted comparison matrix url metric v155', run('npm', ['test', '--', 'packages/ai-team-web/test/comparison-matrix-url-metric-v155.test.tsx']), /9 passed/);
+record('test targeted reject history list v156', run('npm', ['test', '--', 'packages/ai-team-web/test/reject-history-list-v156.test.tsx']), /12 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
 record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /57 passed/);
