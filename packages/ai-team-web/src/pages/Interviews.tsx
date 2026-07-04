@@ -5,10 +5,13 @@ import { formatDate, relativeTime, statusLabel } from '../lib/format';
 import {
   CandidateInterviewPanel,
   type CandidateNavContext,
+  ComparisonMatrix,
+  buildCandidateComparisonRow,
   groupInterviewsByCandidate,
   buildRoundLabel,
   interviewTypeLabel,
   formatRoundTimeline,
+  type CandidateComparisonRow,
 } from '../components/interview';
 import { Card } from '../components/design-system';
 
@@ -98,23 +101,77 @@ export function Interviews() {
 
   const totalRounds = groups.reduce((acc, g) => acc + g.rounds.length, 0);
 
+  // V147: compare-mode state derived from URL ?compare=1
+  const compareMode = searchParams.get('compare') === '1';
+  const setCompareMode = (next: boolean) => {
+    if (next) {
+      setSearchParams({ compare: '1' }, { replace: true });
+    } else if (selectedCandidateId) {
+      setSearchParams({ candidate: selectedCandidateId }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  // Build candidate comparison rows for the matrix view
+  const comparisonRows = useMemo<CandidateComparisonRow[]>(
+    () =>
+      groups.map((g) =>
+        buildCandidateComparisonRow(
+          g.candidateId,
+          g.candidateName,
+          g.candidatePosition,
+          g.rounds,
+        ),
+      ),
+    [groups],
+  );
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">面试记录</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          共 {groups.length} 位候选人 · {totalRounds} 场面试
-          {source === 'static' && <span className="ml-2 badge-amber">静态数据</span>}
-          {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-50">面试记录</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            共 {groups.length} 位候选人 · {totalRounds} 场面试
+            {source === 'static' && <span className="ml-2 badge-amber">静态数据</span>}
+            {source === 'api' && <span className="ml-2 badge-green">● 实时</span>}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCompareMode(!compareMode)}
+          className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+            compareMode
+              ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300'
+              : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800/40'
+          }`}
+          data-testid="toggle-compare-mode"
+          aria-pressed={compareMode}
+        >
+          {compareMode ? '📋 单候选人模式' : '🔀 对比模式'}
+        </button>
       </div>
 
-      {groups.length === 0 ? (
+      {compareMode && (
+        <div data-testid="compare-mode-panel">
+          <ComparisonMatrix
+            rows={comparisonRows}
+            onSelectCandidate={(id) => {
+              setCompareMode(false);
+              handleSelectCandidate(id);
+            }}
+            selectedCandidateId={selectedCandidateId}
+          />
+        </div>
+      )}
+
+      {!compareMode && groups.length === 0 ? (
         <Card className="text-center text-slate-500">
           暂无面试记录
           {source === 'api' && <span> · 去 Candidates 页点击 &quot;🤖 开始面试&quot; 启动</span>}
         </Card>
-      ) : (
+      ) : compareMode ? null : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="space-y-3 lg:col-span-1" data-testid="candidate-list">
             {groups.map((group) => {

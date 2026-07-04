@@ -48,6 +48,8 @@ const STRICT_LAYERS = {
   'v143/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
   // V144: multi-round sparkline helpers (overall + 4 breakdown metrics)
   'v144/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
+  // V147: comparison matrix helpers (group by position + top scorer)
+  'v147/web-interview-helpers': /^packages\/ai-team-web\/src\/lib\/interview-helpers\.ts$/,
 };
 
 const SOFT_LAYERS = {

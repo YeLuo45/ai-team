@@ -294,3 +294,96 @@ function latestTimestamp(rounds: ReadonlyArray<Interview>): string {
 export function shouldCollapseResume(summary: ResumeSummary): boolean {
   return summary.totalChars > 280 || summary.sections.length > 1;
 }
+
+// ============================================================================
+// V147: Comparison matrix helpers — group candidates by position and find
+// the top-scorer per position for side-by-side evaluation comparison.
+// ============================================================================
+
+export interface CandidateComparisonRow {
+  candidateId: string;
+  candidateName: string;
+  candidatePosition: string;
+  rounds: ReadonlyArray<Interview & { round: number }>;
+  /** Highest overall score across the candidate's rounds (null when no evaluations). */
+  bestOverall: number | null;
+  /** Average overall score across the candidate's rounds. */
+  avgOverall: number | null;
+  /** Number of rounds with completed evaluation. */
+  evaluatedRounds: number;
+}
+
+export interface PositionComparisonGroup {
+  position: string;
+  rows: CandidateComparisonRow[];
+  /** Top scorer (highest bestOverall) within the position. null when nobody has been evaluated. */
+  topScorerId: string | null;
+}
+
+/**
+ * Group comparison rows by position and pick the top scorer for each. Rows
+ * within a group are sorted by bestOverall desc, then by candidateName asc
+ * for stable order.
+ */
+export function groupComparisonByPosition(
+  rows: ReadonlyArray<CandidateComparisonRow>,
+): PositionComparisonGroup[] {
+  const byPos = new Map<string, CandidateComparisonRow[]>();
+  for (const row of rows) {
+    const list = byPos.get(row.candidatePosition) ?? [];
+    list.push(row);
+    byPos.set(row.candidatePosition, list);
+  }
+
+  const groups: PositionComparisonGroup[] = [];
+  for (const [position, list] of byPos) {
+    const sorted = [...list].sort((a, b) => {
+      const av = a.bestOverall ?? -Infinity;
+      const bv = b.bestOverall ?? -Infinity;
+      if (bv !== av) return bv - av;
+      return a.candidateName.localeCompare(b.candidateName);
+    });
+    const topScorer = sorted.find((r) => r.bestOverall != null);
+    groups.push({
+      position,
+      rows: sorted,
+      topScorerId: topScorer?.candidateId ?? null,
+    });
+  }
+
+  // Sort groups by number of evaluated rounds desc, then by position asc
+  groups.sort((a, b) => {
+    const ae = a.rows.reduce((acc, r) => acc + r.evaluatedRounds, 0);
+    const be = b.rows.reduce((acc, r) => acc + r.evaluatedRounds, 0);
+    if (be !== ae) return be - ae;
+    return a.position.localeCompare(b.position);
+  });
+  return groups;
+}
+
+/** Compute a CandidateComparisonRow from InterviewGroup-shaped data. */
+export function buildCandidateComparisonRow(
+  candidateId: string,
+  candidateName: string,
+  candidatePosition: string,
+  rounds: ReadonlyArray<Interview & { round: number }>,
+): CandidateComparisonRow {
+  const evaluated = rounds.filter((r) => r.evaluation != null);
+  const overalls = evaluated
+    .map((r) => r.evaluation?.overall ?? null)
+    .filter((v): v is number => v != null);
+  const bestOverall = overalls.length > 0 ? Math.max(...overalls) : null;
+  const avgOverall =
+    overalls.length > 0
+      ? Math.round((overalls.reduce((a, b) => a + b, 0) / overalls.length) * 10) / 10
+      : null;
+  return {
+    candidateId,
+    candidateName,
+    candidatePosition,
+    rounds,
+    bestOverall,
+    avgOverall,
+    evaluatedRounds: evaluated.length,
+  };
+}

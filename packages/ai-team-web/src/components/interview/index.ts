@@ -5,6 +5,7 @@ export type { InterviewRound } from './RoundTabs';
 export { CandidateInterviewPanel } from './CandidateInterviewPanel';
 export type { CandidateNavContext } from './CandidateInterviewPanel';
 export { RoundsComparison } from './RoundsComparison';
+export { ComparisonMatrix } from './ComparisonMatrix';
 // Re-export helpers from lib/ so feature code keeps a single import root.
 export {
   groupInterviewsByCandidate,
@@ -21,6 +22,8 @@ export {
   buildSparklineX,
   scoreToY,
   SPARKLINE_METRICS,
+  groupComparisonByPosition,
+  buildCandidateComparisonRow,
 } from '../../lib/interview-helpers';
 export type {
   InterviewGroup,
@@ -28,4 +31,6 @@ export type {
   ResumeSummary,
   RoundsSparklinePoint,
   SparklineMetric,
+  CandidateComparisonRow,
+  PositionComparisonGroup,
 } from '../../lib/interview-helpers';
