@@ -20,7 +20,6 @@ const FALLBACK: TeamData = {
   reviews: [],
   generatedAt: new Date(0).toISOString(),
 };
-
 let cache: TeamData | null = null;
 
 export async function loadTeamData(force = false): Promise<TeamData> {

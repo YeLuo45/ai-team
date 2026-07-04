@@ -1,13 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, statusLabel } from '../lib/format';
+import { api } from '../lib/api';
+import {
+  buildResumeJsonExport,
+  buildResumeExportFilename,
+  serializeResumeExport,
+} from '../lib/resume-export';
+import type { CandidateStatus } from '@ai-team/core';
 import { AddCandidateModal } from '../components/AddCandidateModal';
 import { InterviewSimulator } from '../components/InterviewSimulator';
 import { ResumeUploadModal } from '../components/ResumeUploadModal';
-import { api } from '../lib/api';
 import type { Candidate } from '@ai-team/core';
 import { Card, Button, Badge, EmptyState } from '../components/design-system';
+
+const CANDIDATE_STATUSES: CandidateStatus[] = [
+  'new',
+  'screening',
+  'interviewing',
+  'offer',
+  'hired',
+  'rejected',
+];
 
 export function Candidates() {
   const { data, source, refresh } = useTeamData();
@@ -82,6 +97,45 @@ export function Candidates() {
     }
   };
 
+  const handleBatchUpdateStatus = async (next: CandidateStatus) => {
+    if (selectedIds.size === 0) return;
+    if (source !== 'api') {
+      alert('批量改状态需要连接 server');
+      return;
+    }
+    if (!confirm(`确定将选中的 ${selectedIds.size} 位候选人状态改为「${statusLabel(next).text}」？`)) return;
+    setBatchBusy(true);
+    try {
+      await Promise.all(
+        [...selectedIds].map((id) => api.updateCandidate(id, { status: next })),
+      );
+      await refresh();
+    } finally {
+      setBatchBusy(false);
+    }
+  };
+
+  // Download anchor ref — used by the export action
+  const downloadAnchorRef = useRef<HTMLAnchorElement | null>(null);
+
+  const handleBatchExport = () => {
+    if (selectedIds.size === 0) return;
+    const selectedCandidates = data.candidates.filter((c) => selectedIds.has(c.id));
+    const payload = buildResumeJsonExport(selectedCandidates, interviewCountByCandidate);
+    const json = serializeResumeExport(payload);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = buildResumeExportFilename();
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    // Defer revoke so the browser has time to start the download
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
   // Reset selection when filter changes so out-of-view IDs don't linger.
   useEffect(() => {
     if (selectedIds.size === 0) return;
@@ -132,7 +186,7 @@ export function Candidates() {
 
         {selectedIds.size > 0 && source === 'api' && (
           <div
-            className="sticky top-2 z-20 flex items-center justify-between gap-2 rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2 text-sm backdrop-blur dark:border-brand-800/50 dark:bg-brand-900/30"
+            className="sticky top-2 z-20 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand-200 bg-brand-50/80 px-3 py-2 text-sm backdrop-blur dark:border-brand-800/50 dark:bg-brand-900/30"
             data-testid="batch-action-toolbar"
           >
             <div className="flex items-center gap-3">
@@ -140,7 +194,7 @@ export function Candidates() {
                 已选 <strong>{selectedIds.size}</strong> 位候选人
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={clearSelection}
@@ -151,14 +205,49 @@ export function Candidates() {
               </button>
               <button
                 type="button"
+                onClick={handleBatchExport}
+                disabled={batchBusy}
+                className="rounded-md border border-brand-300 bg-white px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-brand-700/50 dark:bg-brand-900/40 dark:text-brand-200"
+                data-testid="batch-export"
+              >
+                📤 导出简历
+              </button>
+              <label
+                className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300"
+                data-testid="batch-status-label"
+              >
+                改状态为
+                <select
+                  disabled={batchBusy}
+                  defaultValue=""
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    const next = e.target.value as CandidateStatus;
+                    void handleBatchUpdateStatus(next);
+                    e.target.value = '';
+                  }}
+                  data-testid="batch-status-select"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <option value="" disabled>选择...</option>
+                  {CANDIDATE_STATUSES.map((s) => (
+                    <option key={s} value={s}>
+                      {statusLabel(s).text}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button
+                type="button"
                 onClick={handleBatchDelete}
                 disabled={batchBusy}
                 className="rounded-md bg-rose-600 px-3 py-1 text-xs font-medium text-white hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                 data-testid="batch-delete"
               >
-                {batchBusy ? '删除中...' : `🗑 批量删除 (${selectedIds.size})`}
+                {batchBusy ? '处理中...' : `🗑 批量删除 (${selectedIds.size})`}
               </button>
             </div>
+            <a ref={downloadAnchorRef} style={{ display: 'none' }} aria-hidden="true" />
           </div>
         )}
 
