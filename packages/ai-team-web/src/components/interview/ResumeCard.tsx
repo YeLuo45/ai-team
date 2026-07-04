@@ -1,13 +1,38 @@
 // V143: ResumeCard — display a candidate's parsed resume inside the
 // interview detail panel. Renders a compact summary header (preview +
 // counters) and an expandable full-text view split by sections.
+// V157: expanded state is persisted to localStorage (per-candidate) so
+// the view survives a candidate switch / page refresh.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Badge } from '../design-system';
 import { GlassCard } from '../glass/GlassCard';
 import { summarizeResume, shouldCollapseResume } from '../../lib/interview-helpers';
 
+const STORAGE_KEY_PREFIX = 'ai-team:resume-card:expanded:';
+
+/** SSR-safe localStorage read with a default. */
+export function readExpandedFromStorage(candidateId: string): boolean {
+  if (typeof window === 'undefined' || !window.localStorage) return false;
+  try {
+    return window.localStorage.getItem(STORAGE_KEY_PREFIX + candidateId) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** SSR-safe localStorage write. Swallows quota / serialization errors. */
+export function writeExpandedToStorage(candidateId: string, expanded: boolean): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY_PREFIX + candidateId, expanded ? '1' : '0');
+  } catch {
+    // ignore quota errors / private-mode failures
+  }
+}
+
 interface Props {
+  candidateId: string;
   resume?: string;
   candidateName: string;
   candidatePosition: string;
@@ -19,6 +44,7 @@ interface Props {
 
 export function ResumeCard({
   resume,
+  candidateId,
   candidateName,
   candidatePosition,
   candidateEmail,
@@ -27,7 +53,11 @@ export function ResumeCard({
   candidateSkills,
 }: Props) {
   const summary = summarizeResume(resume);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(() => readExpandedFromStorage(candidateId));
+  // Persist expand/collapse state per-candidate
+  useEffect(() => {
+    writeExpandedToStorage(candidateId, expanded);
+  }, [candidateId, expanded]);
   const collapsible = shouldCollapseResume(summary);
 
   return (

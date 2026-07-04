@@ -12,6 +12,7 @@ export type { PipelineStage, PipelineProgressResult } from './PipelineProgress';
 export { mapStatusToPipeline, nextStage, prevStage, stageToStatus } from './PipelineProgress';
 export { RejectReasonModal, REJECT_REASON_MIN, REJECT_REASON_MAX } from './RejectReasonModal';
 export { RejectHistoryList, parseRejectNotes, formatRejectTimestamp } from './RejectHistoryList';
+export { readExpandedFromStorage, writeExpandedToStorage } from './ResumeCard';
 // Re-export helpers from lib/ so feature code keeps a single import root.
 export {
   groupInterviewsByCandidate,

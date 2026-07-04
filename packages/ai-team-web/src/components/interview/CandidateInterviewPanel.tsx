@@ -78,6 +78,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
           <RejectHistoryList notes={candidate.notes} />
         )}
         <ResumeCard
+          candidateId={candidateId}
           candidateName={candidate?.name ?? candidateId}
           candidatePosition={candidate?.position ?? ''}
           candidateEmail={candidate?.email}
@@ -104,6 +105,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
         />
       )}
       <ResumeCard
+        candidateId={candidateId}
         candidateName={candidate?.name ?? candidateId}
         candidatePosition={candidate?.position ?? ''}
         candidateEmail={candidate?.email}
