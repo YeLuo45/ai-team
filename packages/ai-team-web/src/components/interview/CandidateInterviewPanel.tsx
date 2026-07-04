@@ -1,6 +1,7 @@
 // V143: CandidateInterviewPanel — full interview detail surface for one
 // candidate: resume (top), round tabs (multi-round switching), and the
 // selected round's evaluation + turns.
+// V146: optional breadcrumb-style nav (back / prev / next) for cross-candidate browsing.
 
 import { useMemo, useState } from 'react';
 import type { Candidate, Interview } from '@ai-team/core';
@@ -15,13 +16,26 @@ import {
   interviewTypeLabel,
 } from '../../lib/interview-helpers';
 
+export interface CandidateNavContext {
+  hasPrev: boolean;
+  hasNext: boolean;
+  prevCandidateName?: string;
+  nextCandidateName?: string;
+  currentIndex: number; // 1-based
+  total: number;
+}
+
 interface Props {
   candidate: Candidate | null;
   candidateId: string;
   rounds: ReadonlyArray<InterviewRound>;
+  nav?: CandidateNavContext;
+  onBack?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
-export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Props) {
+export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, onBack, onPrev, onNext }: Props) {
   const initialRound = rounds.length > 0 ? rounds[0].round : 1;
   const [activeRound, setActiveRound] = useState<number>(initialRound);
 
@@ -30,9 +44,12 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Prop
     return rounds.find((r) => r.round === activeRound) ?? rounds[0];
   }, [rounds, activeRound]);
 
+  const showNavToolbar = nav !== undefined && (onBack !== undefined || onPrev !== undefined || onNext !== undefined);
+
   if (rounds.length === 0) {
     return (
       <div className="space-y-4" data-testid="candidate-panel-empty">
+        {showNavToolbar && <NavToolbar nav={nav!} onBack={onBack} onPrev={onPrev} onNext={onNext} />}
         <ResumeCard
           candidateName={candidate?.name ?? candidateId}
           candidatePosition={candidate?.position ?? ''}
@@ -51,6 +68,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Prop
 
   return (
     <div className="space-y-5" data-testid="candidate-panel">
+      {showNavToolbar && <NavToolbar nav={nav!} onBack={onBack} onPrev={onPrev} onNext={onNext} />}
       <ResumeCard
         candidateName={candidate?.name ?? candidateId}
         candidatePosition={candidate?.position ?? ''}
@@ -75,6 +93,68 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds }: Prop
 
       {selected && <RoundDetail round={selected} />}
     </div>
+  );
+}
+
+function NavToolbar({
+  nav,
+  onBack,
+  onPrev,
+  onNext,
+}: {
+  nav: CandidateNavContext;
+  onBack?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
+  return (
+    <nav
+      className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/50"
+      aria-label="候选人导航"
+      data-testid="candidate-nav-toolbar"
+    >
+      <div className="flex items-center gap-2">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs text-slate-600 hover:underline dark:text-slate-300"
+            data-testid="candidate-nav-back"
+          >
+            ← 返回候选人列表
+          </button>
+        )}
+      </div>
+      <span className="text-xs text-slate-500" data-testid="candidate-nav-position">
+        {nav.currentIndex} / {nav.total}
+      </span>
+      <div className="flex items-center gap-2">
+        {onPrev && (
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={!nav.hasPrev}
+            className="text-xs text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
+            title={nav.prevCandidateName ? `上一位：${nav.prevCandidateName}` : '已是第一位候选人'}
+            data-testid="candidate-nav-prev"
+          >
+            ← 上一个
+          </button>
+        )}
+        {onNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!nav.hasNext}
+            className="text-xs text-brand-600 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
+            title={nav.nextCandidateName ? `下一位：${nav.nextCandidateName}` : '已是最后一位候选人'}
+            data-testid="candidate-nav-next"
+          >
+            下一个 →
+          </button>
+        )}
+      </div>
+    </nav>
   );
 }
 

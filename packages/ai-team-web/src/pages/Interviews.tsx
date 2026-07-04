@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTeamData } from '../lib/hooks';
 import { formatDate, relativeTime, statusLabel } from '../lib/format';
 import {
   CandidateInterviewPanel,
+  type CandidateNavContext,
   groupInterviewsByCandidate,
   buildRoundLabel,
   interviewTypeLabel,
@@ -13,12 +14,71 @@ import { Card } from '../components/design-system';
 
 export function Interviews() {
   const { data, loading, source } = useTeamData();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const groups = useMemo(
     () => groupInterviewsByCandidate(data.interviews, data.candidates),
     [data.interviews, data.candidates],
   );
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
+
+  // Compute nav context for the currently selected candidate (fallback to first group when no selection)
+  const navContext = useMemo<CandidateNavContext | undefined>(() => {
+    if (groups.length === 0) return undefined;
+    const effectiveId = selectedCandidateId ?? groups[0].candidateId;
+    const idx = groups.findIndex((g) => g.candidateId === effectiveId);
+    if (idx < 0) return undefined;
+    const prev = idx > 0 ? groups[idx - 1] : null;
+    const next = idx < groups.length - 1 ? groups[idx + 1] : null;
+    return {
+      hasPrev: prev !== null,
+      hasNext: next !== null,
+      prevCandidateName: prev?.candidateName,
+      nextCandidateName: next?.candidateName,
+      currentIndex: idx + 1,
+      total: groups.length,
+    };
+  }, [groups, selectedCandidateId]);
+
+  const handleSelectCandidate = (id: string) => {
+    setSelectedCandidateId(id);
+    // Sync the URL hash so a deep-link can be shared / bookmarked
+    setSearchParams({ candidate: id }, { replace: true });
+  };
+
+  const handleNavigateBy = (delta: number) => {
+    if (!selectedCandidateId || groups.length === 0) return;
+    const idx = groups.findIndex((g) => g.candidateId === selectedCandidateId);
+    if (idx < 0) return;
+    const targetIdx = idx + delta;
+    if (targetIdx < 0 || targetIdx >= groups.length) return;
+    handleSelectCandidate(groups[targetIdx].candidateId);
+  };
+
+  const handleBackToCandidates = () => {
+    navigate('/candidates');
+  };
+
+  // Keyboard shortcuts: ← / → to navigate candidates when toolbar is shown
+  useEffect(() => {
+    if (!navContext) return;
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      // Skip when typing in inputs / textareas / contenteditable
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+      if (e.key === 'ArrowLeft' && navContext.hasPrev) {
+        e.preventDefault();
+        handleNavigateBy(-1);
+      } else if (e.key === 'ArrowRight' && navContext.hasNext) {
+        e.preventDefault();
+        handleNavigateBy(1);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navContext]);
 
   // Auto-select first candidate on data load
   useEffect(() => {
@@ -33,12 +93,6 @@ export function Interviews() {
       setSelectedCandidateId(groups[0].candidateId);
     }
   }, [groups, searchParams, selectedCandidateId]);
-
-  const handleSelectCandidate = (id: string) => {
-    setSelectedCandidateId(id);
-    // Sync the URL hash so a deep-link can be shared / bookmarked
-    setSearchParams({ candidate: id }, { replace: true });
-  };
 
   if (loading) return <div className="text-slate-500">加载中...</div>;
 
@@ -114,6 +168,10 @@ export function Interviews() {
                   candidate={group.candidate}
                   candidateId={group.candidateId}
                   rounds={group.rounds}
+                  nav={navContext}
+                  onBack={handleBackToCandidates}
+                  onPrev={navContext?.hasPrev ? () => handleNavigateBy(-1) : undefined}
+                  onNext={navContext?.hasNext ? () => handleNavigateBy(1) : undefined}
                 />
               );
             })()}
