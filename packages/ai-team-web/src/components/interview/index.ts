@@ -6,7 +6,13 @@ export { CandidateInterviewPanel } from './CandidateInterviewPanel';
 export type { CandidateNavContext } from './CandidateInterviewPanel';
 export { RoundsComparison } from './RoundsComparison';
 export { ComparisonMatrix } from './ComparisonMatrix';
-export { isValidMetricKey, METRIC_OPTIONS, METRIC_DESCRIPTIONS } from './ComparisonMatrix';
+export {
+  isValidMetricKey,
+  METRIC_OPTIONS,
+  METRIC_DESCRIPTIONS,
+  buildComparisonCsv,
+  buildComparisonCsvFilename,
+} from './ComparisonMatrix';
 export { PipelineProgress } from './PipelineProgress';
 export type { PipelineStage, PipelineProgressResult, TimeInStage } from './PipelineProgress';
 export { mapStatusToPipeline, nextStage, prevStage, stageToStatus, computeTimeInCurrentStage } from './PipelineProgress';

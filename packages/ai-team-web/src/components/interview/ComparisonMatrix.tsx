@@ -4,6 +4,8 @@
 // metric (overall / technical / communication / problem-solving / culture).
 // V155: controlled mode — the selected metric is owned by the parent and
 // synced to the URL hash so deep-links / refresh preserve the view.
+// V160: CSV export — current comparison matrix serializes to CSV and
+// triggers a browser download via Blob + createObjectURL.
 
 import { useEffect, useState } from 'react';
 import {
@@ -59,6 +61,68 @@ export const METRIC_DESCRIPTIONS: Record<ComparisonMetricKey, string> = {
   culture: '文化契合：价值观匹配、主动学习、抗压能力',
 };
 
+// ---------------- V160: CSV export ----------------
+
+export interface ComparisonCsvOptions {
+  /** Metric that was used to compute best/avg values. */
+  metric: ComparisonMetricKey;
+  /** Override the export timestamp (defaults to new Date()). */
+  now?: Date;
+}
+
+/**
+ * Build a CSV body for the current comparison rows. Columns:
+ *   岗位, 候选人姓名, 候选人ID, N 轮评估, 最高分(当前metric), 平均分(当前metric)
+ * Rows with no evaluation for the metric get empty scores.
+ */
+export function buildComparisonCsv(
+  rows: ReadonlyArray<CandidateComparisonRow>,
+  options: ComparisonCsvOptions,
+): string {
+  const now = options.now ?? new Date();
+  const header = [
+    '岗位',
+    '候选人',
+    '候选人ID',
+    '已评估轮次',
+    `最高分(${options.metric})`,
+    `平均分(${options.metric})`,
+  ];
+  const lines: string[] = [header.join(',')];
+  for (const row of rows) {
+    const best = row.bestByMetric[options.metric];
+    const avg = row.avgByMetric[options.metric];
+    const cells = [
+      escapeCsv(row.candidatePosition),
+      escapeCsv(row.candidateName),
+      escapeCsv(row.candidateId),
+      String(row.evaluatedRounds),
+      best == null ? '' : String(best),
+      avg == null ? '' : String(avg),
+    ];
+    lines.push(cells.join(','));
+  }
+  // Comment line at the end records the export timestamp + metric
+  lines.push(`# exportedAt=${now.toISOString()},metric=${options.metric}`);
+  return lines.join('\n');
+}
+
+export function buildComparisonCsvFilename(
+  metric: ComparisonMetricKey,
+  now: Date = new Date(),
+): string {
+  return `comparison-${metric}-${now.toISOString().slice(0, 10)}.csv`;
+}
+
+/** RFC-4180 CSV cell escape: wrap in quotes when needed, escape quotes. */
+function escapeCsv(value: string): string {
+  if (value == null) return '';
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 export function isValidMetricKey(value: string | null | undefined): value is ComparisonMetricKey {
   if (!value) return false;
   return METRIC_OPTIONS.some((o) => o.key === value);
@@ -90,6 +154,22 @@ export function ComparisonMatrix({
     } else {
       setInternalMetric(next);
     }
+  };
+
+  // V160: CSV export — build payload and trigger a browser download
+  const handleExportCsv = () => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    const csv = buildComparisonCsv(rows, { metric });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = buildComparisonCsvFilename(metric);
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   if (rows.length === 0) {
@@ -137,6 +217,15 @@ export function ComparisonMatrix({
         >
           {METRIC_DESCRIPTIONS[metric]}
         </span>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="ml-2 rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-800/40 dark:text-slate-200"
+          data-testid="comparison-export-csv"
+          title="下载当前对比表为 CSV"
+        >
+          📥 导出 CSV
+        </button>
       </div>
 
       {groups.map((group) => (
