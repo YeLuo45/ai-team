@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 41
+Total: 42
 Ready: 14
-Latest: V159
+Latest: V160
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V160 | blocked | 0% | 0% | 0/0 | `docs/delivery/v160-delivery-report.md` |
 | V159 | blocked | 0% | 0% | 0/0 | `docs/delivery/v159-delivery-report.md` |
 | V158 | blocked | 0% | 0% | 0/0 | `docs/delivery/v158-delivery-report.md` |
 | V157 | blocked | 0% | 0% | 0/0 | `docs/delivery/v157-delivery-report.md` |

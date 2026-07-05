@@ -12,6 +12,7 @@ import { RoundTabs, type InterviewRound } from './RoundTabs';
 import { RoundsComparison } from './RoundsComparison';
 import { PipelineProgress } from './PipelineProgress';
 import { RejectHistoryList } from './RejectHistoryList';
+import { SttSettings } from './SttSettings';
 import {
   buildRoundLabel,
   formatRoundTimeline,
@@ -78,6 +79,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
         {candidate?.status === 'rejected' && (
           <RejectHistoryList notes={candidate.notes} />
         )}
+        <SttSettings />
         <ResumeCard
           candidateId={candidateId}
           candidateName={candidate?.name ?? candidateId}
