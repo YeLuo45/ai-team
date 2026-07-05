@@ -6,6 +6,7 @@ export { CandidateInterviewPanel } from './CandidateInterviewPanel';
 export type { CandidateNavContext } from './CandidateInterviewPanel';
 export { RoundsComparison } from './RoundsComparison';
 export { SttSettings } from './SttSettings';
+export { RealtimeQuestionSuggester } from './RealtimeQuestionSuggester';
 export { ComparisonMatrix } from './ComparisonMatrix';
 export {
   isValidMetricKey,

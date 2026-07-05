@@ -62,6 +62,7 @@ record('test targeted pipeline time in stage v159', run('npm', ['test', '--', 'p
 record('test targeted comparison matrix csv v160', run('npm', ['test', '--', 'packages/ai-team-web/test/comparison-matrix-csv-v160.test.tsx']), /6 passed/);
 record('test targeted stt provider and settings v161', run('npm', ['test', '--', 'packages/ai-team-web/test/stt-provider-and-settings-v161.test.tsx']), /14 passed/);
 record('test targeted question suggestion agent v163', run('npm', ['test', '--', 'packages/ai-team-web/test/question-suggestion-agent-v163.test.tsx']), /13 passed/);
+record('test targeted realtime question suggester v164', run('npm', ['test', '--', 'packages/ai-team-web/test/realtime-question-suggester-v164.test.tsx']), /9 passed/);
 record('test targeted org memory wiring', run('npm', ['test', '--', 'packages/ai-team-agent/test/org-memory-wiring.test.ts']), /2 passed/);
 record('test targeted org memory inject', run('npm', ['test', '--', 'packages/ai-team-ai/test/org-memory-injection.test.ts']), /7 passed/);
 record('test targeted delivery summary', run('npm', ['test', '--', 'packages/ai-team-core/test/delivery-summary-v51.test.ts']), /57 passed/);

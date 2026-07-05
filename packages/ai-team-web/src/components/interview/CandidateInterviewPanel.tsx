@@ -13,6 +13,8 @@ import { RoundsComparison } from './RoundsComparison';
 import { PipelineProgress } from './PipelineProgress';
 import { RejectHistoryList } from './RejectHistoryList';
 import { SttSettings } from './SttSettings';
+import { RealtimeQuestionSuggester } from './RealtimeQuestionSuggester';
+import type { SttTranscriptChunk } from '../../lib/stt/types';
 import {
   buildRoundLabel,
   formatRoundTimeline,
@@ -54,6 +56,11 @@ interface Props {
 export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, onBack, onPrev, onNext, pipeline }: Props) {
   const initialRound = rounds.length > 0 ? rounds[0].round : 1;
   const [activeRound, setActiveRound] = useState<number>(initialRound);
+  const [transcript, setTranscript] = useState<SttTranscriptChunk[]>([]);
+  // Add a setter adapter that wraps the readonly array from onBufferChange
+  const updateTranscript = (next: ReadonlyArray<SttTranscriptChunk>) => {
+    setTranscript([...next]);
+  };
 
   const selected = useMemo<InterviewRound | null>(() => {
     if (rounds.length === 0) return null;
@@ -79,7 +86,13 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
         {candidate?.status === 'rejected' && (
           <RejectHistoryList notes={candidate.notes} />
         )}
-        <SttSettings />
+        <SttSettings onBufferChange={updateTranscript} />
+        <RealtimeQuestionSuggester
+          sessionId={candidateId}
+          position={candidate?.position ?? candidateId}
+          candidateName={candidate?.name ?? candidateId}
+          transcript={transcript}
+        />
         <ResumeCard
           candidateId={candidateId}
           candidateName={candidate?.name ?? candidateId}
