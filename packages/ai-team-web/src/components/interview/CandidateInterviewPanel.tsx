@@ -72,6 +72,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
             busy={pipeline.busy}
             onRecordReject={pipeline.onRecordReject}
             onRestore={pipeline.onRestore}
+            stageEnteredAt={candidate?.updatedAt}
           />
         )}
         {candidate?.status === 'rejected' && (

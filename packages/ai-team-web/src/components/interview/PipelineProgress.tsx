@@ -61,6 +61,56 @@ export function mapStatusToPipeline(status: string | undefined): PipelineProgres
   };
 }
 
+export interface TimeInStage {
+  /** Whole days since the stage was entered. */
+  days: number;
+  /** Remaining hours after the day count. */
+  hours: number;
+  /** Pre-formatted human string in Chinese (e.g. "5 天 3 小时", "12 小时", "30 分钟"). */
+  formatted: string;
+  /** ISO timestamp of the last status update (used to seed re-renders). */
+  since: string | null;
+}
+
+/**
+ * Compute how long a candidate has been in the current pipeline stage.
+ * `now` defaults to the current time. The "stage entered" timestamp is
+ * approximated by `updatedAt`, which is when the candidate was last
+ * modified — good enough for the "stuck here" UX.
+ */
+export function computeTimeInCurrentStage(
+  updatedAt: string | undefined,
+  now: Date = new Date(),
+): TimeInStage {
+  if (!updatedAt) {
+    return { days: 0, hours: 0, formatted: '—', since: null };
+  }
+  const since = new Date(updatedAt);
+  if (Number.isNaN(since.getTime())) {
+    return { days: 0, hours: 0, formatted: '—', since: null };
+  }
+  const diffMs = now.getTime() - since.getTime();
+  if (diffMs < 0) {
+    return { days: 0, hours: 0, formatted: '刚刚', since: updatedAt };
+  }
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const days = Math.floor(totalMinutes / (60 * 24));
+  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+  const minutes = totalMinutes % 60;
+
+  let formatted: string;
+  if (days > 0) {
+    formatted = hours > 0 ? `${days} 天 ${hours} 小时` : `${days} 天`;
+  } else if (hours > 0) {
+    formatted = minutes > 0 ? `${hours} 小时 ${minutes} 分钟` : `${hours} 小时`;
+  } else if (minutes > 0) {
+    formatted = `${minutes} 分钟`;
+  } else {
+    formatted = '刚刚';
+  }
+  return { days, hours, formatted, since: updatedAt };
+}
+
 /** Compute the next / previous stage from a given pipeline stage. */
 export function nextStage(stage: PipelineStage): PipelineStage | null {
   const idx = PIPELINE_STEPS.findIndex((s) => s.key === stage);
@@ -79,6 +129,13 @@ export function stageToStatus(stage: PipelineStage): CandidateStatus {
   return stage;
 }
 
+/** Return the human label for a given stage. */
+function currentStageLabel(stage: PipelineStage): string {
+  const step = PIPELINE_STEPS.find((s) => s.key === stage);
+  if (step) return step.label;
+  return stage;
+}
+
 interface Props {
   status: string | undefined;
   /** Optional callback when the user clicks "上一阶段" / "下一阶段". */
@@ -89,12 +146,15 @@ interface Props {
   onRecordReject?: () => void;
   /** V154: callback for "恢复为 interviewing" — only rendered when status is 'rejected'. */
   onRestore?: (next: CandidateStatus) => void;
+  /** V159: timestamp the candidate entered the current stage (typically updatedAt). */
+  stageEnteredAt?: string;
 }
 
-export function PipelineProgress({ status, onAdvance, busy, onRecordReject, onRestore }: Props) {
+export function PipelineProgress({ status, onAdvance, busy, onRecordReject, onRestore, stageEnteredAt }: Props) {
   const { currentIndex, totalStages, isOffPath, currentStage } = mapStatusToPipeline(status);
   const next = nextStage(currentStage);
   const prev = prevStage(currentStage);
+  const time = computeTimeInCurrentStage(stageEnteredAt);
 
   return (
     <Card
@@ -163,6 +223,14 @@ export function PipelineProgress({ status, onAdvance, busy, onRecordReject, onRe
           )}
         </div>
       </header>
+
+      <p
+        className="text-[11px] text-slate-500"
+        data-testid="pipeline-time-in-stage"
+        title={time.since ? `自 ${time.since} 起` : undefined}
+      >
+        ⏱ 在 <strong className="text-slate-700 dark:text-slate-200">{currentStageLabel(currentStage)}</strong> 阶段停留 <strong className="text-slate-700 dark:text-slate-200">{time.formatted}</strong>
+      </p>
 
       <ol
         className="flex items-center gap-1"
