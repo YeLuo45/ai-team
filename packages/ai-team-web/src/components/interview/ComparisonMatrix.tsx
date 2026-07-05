@@ -50,6 +50,15 @@ export const METRIC_OPTIONS: ReadonlyArray<{ key: ComparisonMetricKey; label: st
   { key: 'culture', label: '文化契合' },
 ];
 
+/** Short Chinese description for each metric. Used in the ComparisonMatrix tooltips. */
+export const METRIC_DESCRIPTIONS: Record<ComparisonMetricKey, string> = {
+  overall: '面试官对候选人整体表现的综合评分 (0-100)',
+  technical: '技术深度：算法、数据结构、系统设计、编码能力',
+  communication: '沟通能力：表达清晰度、倾听反馈、跨团队协作',
+  problemSolving: '问题解决：拆解复杂问题、举一反三、独立思考',
+  culture: '文化契合：价值观匹配、主动学习、抗压能力',
+};
+
 export function isValidMetricKey(value: string | null | undefined): value is ComparisonMetricKey {
   if (!value) return false;
   return METRIC_OPTIONS.some((o) => o.key === value);
@@ -110,6 +119,7 @@ export function ComparisonMatrix({
             type="button"
             role="radio"
             aria-checked={metric === opt.key}
+            title={METRIC_DESCRIPTIONS[opt.key]}
             onClick={() => setMetric(opt.key)}
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
               metric === opt.key
@@ -121,6 +131,12 @@ export function ComparisonMatrix({
             {opt.label}
           </button>
         ))}
+        <span
+          className="ml-auto text-[11px] text-slate-500"
+          data-testid="comparison-metric-description"
+        >
+          {METRIC_DESCRIPTIONS[metric]}
+        </span>
       </div>
 
       {groups.map((group) => (

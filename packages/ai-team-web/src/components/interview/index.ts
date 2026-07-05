@@ -6,7 +6,7 @@ export { CandidateInterviewPanel } from './CandidateInterviewPanel';
 export type { CandidateNavContext } from './CandidateInterviewPanel';
 export { RoundsComparison } from './RoundsComparison';
 export { ComparisonMatrix } from './ComparisonMatrix';
-export { isValidMetricKey, METRIC_OPTIONS } from './ComparisonMatrix';
+export { isValidMetricKey, METRIC_OPTIONS, METRIC_DESCRIPTIONS } from './ComparisonMatrix';
 export { PipelineProgress } from './PipelineProgress';
 export type { PipelineStage, PipelineProgressResult } from './PipelineProgress';
 export { mapStatusToPipeline, nextStage, prevStage, stageToStatus } from './PipelineProgress';
