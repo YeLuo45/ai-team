@@ -25,3 +25,17 @@ export {
   type LlmClient,
   type LlmQuestionSuggestionAgentOptions,
 } from './llm-question-suggestion-agent';
+
+export {
+  type AdoptedSuggestion,
+  type HistoryFile,
+  STORAGE_KEY,
+  MAX_ENTRIES,
+  readHistory,
+  writeHistory,
+  appendAdopted,
+  clearHistory,
+  removeAdopted,
+  buildAdoption,
+  exportHistoryJson,
+} from './history';

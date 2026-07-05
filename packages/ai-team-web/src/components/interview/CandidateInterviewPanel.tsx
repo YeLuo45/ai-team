@@ -14,6 +14,13 @@ import { PipelineProgress } from './PipelineProgress';
 import { RejectHistoryList } from './RejectHistoryList';
 import { SttSettings } from './SttSettings';
 import { RealtimeQuestionSuggester } from './RealtimeQuestionSuggester';
+import { QuestionSuggestionHistory } from './QuestionSuggestionHistory';
+import {
+  appendAdopted,
+  buildAdoption,
+  readHistory,
+  writeHistory,
+} from '../../lib/question-suggestion/history';
 import type { SttTranscriptChunk } from '../../lib/stt/types';
 import {
   buildRoundLabel,
@@ -57,6 +64,8 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
   const initialRound = rounds.length > 0 ? rounds[0].round : 1;
   const [activeRound, setActiveRound] = useState<number>(initialRound);
   const [transcript, setTranscript] = useState<SttTranscriptChunk[]>([]);
+  // V165: bump to force the history panel to re-read localStorage on adopt.
+  const [historyVersion, setHistoryVersion] = useState(0);
   // Add a setter adapter that wraps the readonly array from onBufferChange
   const updateTranscript = (next: ReadonlyArray<SttTranscriptChunk>) => {
     setTranscript([...next]);
@@ -92,7 +101,24 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
           position={candidate?.position ?? candidateId}
           candidateName={candidate?.name ?? candidateId}
           transcript={transcript}
+          onAdopt={(s) => {
+            if (typeof window === 'undefined') return;
+            const store = window.localStorage;
+            const prev = readHistory(store);
+            const next = appendAdopted(
+              prev,
+              buildAdoption({
+                suggestion: s,
+                sessionId: candidateId,
+                candidateName: candidate?.name ?? candidateId,
+                position: candidate?.position ?? candidateId,
+              }),
+            );
+            writeHistory(store, next);
+            setHistoryVersion((n) => n + 1);
+          }}
         />
+        <QuestionSuggestionHistory key={historyVersion} />
         <ResumeCard
           candidateId={candidateId}
           candidateName={candidate?.name ?? candidateId}

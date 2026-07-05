@@ -37,6 +37,12 @@ interface Props {
   evaluationHistory?: ReadonlyArray<EvaluationSummary>;
   /** Throttle floor for time-based triggers, ms. Default 30s. */
   timeBasedIntervalMs?: number;
+  /**
+   * Fired when the interviewer clicks ✅ Adopt on the current suggestion.
+   * The parent can persist it to the adoption history. Default = no-op
+   * (the panel still flips its ✅ 已 adopted flag for visual feedback).
+   */
+  onAdopt?: (suggestion: QuestionSuggestion) => void;
 }
 
 const FOCUS_LABEL: Record<NonNullable<QuestionSuggestion['focusTag']>, string> = {
@@ -55,6 +61,7 @@ export function RealtimeQuestionSuggester({
   previousQuestions,
   evaluationHistory,
   timeBasedIntervalMs = 30_000,
+  onAdopt,
 }: Props) {
   const [suggestion, setSuggestion] = useState<QuestionSuggestion | null>(null);
   const [busy, setBusy] = useState(false);
@@ -124,6 +131,7 @@ export function RealtimeQuestionSuggester({
     } catch {
       // ignore — UI will still flip the adopted flag so the user knows it was attempted
     }
+    onAdopt?.(suggestion);
     setAdopted(true);
   };
 
