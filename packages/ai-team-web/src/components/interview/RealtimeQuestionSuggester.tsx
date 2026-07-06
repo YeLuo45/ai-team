@@ -56,6 +56,17 @@ interface Props {
    */
   adoptionHistory?: ReadonlyArray<AdoptedSuggestion>;
   /**
+   * V167: If supplied, this is the agent result the panel should display
+   * before the first run. Used to restore a previously-cached suggestion
+   * for the same candidate / position without re-running the slow LLM.
+   */
+  initialSuggestion?: QuestionSuggestion | null;
+  /**
+   * V167: Optional hook fired every time the agent finishes a successful
+   * run. Lets the parent persist the result to the suggestion cache.
+   */
+  onSuggestionGenerated?: (suggestion: QuestionSuggestion) => void;
+  /**
    * Disable keyboard shortcuts. Default = enabled. The component always
    * ignores keypresses while focus is inside an input / textarea / contenteditable.
    */
@@ -80,9 +91,11 @@ export function RealtimeQuestionSuggester({
   timeBasedIntervalMs = 30_000,
   onAdopt,
   adoptionHistory,
+  initialSuggestion,
+  onSuggestionGenerated,
   disableKeyboardShortcuts = false,
 }: Props) {
-  const [suggestion, setSuggestion] = useState<QuestionSuggestion | null>(null);
+  const [suggestion, setSuggestion] = useState<QuestionSuggestion | null>(() => initialSuggestion ?? null);
   const [busy, setBusy] = useState(false);
   const [lastTrigger, setLastTrigger] = useState<'manual' | 'content-shift' | 'time-based' | 'init'>('init');
   const [adopted, setAdopted] = useState(false);
@@ -158,6 +171,7 @@ export function RealtimeQuestionSuggester({
       lastRunAt.current = Date.now();
       lastContentHash.current = shortHashFromTranscript(transcript);
       setAdopted(false);
+      onSuggestionGenerated?.(out);
     } finally {
       setBusy(false);
     }
@@ -167,7 +181,12 @@ export function RealtimeQuestionSuggester({
   // (e.g. suggest a baseline "tell me about yourself" question). Skipping
   // the call here would leave the panel in a permanent empty state when
   // the user hasn't started the STT session yet.
+  //
+  // V167: skip the initial trigger when an initialSuggestion is supplied
+  // (the caller restored the panel from the suggestion cache and wants the
+  // cache to win until the user explicitly regenerates).
   useEffect(() => {
+    if (initialSuggestion) return;
     void trigger('time-based');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

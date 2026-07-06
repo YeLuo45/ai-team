@@ -22,6 +22,13 @@ import {
   writeHistory,
   type AdoptedSuggestion,
 } from '../../lib/question-suggestion/history';
+import {
+  readCache as readSuggestionCache,
+  writeCache as writeSuggestionCache,
+  recallCandidate,
+  remember as rememberSuggestion,
+} from '../../lib/question-suggestion/cache';
+import type { QuestionSuggestion } from '../../lib/question-suggestion/types';
 import type { SttTranscriptChunk } from '../../lib/stt/types';
 import {
   buildRoundLabel,
@@ -72,6 +79,12 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
     if (typeof window === 'undefined') return [];
     return readHistory(window.localStorage).entries;
   });
+  // V167: cross-session suggestion cache — restore the previous suggestion for
+  // this candidate on mount, and persist every freshly generated one.
+  const [cachedSuggestion, setCachedSuggestion] = useState<QuestionSuggestion | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return recallCandidate(readSuggestionCache(window.localStorage), candidateId);
+  });
   // Add a setter adapter that wraps the readonly array from onBufferChange
   const updateTranscript = (next: ReadonlyArray<SttTranscriptChunk>) => {
     setTranscript([...next]);
@@ -108,6 +121,18 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
           candidateName={candidate?.name ?? candidateId}
           transcript={transcript}
           adoptionHistory={adoptionEntries}
+          initialSuggestion={cachedSuggestion}
+          onSuggestionGenerated={(s) => {
+            if (typeof window === 'undefined') return;
+            const prev = readSuggestionCache(window.localStorage);
+            const next = rememberSuggestion(prev, {
+              candidateId,
+              position: candidate?.position ?? candidateId,
+              suggestion: s,
+            });
+            writeSuggestionCache(window.localStorage, next);
+            setCachedSuggestion(s);
+          }}
           onAdopt={(s) => {
             if (typeof window === 'undefined') return;
             const store = window.localStorage;

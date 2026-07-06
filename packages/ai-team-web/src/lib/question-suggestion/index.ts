@@ -39,3 +39,22 @@ export {
   buildAdoption,
   exportHistoryJson,
 } from './history';
+
+export {
+  type SuggestionCache,
+  CACHE_KEY,
+  PER_KEY_CAP,
+  POSITION_KEY_CAP,
+  EMPTY_CACHE,
+  emptyCache,
+  readCache,
+  writeCache,
+  remember,
+  rememberCandidate,
+  rememberPosition,
+  recallCandidate,
+  recallPosition,
+  forgetCandidate,
+  countCached,
+  exportCacheJson,
+} from './cache';
