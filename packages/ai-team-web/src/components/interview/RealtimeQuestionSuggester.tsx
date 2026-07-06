@@ -1,6 +1,10 @@
 // V164: RealtimeQuestionSuggester — wraps a QuestionSuggestionAgent and
 // surfaces its output as an "adopt / regenerate" panel.
 //
+// V166: keyboard shortcuts `j` (next), `k` (previous), `0` (latest) cycle
+// through the previously adopted suggestions so the interviewer can
+// re-display a past question without re-typing it.
+//
 // Trigger model:
 //   * manual — user clicks 🔄 重新生成
 //   * content-shift — whenever the underlying transcript content diverges
@@ -11,7 +15,7 @@
 // suggestion text. This component only owns presentation + throttling +
 // adoption (clipboard).
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '../design-system';
 import type {
   EvaluationSummary,
@@ -21,6 +25,7 @@ import type {
   TranscriptChunkInput,
 } from '../../lib/question-suggestion/types';
 import type { SttTranscriptChunk } from '../../lib/stt/types';
+import type { AdoptedSuggestion } from '../../lib/question-suggestion/history';
 
 interface Props {
   /** Optional injected agent — defaults to the built-in mock. */
@@ -40,9 +45,21 @@ interface Props {
   /**
    * Fired when the interviewer clicks ✅ Adopt on the current suggestion.
    * The parent can persist it to the adoption history. Default = no-op
-   * (the panel still flips its ✅ 已 adopted flag for visual feedback).
+   * (the panel still flips the ✅ 已 adopted flag for visual feedback).
    */
   onAdopt?: (suggestion: QuestionSuggestion) => void;
+  /**
+   * Newly adopted suggestions (newest-first). When provided, pressing `j`
+   * cycles backward through this list and shows the previous question
+   * without re-asking the agent. Pressing `0` returns to the live agent
+   * suggestion.
+   */
+  adoptionHistory?: ReadonlyArray<AdoptedSuggestion>;
+  /**
+   * Disable keyboard shortcuts. Default = enabled. The component always
+   * ignores keypresses while focus is inside an input / textarea / contenteditable.
+   */
+  disableKeyboardShortcuts?: boolean;
 }
 
 const FOCUS_LABEL: Record<NonNullable<QuestionSuggestion['focusTag']>, string> = {
@@ -62,13 +79,70 @@ export function RealtimeQuestionSuggester({
   evaluationHistory,
   timeBasedIntervalMs = 30_000,
   onAdopt,
+  adoptionHistory,
+  disableKeyboardShortcuts = false,
 }: Props) {
   const [suggestion, setSuggestion] = useState<QuestionSuggestion | null>(null);
   const [busy, setBusy] = useState(false);
   const [lastTrigger, setLastTrigger] = useState<'manual' | 'content-shift' | 'time-based' | 'init'>('init');
   const [adopted, setAdopted] = useState(false);
+  /** V166: 0 = latest live suggestion, n>0 = n-th adoption history. */
+  const [historyIndex, setHistoryIndex] = useState(0);
   const lastContentHash = useRef<string>('');
   const lastRunAt = useRef<number>(0);
+
+  // ---- V166: keyboard shortcuts (j = older, k = newer, 0 = live). ----
+  useEffect(() => {
+    if (disableKeyboardShortcuts) return;
+    if (typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (!e || e.ctrlKey || e.metaKey || e.altKey) return;
+      // Ignore keys while user is typing in an input/textarea/contenteditable.
+      const target = e.target as HTMLElement | null;
+      if (
+        target
+        && (target.tagName === 'INPUT'
+          || target.tagName === 'TEXTAREA'
+          || target.isContentEditable)
+      ) {
+        return;
+      }
+      const max = adoptionHistory?.length ?? 0;
+      if (e.key === 'j' || e.key === 'J') {
+        if (max === 0) return;
+        setHistoryIndex((n) => Math.min(n + 1, max));
+      } else if (e.key === 'k' || e.key === 'K') {
+        setHistoryIndex((n) => Math.max(0, n - 1));
+      } else if (e.key === '0') {
+        setHistoryIndex(0);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [adoptionHistory, disableKeyboardShortcuts]);
+
+  // ---- V166: derived suggestion — live or historical. ----
+  const historyEntry = useMemo(() => {
+    if (historyIndex <= 0) return null;
+    if (!adoptionHistory) return null;
+    return adoptionHistory[historyIndex - 1] ?? null;
+  }, [adoptionHistory, historyIndex]);
+
+  /** Convert a history entry to a QuestionSuggestion-shape object so it can
+   *  share the same render path as live suggestions. */
+  const viewedSuggestion: QuestionSuggestion | null = useMemo(() => {
+    if (historyIndex === 0) return suggestion;
+    if (!historyEntry) return suggestion;
+    return {
+      id: `history:${historyEntry.suggestionId}`,
+      question: historyEntry.question,
+      rationale: historyEntry.rationale,
+      focusTag: historyEntry.focusTag,
+      difficulty: historyEntry.difficulty as QuestionSuggestion['difficulty'],
+      followUpHints: [],
+      generatedAt: historyEntry.adoptedAt,
+    };
+  }, [historyIndex, suggestion, historyEntry]);
 
   // Internal — invoke the agent with the current state
   const trigger = async (kind: 'manual' | 'content-shift' | 'time-based') => {
@@ -123,17 +197,23 @@ export function RealtimeQuestionSuggester({
   }, [busy, transcript.length, timeBasedIntervalMs]);
 
   const adopt = async () => {
-    if (!suggestion) return;
+    const target = viewedSuggestion;
+    if (!target) return;
     try {
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(suggestion.question);
+        await navigator.clipboard.writeText(target.question);
       }
     } catch {
       // ignore — UI will still flip the adopted flag so the user knows it was attempted
     }
-    onAdopt?.(suggestion);
+    onAdopt?.(target);
     setAdopted(true);
+    // V166: After adopting, drop back to live so the next keystroke is in
+    // a predictable state.
+    setHistoryIndex(0);
   };
+
+  const showHistoryPosition = historyIndex > 0 && adoptionHistory && adoptionHistory.length > 0;
 
   return (
     <Card className="space-y-3" testId="realtime-question-suggester">
@@ -146,33 +226,43 @@ export function RealtimeQuestionSuggester({
         />
       </header>
 
-      {suggestion ? (
+      {/* V166: visual cue when the panel is showing history. */}
+      {showHistoryPosition ? (
+        <div
+          className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-200"
+          data-testid="rqs-history-banner"
+        >
+          ⏮ 历史回放 {historyIndex}/{adoptionHistory?.length ?? 0} — 按 <kbd className="rounded border border-amber-300 px-1">0</kbd> 回到最新生成
+        </div>
+      ) : null}
+
+      {viewedSuggestion ? (
         <div className="space-y-2" data-testid="rqs-content">
           <p className="text-sm font-medium text-slate-900 dark:text-slate-50" data-testid="rqs-question">
-            {suggestion.question}
+            {viewedSuggestion.question}
           </p>
           <p className="text-xs text-slate-500" data-testid="rqs-rationale">
             <span className="mr-1">💡</span>
-            {suggestion.rationale}
+            {viewedSuggestion.rationale}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {suggestion.focusTag && (
+            {viewedSuggestion.focusTag && (
               <span
                 className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
                 data-testid="rqs-focus-tag"
               >
-                {FOCUS_LABEL[suggestion.focusTag]}
+                {FOCUS_LABEL[viewedSuggestion.focusTag]}
               </span>
             )}
             <span
               className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
               data-testid="rqs-difficulty"
             >
-              {suggestion.difficulty}
+              {viewedSuggestion.difficulty}
             </span>
-            {suggestion.followUpHints && suggestion.followUpHints.length > 0 && (
+            {viewedSuggestion.followUpHints && viewedSuggestion.followUpHints.length > 0 && (
               <span className="text-[11px] text-slate-500" data-testid="rqs-hint-count">
-                + {suggestion.followUpHints.length} 跟问线索
+                + {viewedSuggestion.followUpHints.length} 跟问线索
               </span>
             )}
           </div>
@@ -187,7 +277,10 @@ export function RealtimeQuestionSuggester({
             </button>
             <button
               type="button"
-              onClick={() => trigger('manual')}
+              onClick={() => {
+                setHistoryIndex(0);
+                void trigger('manual');
+              }}
               disabled={busy}
               className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800/40 dark:text-slate-200"
               data-testid="rqs-regenerate"

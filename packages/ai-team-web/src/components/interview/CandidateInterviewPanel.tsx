@@ -20,6 +20,7 @@ import {
   buildAdoption,
   readHistory,
   writeHistory,
+  type AdoptedSuggestion,
 } from '../../lib/question-suggestion/history';
 import type { SttTranscriptChunk } from '../../lib/stt/types';
 import {
@@ -65,7 +66,12 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
   const [activeRound, setActiveRound] = useState<number>(initialRound);
   const [transcript, setTranscript] = useState<SttTranscriptChunk[]>([]);
   // V165: bump to force the history panel to re-read localStorage on adopt.
+  // V166: mirror the same array into RealtimeQuestionSuggester for j/k cycling.
   const [historyVersion, setHistoryVersion] = useState(0);
+  const [adoptionEntries, setAdoptionEntries] = useState<ReadonlyArray<AdoptedSuggestion>>(() => {
+    if (typeof window === 'undefined') return [];
+    return readHistory(window.localStorage).entries;
+  });
   // Add a setter adapter that wraps the readonly array from onBufferChange
   const updateTranscript = (next: ReadonlyArray<SttTranscriptChunk>) => {
     setTranscript([...next]);
@@ -101,6 +107,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
           position={candidate?.position ?? candidateId}
           candidateName={candidate?.name ?? candidateId}
           transcript={transcript}
+          adoptionHistory={adoptionEntries}
           onAdopt={(s) => {
             if (typeof window === 'undefined') return;
             const store = window.localStorage;
@@ -115,6 +122,7 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
               }),
             );
             writeHistory(store, next);
+            setAdoptionEntries(next.entries);
             setHistoryVersion((n) => n + 1);
           }}
         />
