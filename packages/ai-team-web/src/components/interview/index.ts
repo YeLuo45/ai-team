@@ -8,6 +8,8 @@ export { RoundsComparison } from './RoundsComparison';
 export { SttSettings } from './SttSettings';
 export { RealtimeQuestionSuggester } from './RealtimeQuestionSuggester';
 export { QuestionSuggestionHistory } from './QuestionSuggestionHistory';
+export { KeyboardShortcutHint } from './KeyboardShortcutHint';
+export type { KeyboardShortcut, KeyboardShortcutHintProps } from './KeyboardShortcutHint';
 export { ComparisonMatrix } from './ComparisonMatrix';
 export {
   isValidMetricKey,

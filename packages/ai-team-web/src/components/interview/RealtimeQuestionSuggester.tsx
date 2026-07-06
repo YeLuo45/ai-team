@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card } from '../design-system';
+import { KeyboardShortcutHint } from './KeyboardShortcutHint';
 import type {
   EvaluationSummary,
   PreviousQuestion,
@@ -71,6 +72,11 @@ interface Props {
    * ignores keypresses while focus is inside an input / textarea / contenteditable.
    */
   disableKeyboardShortcuts?: boolean;
+  /**
+   * V168: Show the floating keyboard cheat sheet in the panel header.
+   * Defaults to `true` so discoverability is on by default.
+   */
+  showKeyboardHint?: boolean;
 }
 
 const FOCUS_LABEL: Record<NonNullable<QuestionSuggestion['focusTag']>, string> = {
@@ -94,6 +100,7 @@ export function RealtimeQuestionSuggester({
   initialSuggestion,
   onSuggestionGenerated,
   disableKeyboardShortcuts = false,
+  showKeyboardHint = true,
 }: Props) {
   const [suggestion, setSuggestion] = useState<QuestionSuggestion | null>(() => initialSuggestion ?? null);
   const [busy, setBusy] = useState(false);
@@ -237,12 +244,26 @@ export function RealtimeQuestionSuggester({
   return (
     <Card className="space-y-3" testId="realtime-question-suggester">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">🧠 实时面试题建议</h4>
-        <TriggerBadge
-          busy={busy}
-          lastTrigger={lastTrigger}
-          transcriptCount={transcript.length}
-        />
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          🧠 实时面试题建议
+        </h4>
+        <div className="flex items-center gap-2">
+          <TriggerBadge
+            busy={busy}
+            lastTrigger={lastTrigger}
+            transcriptCount={transcript.length}
+          />
+          {showKeyboardHint ? (
+            <KeyboardShortcutHint
+              testId="rqs-help"
+              shortcuts={[
+                { key: 'j', label: '下一条历史建议' },
+                { key: 'k', label: '上一条历史建议' },
+                { key: '0', label: '回到最新生成' },
+              ]}
+            />
+          ) : null}
+        </div>
       </header>
 
       {/* V166: visual cue when the panel is showing history. */}
