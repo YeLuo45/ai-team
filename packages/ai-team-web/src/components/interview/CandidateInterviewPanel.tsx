@@ -149,6 +149,23 @@ export function CandidateInterviewPanel({ candidate, candidateId, rounds, nav, o
             writeHistory(store, next);
             setAdoptionEntries(next.entries);
             setHistoryVersion((n) => n + 1);
+
+            // V169: history ↔ cache bidirectional sync. Adopted
+            // suggestions are also re-played into the suggestion cache
+            // so that future reloads of the *same* candidate (or the
+            // same position) restore the latest prompt without an LLM call.
+            // The `adoptedAt` timestamp is mirrored into generatedAt so
+            // readers can tell at a glance the entry was adopted (not
+            // merely generated).
+            const cachePrev = readSuggestionCache(window.localStorage);
+            const cacheNext = rememberSuggestion(cachePrev, {
+              candidateId,
+              position: candidate?.position ?? candidateId,
+              suggestion: s,
+              adoptedAt: Date.now(),
+            });
+            writeSuggestionCache(window.localStorage, cacheNext);
+            setCachedSuggestion(s);
           }}
         />
         <QuestionSuggestionHistory key={historyVersion} />

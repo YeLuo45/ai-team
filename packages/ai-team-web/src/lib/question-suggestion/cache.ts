@@ -125,15 +125,31 @@ export function rememberPosition(
   };
 }
 
-/** Combined: remember the same suggestion under both keys. */
+/**
+ * Combined: remember the same suggestion under both keys.
+ *
+ * V169: pass `{ adoptedAt }` to mark this entry as "adopted" — useful when
+ * the cache is invoked from an adopt flow (so future readers can tell at
+ * a glance whether the latest cached suggestion was also adopted). The
+ * timestamp mirror is purely informational; it does NOT change recall
+ * semantics (recallCandidate still returns list[0]).
+ */
 export function remember(
   cache: SuggestionCache,
-  args: { candidateId: string; position: string; suggestion: QuestionSuggestion },
+  args: {
+    candidateId: string;
+    position: string;
+    suggestion: QuestionSuggestion;
+    adoptedAt?: number;
+  },
 ): SuggestionCache {
+  const suggestion: QuestionSuggestion = args.adoptedAt
+    ? { ...args.suggestion, generatedAt: args.adoptedAt }
+    : args.suggestion;
   return rememberPosition(
-    rememberCandidate(cache, args.candidateId, args.suggestion),
+    rememberCandidate(cache, args.candidateId, suggestion),
     args.position,
-    args.suggestion,
+    suggestion,
   );
 }
 
