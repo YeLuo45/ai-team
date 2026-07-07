@@ -58,3 +58,13 @@ export {
   countCached,
   exportCacheJson,
 } from './cache';
+
+export {
+  type DiffOp,
+  type DiffSegment,
+  type SuggestionDiff,
+  diffSuggestions,
+  hasDiff,
+  similarity,
+  wordDiff,
+} from './diff';

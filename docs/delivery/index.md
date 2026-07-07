@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 50
-Ready: 19
-Latest: V169
+Total: 51
+Ready: 20
+Latest: V170
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V170 | ready | 100% | 95% (target) | n/a | `docs/delivery/v170-delivery-report.md` |
 | V169 | ready | 100% | n/a | n/a | `docs/delivery/v169-delivery-report.md` |
 | V168 | ready | 100% | n/a | n/a | `docs/delivery/v168-delivery-report.md` |
 | V167 | ready | 100% | n/a | n/a | `docs/delivery/v167-delivery-report.md` |

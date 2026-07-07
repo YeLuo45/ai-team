@@ -94,6 +94,15 @@ describe('history.ts pure helpers', () => {
     expect(result).toBe(next);
   });
 
+  it('writeHistory survives storage.setItem throwing (e.g. quota exceeded)', () => {
+    const mem = new MemoryStorage();
+    mem.setItem = () => { throw new Error('QuotaExceededError'); };
+    const file = appendAdopted({ version: 1, entries: [] }, makeAdoption());
+    let out;
+    expect(() => { out = writeHistory(mem, file); }).not.toThrow();
+    expect(out).toBe(file);
+  });
+
   it('appendAdopted prepends newest-first and caps at MAX_ENTRIES', () => {
     let file: HistoryFile = { version: 1, entries: [] };
     for (let i = 0; i < MAX_ENTRIES + 5; i++) {
@@ -132,6 +141,20 @@ describe('history.ts pure helpers', () => {
     expect(built.adoptedAt).toBe(12345);
   });
 
+  it('buildAdoption falls back to Date.now() when adoptedAt is omitted', async () => {
+    const before = Date.now();
+    const built = buildAdoption({
+      suggestion: makeSuggestion({ focusTag: 'culture' }),
+      sessionId: 'ct_alice',
+      candidateName: 'Alice',
+      position: 'FE',
+    });
+    const after = Date.now();
+    expect(built.adoptedAt).toBeGreaterThanOrEqual(before);
+    expect(built.adoptedAt).toBeLessThanOrEqual(after);
+    expect(built.focusTag).toBe('culture');
+  });
+
   it('exportHistoryJson produces a pretty-printed JSON string with the expected shape', () => {
     const file = appendAdopted({ version: 1, entries: [] }, makeAdoption({ suggestionId: 'sg_x' }));
     const json = exportHistoryJson(file);
@@ -149,6 +172,23 @@ describe('history.ts pure helpers', () => {
 
     mem.setItem(STORAGE_KEY, JSON.stringify({ version: 1, entries: [{ bad: 'shape' }] }));
     expect(readHistory(mem).entries).toEqual([]);
+
+    // force the type-guard false branches: nulls / numbers / strings slip
+    // through the JSON parse, then the shape guard rejects them.
+    mem.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        entries: [
+          null,
+          42,
+          'string-not-object',
+          { suggestionId: 'p', question: 'q', rationale: 'r', difficulty: 'easy', adoptedAt: 1, sessionId: 's', candidateName: 'n', position: 'p' },
+        ],
+      }),
+    );
+    const kept = readHistory(mem).entries.map((e) => e.suggestionId);
+    expect(kept).toEqual(['p']);
   });
 });
 
