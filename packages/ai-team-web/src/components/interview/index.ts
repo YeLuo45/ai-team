@@ -11,6 +11,7 @@ export { QuestionSuggestionHistory } from './QuestionSuggestionHistory';
 export { KeyboardShortcutHint } from './KeyboardShortcutHint';
 export type { KeyboardShortcut, KeyboardShortcutHintProps } from './KeyboardShortcutHint';
 export { SuggestionDiffView } from './SuggestionDiffView';
+export { SpeakerDiarizationView } from './SpeakerDiarizationView';
 export { ComparisonMatrix } from './ComparisonMatrix';
 export {
   isValidMetricKey,
