@@ -4,13 +4,15 @@
 import type { SttProvider, SttProviderOption } from './types';
 import { WebSpeechProvider } from './web-speech-provider';
 import { MockSttProvider } from './mock-provider';
-import { WhisperSttProvider } from './whisper-provider';
+import { WhisperSttProvider, WhisperServerSttProvider } from './whisper-provider';
 
 export function listSttProviders(): SttProvider[] {
   return [
     new MockSttProvider(),
     new WebSpeechProvider(),
     new WhisperSttProvider(),
+    // V173: locally hosted whisper.cpp server (batch mode).
+    new WhisperServerSttProvider(),
   ];
 }
 

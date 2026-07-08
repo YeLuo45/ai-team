@@ -60,7 +60,9 @@ function inferTimestamps(
     const text = chunk.text.trim();
     if (!text) continue;
     const hasExplicitTs = typeof chunk.timestamp === 'number';
-    const startMs = hasExplicitTs ? chunk.timestamp : prevEnd + GAP_BACKFILL_MS;
+    const startMs = hasExplicitTs
+      ? (chunk.timestamp as number)
+      : prevEnd + GAP_BACKFILL_MS;
     const endMs = startMs + Math.max(FALLBACK_CHUNK_MS, text.length * FALLBACK_PER_CHAR_MS);
     out.push({ speaker, text, startMs, endMs, hasExplicitTs });
     prevEnd = endMs;

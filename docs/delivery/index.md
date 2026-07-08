@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 53
-Ready: 22
-Latest: V172
+Total: 54
+Ready: 23
+Latest: V173
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V173 | ready | 100% | 97% (whisper-client) | n/a | `docs/delivery/v173-delivery-report.md` |
 | V172 | ready | 100% | n/a | n/a | `docs/delivery/v172-delivery-report.md` |
 | V171 | ready | 100% | 96% (llm dir) | n/a | `docs/delivery/v171-delivery-report.md` |
 | V170 | ready | 100% | 95% (target) | n/a | `docs/delivery/v170-delivery-report.md` |
