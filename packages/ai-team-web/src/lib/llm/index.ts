@@ -42,3 +42,17 @@ export function getDefaultLlmProviderId(): string {
 }
 
 export { OllamaProvider } from './ollama-provider';
+
+export {
+  type EvalFixture,
+  type EvalExpectation,
+  type AgentRunner,
+  type EvalCaseResult,
+  type EvalSummary,
+  runEvalCase,
+  runEvalSuite,
+  summarise,
+  passRate,
+  formatPassRate,
+  evaluateExpectation,
+} from './eval-harness';
