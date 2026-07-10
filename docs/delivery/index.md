@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 58
-Ready: 27
-Latest: V177
+Total: 59
+Ready: 28
+Latest: V178
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V178 | ready | 100% | 89% lines / 100% funcs | n/a | `docs/delivery/v178-delivery-report.md` |
 | V177 | ready | 100% | 100% (privacy/guard) | n/a | `docs/delivery/v177-delivery-report.md` |
 | V176 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v176-delivery-report.md` |
 | V175 | ready | 100% | 96% (eval-harness) | n/a | `docs/delivery/v175-delivery-report.md` |

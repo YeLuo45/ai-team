@@ -56,3 +56,10 @@ export {
   formatPassRate,
   evaluateExpectation,
 } from './eval-harness';
+
+export {
+  type LoadError,
+  type LoadResult,
+  loadFixturesFromJson,
+  loadFixturesOnly,
+} from './fixture-loader';
