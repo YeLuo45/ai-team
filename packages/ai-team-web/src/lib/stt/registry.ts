@@ -5,6 +5,7 @@ import type { SttProvider, SttProviderOption } from './types';
 import { WebSpeechProvider } from './web-speech-provider';
 import { MockSttProvider } from './mock-provider';
 import { WhisperSttProvider, WhisperServerSttProvider } from './whisper-provider';
+import { WhisperLocalSttProvider } from './whisper-local-provider';
 
 export function listSttProviders(): SttProvider[] {
   return [
@@ -13,6 +14,8 @@ export function listSttProviders(): SttProvider[] {
     new WhisperSttProvider(),
     // V173: locally hosted whisper.cpp server (batch mode).
     new WhisperServerSttProvider(),
+    // V180: in-browser WASM/ONNX Whisper pipeline.
+    new WhisperLocalSttProvider(),
   ];
 }
 
