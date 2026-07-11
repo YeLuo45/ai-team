@@ -1,12 +1,12 @@
 # Delivery Reports Index
 
-Total: 69
-Ready: 38
-Latest: V190
+Total: 70
+Ready: 39
+Latest: V189
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
-| V190 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v190-delivery-report.md` |
+| V189 | ready | 100% | n/a (test helpers) | n/a | `docs/delivery/v189-delivery-report.md` |
 | V183 | ready | 100% | 92% lines / 91% branches | n/a | `docs/delivery/v183-delivery-report.md` |
 | V186 | ready | 75% (6 pass, 2 happy-dom skip) | n/a (UI) | n/a | `docs/delivery/v186-delivery-report.md` |
 | V182 | ready | 100% | 84% lines / 89% branches | n/a | `docs/delivery/v182-delivery-report.md` |
