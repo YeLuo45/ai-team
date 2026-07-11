@@ -41,8 +41,6 @@ export function getDefaultLlmProviderId(): string {
   return supported[0]?.id ?? 'mock-llm';
 }
 
-export { OllamaProvider } from './ollama-provider';
-
 export {
   type EvalFixture,
   type EvalExpectation,
@@ -74,6 +72,8 @@ export {
   progressPercent,
 } from './run-streaming';
 
+export { OllamaProvider as DefaultOllamaProvider } from './ollama-provider';
+
 export {
   type ExportOptions,
   type ExportEnvelope,
@@ -82,3 +82,25 @@ export {
   exportFilename,
   downloadResults,
 } from './eval-export';
+
+export {
+  type SubtitleChunk,
+  type SrtCue,
+  type VttCue,
+  type NormalisedChunk,
+  type ChunkToCuesOptions,
+  formatSrtTimestamp,
+  formatVttTimestamp,
+  normaliseChunks,
+  chunkToCues,
+  chunksToSrt,
+  chunksToVtt,
+} from '../subtitle/cue';
+
+export {
+  type SubtitleAccumulatorOptions,
+  type SubtitleAccumulatorState,
+  type FlushEvent,
+  SubtitleAccumulator,
+  runStreamingSubtitles,
+} from '../subtitle/stream';
