@@ -24,10 +24,15 @@ export interface WaveformSummary {
   frames: ReadonlyArray<FrameEnergy>;
   peak: number;
 }
-
+/** Default settings — keep them open for test fixtures. */
 export const DEFAULT_SAMPLE_RATE = 16_000;
 export const DEFAULT_FRAME_SAMPLES = 256;
 export const DEFAULT_WINDOW = 1;
+
+/** Convert sample-rate to a default 16 ms frame size (rounded). */
+export function defaultFrameSizeForSampleRate(sampleRate: number): number {
+  return 16 * Math.round(sampleRate / 1_000);
+}
 
 export interface WaveformDiff {
   framesA: ReadonlyArray<FrameEnergy>;
