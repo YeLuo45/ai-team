@@ -63,3 +63,13 @@ export {
   loadFixturesFromJson,
   loadFixturesOnly,
 } from './fixture-loader';
+
+export {
+  type StreamingProgress,
+  type StreamingProgressCallback,
+  type RunStreamingOptions,
+  type StreamingSummary,
+  runStreamingEvalSuite,
+  completedResults,
+  progressPercent,
+} from './run-streaming';
