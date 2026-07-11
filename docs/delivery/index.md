@@ -1,11 +1,12 @@
 # Delivery Reports Index
 
-Total: 62
-Ready: 31
-Latest: V181
+Total: 63
+Ready: 32
+Latest: V182
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
+| V182 | ready | 100% | 84% lines / 89% branches | n/a | `docs/delivery/v182-delivery-report.md` |
 | V181 | ready | 100% | 100% (run-streaming) | n/a | `docs/delivery/v181-delivery-report.md` |
 | V180 | ready | 100% | 100% (whisper-local-client) | n/a | `docs/delivery/v180-delivery-report.md` |
 | V179 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v179-delivery-report.md` |

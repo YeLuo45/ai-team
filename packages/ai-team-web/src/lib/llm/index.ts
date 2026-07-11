@@ -73,3 +73,12 @@ export {
   completedResults,
   progressPercent,
 } from './run-streaming';
+
+export {
+  type ExportOptions,
+  type ExportEnvelope,
+  serialize,
+  toBlob,
+  exportFilename,
+  downloadResults,
+} from './eval-export';
