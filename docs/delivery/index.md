@@ -1,12 +1,12 @@
 # Delivery Reports Index
 
-Total: 77
-Ready: 46
-Latest: V188
+Total: 78
+Ready: 47
+Latest: V196
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
-| V188 | ready | 100% | 100% lines (privacy/override-log) | n/a | `docs/delivery/v188-delivery-report.md` |
+| V196 | ready | 100% | 99% lines (audio/noise-stats) | n/a | `docs/delivery/v196-delivery-report.md` |
 | V183 | ready | 100% | 92% lines / 91% branches | n/a | `docs/delivery/v183-delivery-report.md` |
 | V186 | ready | 75% (6 pass, 2 happy-dom skip) | n/a (UI) | n/a | `docs/delivery/v186-delivery-report.md` |
 | V182 | ready | 100% | 84% lines / 89% branches | n/a | `docs/delivery/v182-delivery-report.md` |
