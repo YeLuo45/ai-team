@@ -262,10 +262,11 @@ describe('V107 Navigation groups', () => {
     expect(keys).toEqual(['recruitment', 'members', 'intelligence', 'system']);
   });
 
-  it('resolveNavGroups keeps all 17 routes under the 4 groups', () => {
+  it('resolveNavGroups keeps all 18 routes under the 4 groups', () => {
     const groups = resolveNavGroups();
     const total = groups.reduce((acc, g) => acc + g.items.length, 0);
-    expect(total).toBe(17);
+    // V202: added /eval-dashboard to intelligence group (was 17 → 18).
+    expect(total).toBe(18);
   });
 
   it('every nav item has a path, label, and testId', () => {

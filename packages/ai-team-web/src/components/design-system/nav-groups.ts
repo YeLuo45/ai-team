@@ -48,6 +48,7 @@ export const PRIMARY_NAV_GROUPS: NavGroup[] = [
       { path: '/orchestration', label: '编排台', testId: 'nav-orchestration', keywords: ['workflow'] },
       { path: '/agents', label: '合规 Agent', testId: 'nav-agents', keywords: ['compliance'] },
       { path: '/agent-config', label: 'Agent 配置', testId: 'nav-agent-config', keywords: ['config'] },
+      { path: '/eval-dashboard', label: 'Eval 仪表盘', testId: 'nav-eval-dashboard', keywords: ['eval', 'dashboard'] },
     ],
   },
   {
