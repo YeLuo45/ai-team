@@ -1,32 +1,44 @@
 # Delivery Reports Index
 
-Total: 80
-Ready: 49
+Total: 78
+Ready: 14
 Latest: V198
 
 | Version | Status | Tests | Coverage | README | Path |
 |---|---|---:|---:|---:|---|
-| V198 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v198-delivery-report.md` |
-| V183 | ready | 100% | 92% lines / 91% branches | n/a | `docs/delivery/v183-delivery-report.md` |
-| V186 | ready | 75% (6 pass, 2 happy-dom skip) | n/a (UI) | n/a | `docs/delivery/v186-delivery-report.md` |
-| V182 | ready | 100% | 84% lines / 89% branches | n/a | `docs/delivery/v182-delivery-report.md` |
-| V181 | ready | 100% | 100% (run-streaming) | n/a | `docs/delivery/v181-delivery-report.md` |
-| V180 | ready | 100% | 100% (whisper-local-client) | n/a | `docs/delivery/v180-delivery-report.md` |
-| V179 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v179-delivery-report.md` |
-| V178 | ready | 100% | 89% lines / 100% funcs | n/a | `docs/delivery/v178-delivery-report.md` |
-| V177 | ready | 100% | 100% (privacy/guard) | n/a | `docs/delivery/v177-delivery-report.md` |
-| V176 | ready | 100% | n/a (UI) | n/a | `docs/delivery/v176-delivery-report.md` |
-| V175 | ready | 100% | 96% (eval-harness) | n/a | `docs/delivery/v175-delivery-report.md` |
-| V174 | ready | 100% | 100% (privacy/summary) | n/a | `docs/delivery/v174-delivery-report.md` |
-| V173 | ready | 100% | 97% (whisper-client) | n/a | `docs/delivery/v173-delivery-report.md` |
-| V172 | ready | 100% | n/a | n/a | `docs/delivery/v172-delivery-report.md` |
-| V171 | ready | 100% | 96% (llm dir) | n/a | `docs/delivery/v171-delivery-report.md` |
-| V170 | ready | 100% | 95% (target) | n/a | `docs/delivery/v170-delivery-report.md` |
-| V169 | ready | 100% | n/a | n/a | `docs/delivery/v169-delivery-report.md` |
-| V168 | ready | 100% | n/a | n/a | `docs/delivery/v168-delivery-report.md` |
-| V167 | ready | 100% | n/a | n/a | `docs/delivery/v167-delivery-report.md` |
-| V166 | ready | 100% | n/a | n/a | `docs/delivery/v166-delivery-report.md` |
-| V165 | ready | 100% | n/a | n/a | `docs/delivery/v165-delivery-report.md` |
+| V198 | blocked | 0% | 0% | 0/0 | `docs/delivery/v198-delivery-report.md` |
+| V197 | blocked | 0% | 0% | 0/0 | `docs/delivery/v197-delivery-report.md` |
+| V196 | blocked | 0% | 0% | 0/0 | `docs/delivery/v196-delivery-report.md` |
+| V195 | blocked | 0% | 0% | 0/0 | `docs/delivery/v195-delivery-report.md` |
+| V193 | blocked | 0% | 0% | 0/0 | `docs/delivery/v193-delivery-report.md` |
+| V192 | blocked | 0% | 0% | 0/0 | `docs/delivery/v192-delivery-report.md` |
+| V191 | blocked | 0% | 0% | 0/0 | `docs/delivery/v191-delivery-report.md` |
+| V190 | blocked | 0% | 0% | 0/0 | `docs/delivery/v190-delivery-report.md` |
+| V189 | blocked | 0% | 0% | 0/0 | `docs/delivery/v189-delivery-report.md` |
+| V188 | blocked | 0% | 0% | 0/0 | `docs/delivery/v188-delivery-report.md` |
+| V187 | blocked | 0% | 0% | 0/0 | `docs/delivery/v187-delivery-report.md` |
+| V186 | blocked | 0% | 0% | 40/40 | `docs/delivery/v186-delivery-report.md` |
+| V185 | blocked | 0% | 0% | 0/0 | `docs/delivery/v185-delivery-report.md` |
+| V184 | blocked | 0% | 0% | 40/40 | `docs/delivery/v184-delivery-report.md` |
+| V183 | blocked | 0% | 0% | 40/40 | `docs/delivery/v183-delivery-report.md` |
+| V182 | blocked | 0% | 0% | 40/40 | `docs/delivery/v182-delivery-report.md` |
+| V181 | blocked | 0% | 0% | 40/40 | `docs/delivery/v181-delivery-report.md` |
+| V180 | blocked | 0% | 0% | 40/40 | `docs/delivery/v180-delivery-report.md` |
+| V179 | blocked | 0% | 0% | 40/40 | `docs/delivery/v179-delivery-report.md` |
+| V178 | blocked | 0% | 0% | 40/40 | `docs/delivery/v178-delivery-report.md` |
+| V177 | blocked | 0% | 0% | 40/40 | `docs/delivery/v177-delivery-report.md` |
+| V176 | blocked | 0% | 0% | 40/40 | `docs/delivery/v176-delivery-report.md` |
+| V175 | blocked | 0% | 0% | 40/40 | `docs/delivery/v175-delivery-report.md` |
+| V174 | blocked | 0% | 0% | 40/40 | `docs/delivery/v174-delivery-report.md` |
+| V173 | blocked | 0% | 0% | 40/40 | `docs/delivery/v173-delivery-report.md` |
+| V172 | blocked | 0% | 0% | 0/0 | `docs/delivery/v172-delivery-report.md` |
+| V171 | blocked | 0% | 0% | 0/0 | `docs/delivery/v171-delivery-report.md` |
+| V170 | blocked | 0% | 0% | 0/0 | `docs/delivery/v170-delivery-report.md` |
+| V169 | blocked | 0% | 0% | 40/40 | `docs/delivery/v169-delivery-report.md` |
+| V168 | blocked | 0% | 0% | 40/40 | `docs/delivery/v168-delivery-report.md` |
+| V167 | blocked | 0% | 0% | 40/40 | `docs/delivery/v167-delivery-report.md` |
+| V166 | blocked | 0% | 0% | 40/40 | `docs/delivery/v166-delivery-report.md` |
+| V165 | blocked | 0% | 0% | 40/40 | `docs/delivery/v165-delivery-report.md` |
 | V164 | blocked | 100% | 98.28% | 40/40 | `docs/delivery/v164-delivery-report.md` |
 | V163 | blocked | 0% | 0% | 0/0 | `docs/delivery/v163-delivery-report.md` |
 | V161 | blocked | 0% | 0% | 0/0 | `docs/delivery/v161-delivery-report.md` |

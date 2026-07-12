@@ -72,6 +72,7 @@ export {
   progressPercent,
 } from './run-streaming';
 
+export { OllamaProvider } from './ollama-provider';
 export { OllamaProvider as DefaultOllamaProvider } from './ollama-provider';
 
 export {

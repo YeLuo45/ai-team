@@ -313,10 +313,11 @@ ai-team agent-config presets
 - **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
 - **V31 Tech Policy + Media Compliance Agents**: tech-policy-agent (security/compliance/ops/governance) and media-compliance-agent (wechat/douyin/xiaohongshu/bilibili/feishu/other) both reach 100% module coverage
 
-## Recent additions (V165-V192, candidate-suggestion pipeline)
+## Recent additions (V165-V199, candidate-suggestion + eval-dashboard pipeline)
 
 The candidate-suggestion sub-system now ships a complete meetily-aligned
-local STT/transcription/eval pipeline. Everything listed below is
+local STT/transcription/eval pipeline, plus a presentational dashboard
+that aggregates the V191 eval summary. Everything listed below is
 covered by the **ai-team-web** package and imports cleanly from
 `src/lib/*`. Detailed reports live in
 [`docs/delivery/`](./docs/delivery/).
@@ -383,6 +384,36 @@ covered by the **ai-team-web** package and imports cleanly from
 
 - `components/audio/WaveformDiffView.tsx` — presentational card
   feeding V184 with two buffers.
+
+### V188 — Privacy override log
+
+- `lib/privacy/override-log.ts` — durable audit trail of every
+  consent decision that released a privacy-sensitive operation.
+  Pluggable storage adapter (in-memory by default).
+
+### V193-V199 — Eval dashboard + cross-session reuse + subtitle helpers
+
+- `lib/question-suggestion/reuse.ts` (V193) — surface questions the
+  same candidate already adopted for the same focus area across past
+  interviews, against the V169 history storage.
+- `lib/llm/eval-summary.ts` (V191) — single snapshot type aggregating
+  V175 eval-case results + V187 timeline summaries + V169 adoption
+  events.
+- `lib/audio/noise-stats.ts` (V196) — per-chunk RMS + sliding-window
+  SNR meter for V192's `LiveSubtitlePanel`.
+- `lib/subtitle/editor.ts` (V197) — pure helpers that apply live
+  corrections to V185's cue stream.
+- `lib/subtitle/export.ts` (V195) — one-click SRT/VTT export glue
+  fusing V185 chunks with V182 formatting.
+- `components/interview/ReuseBar.tsx` (V198) — presentational UI
+  for V193's cross-session reuse helpers.
+- `components/llm/EvalDashboardPage.tsx` (V199) — presentational
+  dashboard rendering the V191 eval-summary snapshot (recent run
+  stats, top failures, adopted questions, timeline).
+- V171 follow-up: `packages/ai-team-web/src/lib/llm/index.ts` now
+  re-exports `OllamaProvider` directly (alongside the existing
+  `DefaultOllamaProvider` alias) so consumers can instantiate the
+  class without going through the registry.
 
 ## License
 

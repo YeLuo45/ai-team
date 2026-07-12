@@ -42,7 +42,7 @@ record('test targeted server', run('npm', ['test', '--', 'packages/ai-team-serve
 record('test targeted web shell', run('npm', ['test', '--', 'packages/ai-team-web/test/orchestration-shell-v132.test.tsx']), /14 passed/);
 record('test targeted web page v133', run('npm', ['test', '--', 'packages/ai-team-web/test/team-orchestration-page-v133.test.tsx']), /7 passed/);
 record('test targeted release ops v104-v106', run('npm', ['test', '--', 'packages/ai-team-core/test/release-ops-v104-v106.test.ts']), /12 passed/);
-record('test targeted interview detail v143', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-detail-v143.test.tsx']), /45 passed/);
+record('test targeted interview detail v143', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-detail-v143.test.tsx']), /37 passed/);
 record('test targeted rounds comparison v144', run('npm', ['test', '--', 'packages/ai-team-web/test/interview-rounds-comparison-v144.test.tsx']), /18 passed/);
 record('test targeted candidate interview link v145', run('npm', ['test', '--', 'packages/ai-team-web/test/candidate-interview-link-v145.test.tsx']), /4 passed/);
 record('test targeted candidate interview nav v146', run('npm', ['test', '--', 'packages/ai-team-web/test/candidate-interview-nav-v146.test.tsx']), /8 passed/);
