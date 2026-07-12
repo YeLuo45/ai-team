@@ -313,6 +313,77 @@ ai-team agent-config presets
 - **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
 - **V31 Tech Policy + Media Compliance Agents**: tech-policy-agent (security/compliance/ops/governance) and media-compliance-agent (wechat/douyin/xiaohongshu/bilibili/feishu/other) both reach 100% module coverage
 
+## Recent additions (V165-V192, candidate-suggestion pipeline)
+
+The candidate-suggestion sub-system now ships a complete meetily-aligned
+local STT/transcription/eval pipeline. Everything listed below is
+covered by the **ai-team-web** package and imports cleanly from
+`src/lib/*`. Detailed reports live in
+[`docs/delivery/`](./docs/delivery/).
+
+### V165-V169 — Interview suggestion history
+
+- `lib/question-suggestion/history.ts` — append-only suggestion
+  history bound to localStorage.
+- `lib/question-suggestion/cache.ts` — per-candidate × per-position
+  cross-session suggestion cache.
+- `components/interview/QuestionSuggestionHistory.tsx` (V165)
+- On-adopt writes (V169) keep history ↔ cache in sync.
+
+### V170 — LCS-based diff view
+
+- `lib/question-suggestion/diff.ts` — word-level LCS diff.
+- `components/interview/SuggestionDiffView.tsx`.
+
+### V171-V174 — meetily 4 capabilities (Ollama / Speaker / Whisper-server / Privacy)
+
+| # | Capability | Module |
+|---|---|---|
+| V171 | **Ollama local LLM** | `lib/llm/ollama-provider.ts` |
+| V172 | **Speaker Diarization** | `lib/stt/speaker-timeline.ts` + `SpeakerDiarizationView.tsx` |
+| V173 | **Whisper-server (whisper.cpp)** | `lib/stt/whisper-server-client.ts` + `lib/stt/whisper-provider.ts` |
+| V174 | **Privacy Badge** | `lib/privacy/summary.ts` + `components/privacy/PrivacyBadge.tsx` |
+
+### V175-V182 — AI agent eval pipeline + export
+
+- `lib/llm/eval-harness.ts` (V175) — `runEvalSuite` / `summarise` etc.
+- `components/llm/EvalResultsTable.tsx` (V176)
+- `lib/question-suggestion/guard.ts` (V177) — `PrivacyGuard` gate
+  + `lib/privacy/guard.ts` (V177).
+- `lib/llm/fixture-loader.ts` (V178) — schema-validating JSON loader.
+- `lib/llm/run-streaming.ts` (V181) — streaming-progress variant.
+- `lib/llm/eval-export.ts` (V182) — JSON / NDJSON / Markdown export.
+
+### V186 — Streaming eval runner UI
+
+- `components/llm/EvalRunnerStreaming.tsx` — wires V181 + V176 + V182.
+
+### V183-V185 — STT × Subtitle
+
+- `lib/stt/transformers-adapter.ts` (V183) — `@huggingface/transformers`
+  contract for V180 to swap mock pipeline for ONNX runtime.
+- `lib/audio/waveform-diff.ts` (V184) — RMS / similarity / delta.
+- `lib/subtitle/cue.ts` + `lib/subtitle/stream.ts` (V185) —
+  `chunkToCues` / `chunksToSrt` / `chunksToVtt` /
+  `SubtitleAccumulator` streaming pipeline.
+
+### V187 — Eval timeline
+
+- `lib/llm/eval-timeline.ts` — buildEntry / pruneTimeline /
+  summariseTimeline / latestFailure / renderTimelineMarkdown.
+
+### V189-V192 — Test infra + live subtitle
+
+- `lib/test/timing-stabilizer.ts` (V189) — `flushUntil` / `commit`.
+- `lib/stt/audio-source.ts` (V192) — `AudioSource` / `BufferedAudioSource`.
+- `components/stt/LiveSubtitlePanel.tsx` (V192) — wires V192 +
+  V185 + caller-supplied `transcribe` fn.
+
+### V190 — Waveform diff view
+
+- `components/audio/WaveformDiffView.tsx` — presentational card
+  feeding V184 with two buffers.
+
 ## License
 
 MIT
