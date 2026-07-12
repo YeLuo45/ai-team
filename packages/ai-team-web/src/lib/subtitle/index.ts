@@ -19,3 +19,14 @@ export {
   SubtitleAccumulator,
   runStreamingSubtitles,
 } from './stream';
+export {
+  type SubtitleFormat,
+  type SubtitleExportOptions,
+  type SubtitleEnvelope,
+  serializeSubtitles,
+  subtitleToCues,
+  subtitleBlob,
+  subtitleMime,
+  subtitleFilename,
+  downloadSubtitle,
+} from './export';
