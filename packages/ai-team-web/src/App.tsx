@@ -22,6 +22,7 @@ import AuditConsole from './pages/AuditConsole';
 import AgentReviewConsole from './pages/AgentReviewConsole';
 import AgentConfig from './pages/AgentConfig';
 import { EvalDashboard } from './pages/EvalDashboard';
+import { PrivacyOverrideLogPage } from './pages/PrivacyOverrideLogPage';
 // V133: TeamOrchestrationConsole is now a 1-line wrapper around ConsoleShell
 // (kept the import for backward compatibility with any external consumers)
 import TeamOrchestrationConsole from './pages/TeamOrchestrationConsole';
@@ -59,6 +60,7 @@ export default function App() {
                   <Route path="/heatmap" element={<Heatmap />} />
                   <Route path="/audit" element={<AuditConsole />} />
                   <Route path="/eval-dashboard" element={<EvalDashboard />} />
+                  <Route path="/privacy-override-log" element={<PrivacyOverrideLogPage />} />
                   <Route path="/agents" element={<AgentReviewConsole />} />
                   <Route path="/agent-config" element={<AgentConfig />} />
                   <Route

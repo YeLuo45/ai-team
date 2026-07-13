@@ -313,7 +313,7 @@ ai-team agent-config presets
 - **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
 - **V31 Tech Policy + Media Compliance Agents**: tech-policy-agent (security/compliance/ops/governance) and media-compliance-agent (wechat/douyin/xiaohongshu/bilibili/feishu/other) both reach 100% module coverage
 
-## Recent additions (V165-V201, candidate-suggestion + eval-dashboard + privacy-audit pipeline)
+## Recent additions (V165-V203, candidate-suggestion + eval-dashboard + privacy-audit pipeline)
 
 The candidate-suggestion sub-system now ships a complete meetily-aligned
 local STT/transcription/eval pipeline, plus a presentational dashboard
@@ -391,7 +391,7 @@ covered by the **ai-team-web** package and imports cleanly from
   consent decision that released a privacy-sensitive operation.
   Pluggable storage adapter (in-memory by default).
 
-### V193-V201 — Eval dashboard + cross-session reuse + privacy audit UI
+### V193-V203 — Eval dashboard + cross-session reuse + privacy audit UI
 
 - `lib/question-suggestion/reuse.ts` (V193) — surface questions the
   same candidate already adopted for the same focus area across past
@@ -416,6 +416,11 @@ covered by the **ai-team-web** package and imports cleanly from
 - `pages/EvalDashboard.tsx` (V201) — SPA wrapper that mounts V199 +
   reads V165 history storage + adapts the events to the V191
   AdoptionEvent contract. Reachable at `/eval-dashboard`.
+- `pages/PrivacyOverrideLogPage.tsx` (V203) — SPA wrapper that
+  reads the V188 `PrivacyOverrideLog` straight from `localStorage`
+  (key `ai-team:privacy-override-log`) and feeds the events to the
+  V200 `PrivacyOverrideLogView`. Reachable at `/privacy-override-log`
+  and added to the sidebar nav under **System → Override 日志**.
 - V171 follow-up: `packages/ai-team-web/src/lib/llm/index.ts` now
   re-exports `OllamaProvider` directly (alongside the existing
   `DefaultOllamaProvider` alias) so consumers can instantiate the
