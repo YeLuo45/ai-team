@@ -58,6 +58,7 @@ export const PRIMARY_NAV_GROUPS: NavGroup[] = [
     items: [
       { path: '/audit', label: '审计', testId: 'nav-audit', keywords: ['audit'] },
       { path: '/privacy-override-log', label: 'Override 日志', testId: 'nav-privacy-override-log', keywords: ['privacy', 'override'] },
+      { path: '/noise-stats-lab', label: '噪声实验室', testId: 'nav-noise-stats-lab', keywords: ['noise', 'audio', 'meter'] },
       { path: '/notifications', label: '通知', testId: 'nav-notifications', keywords: ['notification'] },
       { path: '/data', label: '数据', testId: 'nav-data', keywords: ['data'] },
     ],

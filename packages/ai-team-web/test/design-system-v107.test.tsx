@@ -262,12 +262,13 @@ describe('V107 Navigation groups', () => {
     expect(keys).toEqual(['recruitment', 'members', 'intelligence', 'system']);
   });
 
-  it('resolveNavGroups keeps all 19 routes under the 4 groups', () => {
+  it('resolveNavGroups keeps all 20 routes under the 4 groups', () => {
     const groups = resolveNavGroups();
     const total = groups.reduce((acc, g) => acc + g.items.length, 0);
     // V202: added /eval-dashboard → 18.
     // V203: added /privacy-override-log → 19.
-    expect(total).toBe(19);
+    // V206: added /noise-stats-lab → 20.
+    expect(total).toBe(20);
   });
 
   it('every nav item has a path, label, and testId', () => {
