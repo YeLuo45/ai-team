@@ -9,6 +9,15 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['packages/ai-team-web/**', 'happy-dom'],
     ],
+    setupFiles: [
+      'packages/ai-team-web/vitest.setup.ts',
+    ],
+    // V208: App-integration tests (V120, V127) render the full
+    // App + SSE bridges + onboarding tour. They reliably take 3-4s
+    // in isolation but the parallel happy-dom pool adds overhead and
+    // pushes them past the 5s default. Bump to 30s so `npm test`
+    // doesn't time out spuriously.
+    testTimeout: 30_000,
     server: {
       deps: {
         // For Web tests using happy-dom, exclude the parts of @ai-team/core

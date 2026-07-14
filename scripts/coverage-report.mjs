@@ -33,6 +33,13 @@ const STRICT_LAYERS = {
   'server/middleware': /^packages\/ai-team-server\/src\/middleware\//,
   'server/team-orchestration': /^packages\/ai-team-server\/src\/routes\/team-orchestration\.ts$/,
   'web/lib-format':  /^packages\/ai-team-web\/src\/lib\/format\.ts$/,
+  // V208: register V196 NoiseStats helpers as a strict-95% layer so the
+  // per-chunk RMS / sliding-window SNR helpers feeding V204 NoiseStatsPanel
+  // + V205 NoiseStatsLabPage stay under coverage gate.
+  'v196/web-noise-stats': /^packages\/ai-team-web\/src\/lib\/audio\/noise-stats\.ts$/,
+  // V208: register V188 PrivacyOverrideLog as a strict layer so the audit
+  // trail module powering V200/V203 keeps ≥95% coverage.
+  'v188/web-privacy-override-log': /^packages\/ai-team-web\/src\/lib\/privacy\/override-log\.ts$/,
   // V32: per-agent independent configuration (incremental layer, exact-match files only)
   'v32/core-agent-config': /^packages\/ai-team-core\/src\/agent-config\.ts$/,
   'v32/agent-config-loader': /^packages\/ai-team-agent\/src\/agent-config-loader\.ts$/,

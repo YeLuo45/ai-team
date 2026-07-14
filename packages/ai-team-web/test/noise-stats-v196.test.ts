@@ -120,3 +120,64 @@ describe('classifyNoise + noiseFillPercent', () => {
     expect(noiseFillPercent(empty)).toBe(0);
   });
 });
+
+// V208: branch coverage for the strict-95% layer — exercise the
+// edge branches inside summariseNoise / NoiseSlidingWindow that the
+// happy-path tests above miss:
+//
+//   1. Empty Float32Array → rmsOf/peakOf early-return path (n === 0)
+//   2. Single-chunk window → avgQuartile slice === []
+//   3. All-silent chunks → quietQuartile === 0 → SNR === 0
+//      (the `quietQuartile > 0 ? ... : 0` falsy branch)
+describe('summariseNoise edge branches (V208)', () => {
+  function emptyChunk(): AudioChunk {
+    return {
+      startMs: 0,
+      samples: new Float32Array(0),
+      sampleRate: 16_000,
+    };
+  }
+
+  it('handles a chunk with zero samples', () => {
+    const s = summariseNoise([emptyChunk()]);
+    expect(s.rmsMean).toBe(0);
+    expect(s.rmsMax).toBe(0);
+    expect(s.peak).toBe(0);
+    // Empty samples means the silence gate (RMS=0) classifies it
+    // as silent — but rmsOf returns 0 cleanly without dividing.
+    expect(s.silentRatio).toBeGreaterThanOrEqual(0);
+    expect(s.chunkCount).toBe(1);
+  });
+
+  it('handles a single-chunk window without crashing', () => {
+    // Window size < 4 means avgQuartile's slice is empty for both
+    // quiet / loud quartiles — exercises the `slice.length === 0`
+    // early-return branch inside avgQuartile.
+    const s = summariseNoise([chunk(0.3)], { silenceThreshold: 0.01 });
+    expect(s.chunkCount).toBe(1);
+    expect(s.rmsMean).toBeCloseTo(0.3, 5);
+    // quietQuartile = avgQuartile([], 0, 0) === 0 → SNR = 0.
+    expect(s.signalToSilenceRatio).toBe(0);
+  });
+
+  it('reports SNR === 0 when quiet quartile is zero (empty chunks)', () => {
+    // quietQuartile = avgQuartile(empty, 0, 0) = 0 (slice.length === 0
+    // branch inside avgQuartile). When quietQuartile === 0 the ternary
+    // `quietQuartile > 0 ? ... : 0` takes the falsy arm → SNR = 0.
+    const s = summariseNoise([emptyChunk(), emptyChunk()]);
+    expect(s.signalToSilenceRatio).toBe(0);
+  });
+
+  it('NoiseSlidingWindow accepts a single empty chunk', () => {
+    // Pushing an empty chunk into the window should produce a
+    // zeros-only summary without crashing on sqrt(0/0).
+    const w = new NoiseSlidingWindow(4);
+    const s = w.push(emptyChunk());
+    expect(s.chunkCount).toBe(1);
+    expect(s.rmsMean).toBe(0);
+    expect(s.peak).toBe(0);
+    // WINDOW_SIZE 4 means averageQuartile slice is empty — the
+    // same edge branch as the single-chunk window case.
+    expect(s.signalToSilenceRatio).toBe(0);
+  });
+});

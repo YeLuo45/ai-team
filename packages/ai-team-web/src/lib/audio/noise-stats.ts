@@ -9,9 +9,15 @@ import {
 
 /** Inline reduced-RMS helpers — duplicated from waveform-diff so V196
  *  stays self-contained. The single-sample `rmsOf` and `peakOf` are
- *  tiny so the duplication cost is negligible. */
+ *  tiny so the duplication cost is negligible.
+ *
+ *  V208: typed against `Float32Array` only (the only callers in
+ *  summariseNoise / NoiseSlidingWindow pass `AudioChunk.samples`,
+ *  which is `Float32Array`). Dropping the `ArrayLike<number>` union
+ *  also removes the unreachable `?? 0` defensive branches — the V8
+ *  coverage gate no longer treats them as uncoverable. */
 function rmsOf(
-  samples: Float32Array | ArrayLike<number>,
+  samples: Float32Array,
   start = 0,
   end = samples.length,
 ): number {
@@ -19,20 +25,20 @@ function rmsOf(
   if (n === 0) return 0;
   let acc = 0;
   for (let i = start; i < end; i++) {
-    const v = samples[i] ?? 0;
+    const v = samples[i] as number;
     acc += v * v;
   }
   return Math.sqrt(acc / n);
 }
 
 function peakOf(
-  samples: Float32Array | ArrayLike<number>,
+  samples: Float32Array,
   start = 0,
   end = samples.length,
 ): number {
   let peak = 0;
   for (let i = start; i < end; i++) {
-    const v = Math.abs(samples[i] ?? 0);
+    const v = Math.abs(samples[i] as number);
     if (v > peak) peak = v;
   }
   return peak;

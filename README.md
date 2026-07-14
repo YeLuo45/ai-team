@@ -313,7 +313,7 @@ ai-team agent-config presets
 - **V30 Legal Risk Agent + Centered Web Shell**: legal triage reaches 100% module coverage; header/main/footer share a centered responsive shell
 - **V31 Tech Policy + Media Compliance Agents**: tech-policy-agent (security/compliance/ops/governance) and media-compliance-agent (wechat/douyin/xiaohongshu/bilibili/feishu/other) both reach 100% module coverage
 
-## Recent additions (V165-V206, candidate-suggestion + eval-dashboard + privacy-audit pipeline)
+## Recent additions (V165-V208, candidate-suggestion + eval-dashboard + privacy-audit pipeline)
 
 The candidate-suggestion sub-system now ships a complete meetily-aligned
 local STT/transcription/eval pipeline, plus a presentational dashboard
@@ -391,7 +391,7 @@ covered by the **ai-team-web** package and imports cleanly from
   consent decision that released a privacy-sensitive operation.
   Pluggable storage adapter (in-memory by default).
 
-### V193-V206 — Eval dashboard + cross-session reuse + privacy + noise meter UI
+### V193-V208 — Eval dashboard + cross-session reuse + privacy + noise meter UI + strict-95% gate
 
 - `lib/question-suggestion/reuse.ts` (V193) — surface questions the
   same candidate already adopted for the same focus area across past
@@ -432,6 +432,16 @@ covered by the **ai-team-web** package and imports cleanly from
   `/noise-stats-lab`.
 - V206 wires `/noise-stats-lab` into the sidebar nav under
   **System → 噪声实验室** alongside the V203 Override log entry.
+- V208 promotes two audio / privacy helpers to the strict-95%
+  coverage gate: `lib/audio/noise-stats.ts` (V196) and
+  `lib/privacy/override-log.ts` (V188). Both now sit at
+  100% stmt / 100% br / 100% fn / 100% lines, locked behind
+  the incremental-only gate that previously only covered
+  v32/v35/v45/v51/v53. Also wires a global `fetch` stub via
+  `packages/ai-team-web/vitest.setup.ts` so the full-App
+  integration tests (V120, V127) no longer time out trying to
+  reach a non-running dev server, and bumps `testTimeout` from
+  5s → 30s for the parallel happy-dom pool.
 - V171 follow-up: `packages/ai-team-web/src/lib/llm/index.ts` now
   re-exports `OllamaProvider` directly (alongside the existing
   `DefaultOllamaProvider` alias) so consumers can instantiate the

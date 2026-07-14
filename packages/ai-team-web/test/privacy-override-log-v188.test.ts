@@ -83,6 +83,17 @@ describe('PrivacyOverrideLog — filter / count / prune', () => {
     expect(removed).toBe(2);
     expect(log.list().map((e) => e.id)).toEqual(['new']);
   });
+
+  // V208: branch coverage — when nothing matches the cutoff,
+  // `removed === 0` and `persist()` is skipped. Uses a strict
+  // future cutoff so every recorded event survives.
+  it('prune returns 0 (and skips persist) when nothing is older', () => {
+    const log = new PrivacyOverrideLog();
+    log.record(makeEvent({ id: 'fresh', decidedAtMs: NOW }));
+    const removed = log.prune(NOW - 7 * DAY);
+    expect(removed).toBe(0);
+    expect(log.list().length).toBe(1);
+  });
 });
 
 describe('PrivacyOverrideLog — storage adapter', () => {
@@ -146,10 +157,29 @@ describe('makeOverrideId + formatOverrideLine', () => {
     expect(a.startsWith('priv-')).toBe(true);
   });
 
+  // V208: branch coverage — exercises the `actor ?? 'anon'` falsy
+  // arm of makeOverrideId so anonymous callers get a stable seed.
+  it('falls back to anon when no actor is supplied', () => {
+    const a = makeOverrideId(NOW);
+    const b = makeOverrideId(NOW);
+    expect(a).toBe(b);
+    expect(a).toContain('anon');
+    expect(a.startsWith('priv-')).toBe(true);
+  });
+
   it('renders a tab-separated override line', () => {
     const line = formatOverrideLine(makeEvent());
     expect(line).toMatch(/\d{4}-\d{2}-\d{2}T/);
     expect(line).toContain('export-interview');
     expect(line).toContain('allowed');
+  });
+
+  // V208: branch coverage — `event.actor ?? 'anon'` falsy arm of
+  // formatOverrideLine so the line is well-formed for anonymous events.
+  it('renders an override line with anon when actor is missing', () => {
+    const ev = makeEvent();
+    delete (ev as { actor?: string }).actor;
+    const line = formatOverrideLine(ev);
+    expect(line).toContain('anon');
   });
 });
